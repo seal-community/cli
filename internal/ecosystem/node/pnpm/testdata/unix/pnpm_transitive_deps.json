@@ -1,0 +1,40 @@
+[
+  {
+    "name": "cli-internal-mirror",
+    "version": "1.0.0",
+    "path": "/Users/fuwawa/proj",
+    "private": false,
+    "dependencies": {
+      "cypress": {
+        "from": "cypress",
+        "version": "3.4.0",
+        "resolved": "https://registry.npmjs.org/cypress/-/cypress-3.4.0.tgz",
+        "description": "Cypress.io end to end testing tool",
+        "license": "MIT",
+        "author": {
+          "name": "Brian Mann"
+        },
+        "homepage": "https://github.com/cypress-io/cypress",
+        "repository": "git+https://github.com/cypress-io/cypress.git",
+        "path": "/Users/fuwawa/proj/node_modules/.pnpm/cypress@3.4.0/node_modules/cypress",
+        "dependencies": {
+          "arch": {
+            "from": "arch",
+            "version": "2.1.1",
+            "resolved": "https://registry.npmjs.org/arch/-/arch-2.1.1.tgz",
+            "description": "Better `os.arch()` for node and the browser -- detect OS architecture",
+            "license": "MIT",
+            "author": {
+              "name": "Feross Aboukhadijeh",
+              "email": "feross@feross.org",
+              "url": "http://feross.org/"
+            },
+            "homepage": "https://github.com/feross/arch",
+            "repository": "git://github.com/feross/arch.git",
+            "path": "/Users/fuwawa/proj/node_modules/.pnpm/arch@2.1.1/node_modules/arch"
+          }
+        }
+      }
+    }
+  }
+]

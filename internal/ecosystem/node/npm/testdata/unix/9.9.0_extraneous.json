@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "name": "extraneous_test",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "_id": "extraneous_test@1.0.0",
+  "extraneous": false,
+  "path": "/test/output/extraneous_test",
+  "_dependencies": {},
+  "devDependencies": {},
+  "peerDependencies": {},
+  "problems": [
+    "extraneous: semver-regex@1.0.0 /test/output/extraneous_test/node_modules/semver-regex"
+  ],
+  "dependencies": {
+    "semver-regex": {
+      "version": "1.0.0",
+      "resolved": "https://registry.npmjs.org/semver-regex/-/semver-regex-1.0.0.tgz",
+      "overridden": false,
+      "name": "semver-regex",
+      "integrity": "sha512-1vZcoRC+LPtHFkLUPyrabsATDSHerxW+hJBN8h04HZOZBuewbXaNROtUVdEPrTdZsWNq6sfsXDhd48GB2xTG4g==",
+      "engines": {
+        "node": ">=0.10.0"
+      },
+      "_id": "semver-regex@1.0.0",
+      "extraneous": true,
+      "path": "/test/output/extraneous_test/node_modules/semver-regex",
+      "_dependencies": {},
+      "devDependencies": {},
+      "peerDependencies": {},
+      "problems": [
+        "extraneous: semver-regex@1.0.0 /test/output/extraneous_test/node_modules/semver-regex"
+      ]
+    }
+  }
+}

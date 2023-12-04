@@ -1,0 +1,25 @@
+[
+  {
+    "name": "cli-internal-mirror",
+    "version": "1.0.0",
+    "path": "/Users/fuwawa/proj",
+    "private": false,
+    "devDependencies": {
+      "semver-regex": {
+        "from": "semver-regex",
+        "version": "1.0.0",
+        "resolved": "https://registry.npmjs.org/semver-regex/-/semver-regex-1.0.0.tgz",
+        "description": "Regular expression for matching semver versions",
+        "license": "MIT",
+        "author": {
+          "name": "Sindre Sorhus",
+          "email": "sindresorhus@gmail.com",
+          "url": "http://sindresorhus.com"
+        },
+        "homepage": "https://github.com/sindresorhus/semver-regex#readme",
+        "repository": "git+https://github.com/sindresorhus/semver-regex.git",
+        "path": "/Users/fuwawa/proj/node_modules/.pnpm/semver-regex@1.0.0/node_modules/semver-regex"
+      }
+    }
+  }
+]
