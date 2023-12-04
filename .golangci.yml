@@ -1,0 +1,24 @@
+# for configuration: https://golangci-lint.run/usage/configuration/
+
+run:
+  # increase timeout (specifically for windows, without cache)
+  timeout: 3m
+  build-tags:
+    - mock # for test files
+
+linters:
+  enable:
+    - godox # to prevent todos/fixmes from remaining in code
+
+linters-settings:
+  godox:
+    keywords: ["TODO", "FIXME"]
+
+  staticcheck:
+    checks:
+      - "-S1008" # about simplifying conditions https://staticcheck.dev/docs/checks/#S1008
+
+  errcheck:
+    exclude-functions:
+      # used with defer without error checking, can't do anything if failed
+      - (*github.com/schollz/progressbar/v3.ProgressBar).Finish

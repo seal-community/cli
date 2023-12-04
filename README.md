@@ -1,1 +1,1 @@
-# cli
+# Seal CLI

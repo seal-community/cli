@@ -1,0 +1,44 @@
+{
+  "version": "1.0.0",
+  "name": "t",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "_id": "t@1.0.0",
+  "extraneous": false,
+  "path": "/Users/fuwawa/proj",
+  "_dependencies": {
+    "@fastify/multipart": "^8.0.0"
+  },
+  "devDependencies": {},
+  "peerDependencies": {},
+  "dependencies": {
+    "@fastify/multipart": {
+      "version": "8.0.0",
+      "resolved": "https://registry.npmjs.org/@fastify/multipart/-/multipart-8.0.0.tgz",
+      "overridden": false,
+      "name": "@fastify/multipart",
+      "integrity": "sha512-xaH1pGIqYnIJjYs5qG6ryhPSFnWuJIfSXYqEUtzmcyREkMk0SwONd2y+SZ9JXfDmETAC/Ogtc/SRbz+AjZhCkw==",
+      "_id": "@fastify/multipart@8.0.0",
+      "extraneous": false,
+      "path": "/Users/fuwawa/proj/node_modules/@fastify/multipart",
+      "_dependencies": {
+        "@fastify/busboy": "^1.0.0",
+        "@fastify/deepmerge": "^1.0.0",
+        "@fastify/error": "^3.0.0",
+        "@fastify/swagger": "^8.3.1",
+        "@fastify/swagger-ui": "^1.8.0",
+        "fastify-plugin": "^4.0.0",
+        "secure-json-parse": "^2.4.0",
+        "stream-wormhole": "^1.1.0"
+      },
+      "devDependencies": {},
+      "peerDependencies": {},
+      "dependencies": {}
+    }
+  }
+}
