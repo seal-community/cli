@@ -6,7 +6,6 @@ type AnsiColor string
 const (
 	AnsiReset          = "\033[0m"
 	AnsiFaint          = "\033[2m"
-	AnsiResetFaint     = "\033[22m"
 	AnsiBrightRed      = "\033[91m"
 	AnsiBrightGreen    = "\033[92m"
 	AnsiBrightYellow   = "\033[93m"
@@ -16,7 +15,7 @@ const (
 	AnsiOrange         = "\033[38;5;180m"
 	AnsiLightRed       = "\033[38;5;174m"
 	AnsiWarnYellow     = "\033[38;5;184m"
-	AnsiDarkGrey       = "\033[38;5;232m"
-	AnsiColdPurple     = "\033[38;5;54m"
-	AnsiBlue           = "\033[38;5;4m"
+	AnsiDarkGrey       = "\033[90m"
+	AnsiColdPurple     = "\033[95m"
+	AnsiBlue           = "\033[36m"
 )
