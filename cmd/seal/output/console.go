@@ -12,8 +12,10 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
+const falseCanSealValue = "X "
+const maliciousWarningSign = "⚠ "
+
 var trueCanSealValue string
-var falseCanSealValue string
 
 func init() {
 	// using a space to put them in the center
@@ -22,8 +24,6 @@ func init() {
 	} else {
 		trueCanSealValue = "✔ "
 	}
-
-	falseCanSealValue = "X "
 }
 
 type ConsolePrinter struct{}
@@ -88,8 +88,13 @@ func (p ConsolePrinter) Handle(vulnerablePackages []api.PackageVersion, allDeps 
 			hasSealed = common.Colorize(falseCanSealValue, common.AnsiNiceRed)
 		}
 
+		var maliciousSign string = ""
+		if vulnPackage.IsMalicious() {
+			maliciousSign = common.Colorize(maliciousWarningSign, common.AnsiNiceRed)
+		}
+
 		t.AppendRow([]interface{}{
-			vulnPackage.Library.Name,
+			maliciousSign + vulnPackage.Library.Name,
 			vulnPackage.Version,
 			vulnPackage.Library.PackageManager,
 			formatVuln(vulnPackage.OpenVulnerabilities[0]),

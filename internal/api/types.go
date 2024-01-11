@@ -14,12 +14,16 @@ type Page[T interface{}] struct {
 
 type Vulnerability struct {
 	CVE              string  `json:"cve,omitempty"`
+	MaliciousID      string  `json:"malicious_id,omitempty"`
 	SnykID           string  `json:"snyk_id,omitempty"`
 	GitHubAdvisoryID string  `json:"github_advisory_id,omitempty"`
 	UnifiedScore     float32 `json:"unified_score,omitempty"`
 }
 
 func (VulnerabilityObject Vulnerability) PreferredId() string {
+	if VulnerabilityObject.MaliciousID != "" {
+		return VulnerabilityObject.MaliciousID
+	}
 	if VulnerabilityObject.CVE != "" {
 		return VulnerabilityObject.CVE
 	}
@@ -55,6 +59,15 @@ type BulkCheckRequest struct {
 
 func (p *PackageVersion) CanBeFixed() bool {
 	return p.RecommendedLibraryVersionId != ""
+}
+
+func (p *PackageVersion) IsMalicious() bool {
+	for _, vuln := range p.OpenVulnerabilities {
+		if vuln.MaliciousID != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *PackageVersion) Id() string {

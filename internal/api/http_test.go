@@ -158,6 +158,74 @@ func TestSanity(t *testing.T) {
 	}
 }
 
+func TestMalicious(t *testing.T) {
+	dependency := common.Dependency{
+		Name:           "ejs",
+		Version:        "2.7.4",
+		PackageManager: "NPM",
+	}
+	request := BulkCheckRequest{
+		Entries: []common.Dependency{dependency},
+	}
+
+	fakeRoundTripper := fakeRoundTripper{statusCode: 200, jsonContent: `{
+        "items": [
+            {
+                "id": "6f7a8ea8-c536-4e22-9d5d-69a25ac57899",
+                "library": {
+                    "id": "33af4a95-4249-4d3b-9fa5-424184fa4b76",
+                    "name": "ejs",
+                    "package_manager": "NPM",
+                    "source_link": "https://github.com/mde/ejs"
+                },
+                "version": "2.7.4",
+                "open_vulnerabilities": [
+                    {
+						"malicious_id": "MAL-2022-7421",
+                        "unified_score": 10.0
+                    }
+                ],
+                "sealed_vulnerabilities": [],
+                "is_hidden": null,
+                "is_sealed": null,
+                "last_pulled": null,
+                "number_of_times_pulled": null
+            }
+        ],
+        "total": 1,
+        "limit": 1,
+        "offset": 0
+    }`}
+
+	client := http.Client{Transport: fakeRoundTripper}
+
+	method := "POST"
+	url := "https://seal/a/url/endpoint"
+
+	result, statusCode, err := sendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request)
+	if err != nil {
+		t.Fatalf("got error %v", err)
+	}
+
+	if statusCode != 200 {
+		t.Fatalf("got wrong status code %v", statusCode)
+	}
+
+	if len(result.Items) != 1 {
+		t.Fatalf("wrong number of items %v", result.Items)
+	}
+
+	if result.Total != 1 {
+		t.Fatalf("wrong number of total items %v", result.Total)
+	}
+
+	vulnerablePackage := result.Items[0]
+
+	if vulnerablePackage.OpenVulnerabilities[0].MaliciousID != "MAL-2022-7421" {
+		t.Fatalf("wrong malicious id %s", vulnerablePackage.OpenVulnerabilities[0].MaliciousID)
+	}
+}
+
 func TestCustomHeaderCliVersion(t *testing.T) {
 	// IMPORTANT: this will fail if run from vs code, see .vscode/settings.json
 	fakeRoundTripper := fakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
