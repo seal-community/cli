@@ -29,7 +29,7 @@ The `CAN SEAL` and `SEALED VERSION` columns show whether the particular vulnerab
 
 ### Fixing
 To fix the vulnerabilities using the CLI you will need an access token to the sealed packages on the Seal artifact server.
-Register [here](https://app.sealsecurity.io/)).
+You can register [here](https://app.sealsecurity.io/).
 
 1. Go to the root directory of the project and install its dependencies (e.g `npm install`).
 2. Set the access token and project name. There are two ways to do this:
@@ -40,7 +40,7 @@ Register [here](https://app.sealsecurity.io/)).
 	```bash
 	export SEAL_PROJECT=my-test-project
 	```
-	2. Set the access token and project name in the `seal.yml` configuration file in the local work directory as in the following example:
+	2. Set the access token and project name in the `seal-config.yml` configuration file in the local work directory as in the following example:
 	```yml
 	token: ey534tj9htrmoikNMNDakn43jaI5453tjkthspj==
 	project: my-test-project
