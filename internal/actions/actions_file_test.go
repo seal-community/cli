@@ -1,18 +1,20 @@
 package actions
 
 import (
+	"cli/internal/common"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 )
 
 func TestSanityYamlFile(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects:
   my-project-id: # the same one in the config file / shown in ui
@@ -29,14 +31,14 @@ projects:
         2.7.4:
           use: 2.7.4-sp1
           from: seal-ejs
-`
+`, SchemaVersion, common.CliVersion)
 
 	actions, err := Load(strings.NewReader(content))
 	if actions == nil {
 		t.Fatalf("failed loading actions: %v", err)
 	}
 
-	if actions.Meta.CliVersion != "0.1.1" {
+	if actions.Meta.CliVersion != common.CliVersion {
 		t.Fatalf("wrong cli version in loaded actions %s", actions.Meta.CliVersion)
 	}
 
@@ -94,12 +96,12 @@ func TestEmptyConfigFile(t *testing.T) {
 }
 
 func TestNoExtraFields(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
-  cli-version: 0.1.1
+  cli-version: %s
   other: 0.1.2
 
 projects:
@@ -117,7 +119,7 @@ projects:
         2.7.4:
           use: 2.7.4-sp1
           from: seal-ejs
-`
+`, SchemaVersion, common.CliVersion)
 	actions, err := Load(strings.NewReader(content))
 
 	if actions != nil {
@@ -150,10 +152,10 @@ meta:
 }
 
 func TestMissingFieldsErrInMeta(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
 
 projects:
@@ -171,7 +173,7 @@ projects:
         2.7.4:
           use: 2.7.4-sp1
           from: seal-ejs
-`
+`, SchemaVersion)
 	actions, err := Load(strings.NewReader(content))
 
 	if actions != nil {
@@ -184,12 +186,12 @@ projects:
 }
 
 func TestMissingFieldsErrInsideProject(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects:
   my-project-id: # the same one in the config file / shown in ui
@@ -203,7 +205,8 @@ projects:
         2.7.4:
           use: 2.7.4-sp1
           from: seal-ejs
-`
+`, SchemaVersion, common.CliVersion)
+
 	actions, err := Load(strings.NewReader(content))
 
 	if actions != nil {
@@ -216,12 +219,12 @@ projects:
 }
 
 func TestMissingFieldsErrInsideProjectManager(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects:
   my-project-id: # the same one in the config file / shown in ui
@@ -237,7 +240,7 @@ projects:
         2.7.4:
           use: 2.7.4-sp1
           from: seal-ejs
-`
+`, SchemaVersion, common.CliVersion)
 	actions, err := Load(strings.NewReader(content))
 
 	if actions != nil {
@@ -250,12 +253,12 @@ projects:
 }
 
 func TestMissingFieldsErrInsideProjectOverrideVersionValue(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects:
   my-project-id: # the same one in the config file / shown in ui
@@ -271,7 +274,8 @@ projects:
       ejs:
         2.7.4:
           from: seal-ejs
-`
+`, SchemaVersion, common.CliVersion)
+
 	actions, err := Load(strings.NewReader(content))
 
 	if actions != nil {
@@ -284,12 +288,12 @@ projects:
 }
 
 func TestMissingFieldsOfLibraryIsAllowed(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects:
   my-project-id: # the same one in the config file / shown in ui
@@ -305,7 +309,7 @@ projects:
       ejs:
         2.7.4:
           use: 2.7.4-sp1
-`
+`, SchemaVersion, common.CliVersion)
 	actions, err := Load(strings.NewReader(content))
 
 	if actions == nil {
@@ -318,12 +322,12 @@ projects:
 }
 
 func TestEmptyFieldsTargets(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z 
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects:
   my-project-id: 
@@ -339,7 +343,7 @@ projects:
         2.7.4:
           use: 2.7.4-sp1
           from: seal-ejs
-`
+`, SchemaVersion, common.CliVersion)
 
 	actions, err := Load(strings.NewReader(content))
 
@@ -353,12 +357,12 @@ projects:
 }
 
 func TestEmptyFieldsOverrides(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z 
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects:
   my-project-id: 
@@ -371,7 +375,7 @@ projects:
       version: 1.7
 
     overrides: {}
-`
+`, SchemaVersion, common.CliVersion)
 
 	actions, err := Load(strings.NewReader(content))
 	if actions == nil {
@@ -416,15 +420,15 @@ projects:
 }
 
 func TestProjectsAtLeastOne(t *testing.T) {
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects: {}
-`
+`, SchemaVersion, common.CliVersion)
 
 	actions, err := Load(strings.NewReader(content))
 	if actions != nil {
@@ -437,12 +441,12 @@ projects: {}
 }
 func TestProjectsAtMostOne(t *testing.T) {
 	// for now, only 1 project is supported
-	content := `
+	content := fmt.Sprintf(`
 ---
 meta:
-  schema-version: 0.1.0
+  schema-version: %s
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
-  cli-version: 0.1.1
+  cli-version: %s
 
 projects:
   my-project-id: # the same one in the config file / shown in ui
@@ -474,7 +478,7 @@ projects:
         2.7.4:
           use: 2.7.4-sp1
           from: seal-ejs
-`
+`, SchemaVersion, common.CliVersion)
 
 	actions, err := Load(strings.NewReader(content))
 	if actions != nil {
@@ -490,7 +494,7 @@ func TestInvalidSchemaVersionMajor(t *testing.T) {
 	content := `
 ---
 meta:
-  schema-version: 1.1.0
+  schema-version: 100.1.0
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
   cli-version: 0.1.1
 
@@ -525,7 +529,7 @@ func TestValidWithDifferentMinorSchemaVersion(t *testing.T) {
 	content := `
 ---
 meta:
-  schema-version: 0.2.0
+  schema-version: 0.21321321321.0
   created-on: 2023-09-19T10:57:01Z # ISO 8601, utc time
   cli-version: 0.1.1
 
