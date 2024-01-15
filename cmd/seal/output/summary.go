@@ -103,9 +103,17 @@ func (s *Summary) Print() {
 	// if we change the response model / add additional request for each package we could also print the sealed vulnerabilities of the fixed version
 	const prefix = "   "
 	for _, f := range s.Fixes {
-		fmt.Printf("%s replaced with %s\n",
+		overrideMsg := ""
+		if f.pkg.IsOverridden() {
+			// in future we will support remote config as well
+			overrideMsg = common.Colorize(" (local config)", common.AnsiDarkGrey)
+		}
+
+		fmt.Printf("%s replaced with %s%s\n",
 			common.Colorize(f.pkg.Descriptor(), common.AnsiColdPurple),
-			common.Colorize(f.pkg.RecommendedDescriptor(), common.AnsiBlue))
+			common.Colorize(f.pkg.RecommendedDescriptor(), common.AnsiBlue),
+			overrideMsg,
+		)
 
 		for _, path := range f.locations {
 			fmt.Printf("%s%s\n", prefix, common.Colorize(path, common.AnsiDarkGrey))

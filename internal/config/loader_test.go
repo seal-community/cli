@@ -16,7 +16,7 @@ func TestEmptyConfigFile(t *testing.T) {
 	}
 }
 
-func TestEmptyConfigFileOverridenByEnv(t *testing.T) {
+func TestEmptyConfigFileOverriddenByEnv(t *testing.T) {
 	content := ``
 	envToken := "abc"
 	config, err := Load(strings.NewReader(content), EnvMap{"SEAL_TOKEN": envToken})
@@ -42,6 +42,7 @@ func TestNoExtraFields(t *testing.T) {
 		t.Fatalf("should fail parsing yaml with extraneous field: %v", err)
 	}
 }
+
 func TestNoDupFields(t *testing.T) {
 	firstVal := "123"
 	secondVal := "456"
@@ -71,7 +72,7 @@ func TestNonemptyConfigFile(t *testing.T) {
 	}
 }
 
-func TestNonemptyConfigFileOverridenByEnv(t *testing.T) {
+func TestNonemptyConfigFileOverriddenByEnv(t *testing.T) {
 	content := `token: abcd`
 	envToken := "123"
 	config, err := Load(strings.NewReader(content), EnvMap{"SEAL_TOKEN": envToken})
@@ -98,7 +99,7 @@ func TestDefaultValue(t *testing.T) {
 	}
 }
 
-func TestDefaultValueOverridenByConfig(t *testing.T) {
+func TestDefaultValueOverriddenByConfig(t *testing.T) {
 	content := "npm:\n  prod-only: true"
 	config, err := Load(strings.NewReader(content), emptyEnv)
 
@@ -111,7 +112,7 @@ func TestDefaultValueOverridenByConfig(t *testing.T) {
 	}
 }
 
-func TestDefaultValueOverridenByEnv(t *testing.T) {
+func TestDefaultValueOverriddenByEnv(t *testing.T) {
 	content := ``
 	config, err := Load(strings.NewReader(content), EnvMap{"SEAL_NPM_PROD_ONLY": "1"})
 

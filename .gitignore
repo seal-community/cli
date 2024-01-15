@@ -27,6 +27,7 @@ package-lock.json
 package.json
 test/output/
 
-*.seal.yml
+*.seal-config.yml
+*.seal-actions.yml
 
 cmd/seal/__debug_bin*

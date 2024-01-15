@@ -2,15 +2,30 @@ package main
 
 import (
 	"cli/cmd/seal/output"
+	"cli/internal/actions"
+	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/phase"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/maps"
 )
 
 const summaryFlag = "summarize"
+const actionsIgnoreFlag = "ignore-local-config"
+
+func getIgnoreActionsFlag(cmd *cobra.Command) bool {
+	shouldIgnore, err := cmd.Flags().GetBool(actionsIgnoreFlag)
+	if err != nil {
+		// means misconfiguration in code
+		panic("failed getting flag actions ignore value")
+	}
+	return shouldIgnore
+}
 
 func getSummaryPath(cmd *cobra.Command) string {
 	summaryPath, err := cmd.Flags().GetString(summaryFlag)
@@ -60,6 +75,79 @@ func printSummary(summary *output.Summary) {
 	fmt.Println(msg)
 }
 
+func loadActionsFile(targetDir string) (*actions.ActionsFile, error) {
+	actionsFilePath := filepath.Join(targetDir, actions.ActionFileName)
+	f, err := os.Open(actionsFilePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			slog.Info("failed opening conf file", "err", err, "path", actionsFilePath)
+			return nil, common.NewPrintableError("could not open local config file in %s", actionsFilePath)
+		}
+		slog.Info("actions file not found", "path", actions.FailedParsingActionYamlInvalid)
+		return nil, nil
+
+	} else {
+		defer f.Close()
+	}
+
+	// NOTE: project id from the actions file can differ from what we discover in fix phase - currently ok to ignore
+	return actions.Load(f)
+}
+
+func filterVulnerablePackageForProject(vulnPackages []api.PackageVersion, projectSection actions.ProjectSection) []api.PackageVersion {
+	overriddenPackages := make([]api.PackageVersion, 0, len(vulnPackages))
+
+	for _, vulnPackage := range vulnPackages {
+		if vulnPackage.RecommendedLibraryVersionId == "" {
+			// do not allow to 'abuse' this to install package inplace of the vulnerable one if we don't have a SP for it
+			slog.Debug("ignoring vulnerable package - does not have a sealed version", "packageId", vulnPackage.Id())
+			continue
+		}
+
+		ecosystem := vulnPackage.Ecosystem()
+		if ecosystem != projectSection.Manager.Ecosystem {
+			slog.Debug("ignoring vulnerable package - different ecosystem", "package-ecosystem", ecosystem, "project-ecosystem", projectSection.Manager.Ecosystem)
+			continue
+		}
+
+		versionMap, ok := projectSection.Overrides[vulnPackage.Library.Name]
+		if !ok {
+			slog.Debug("ignoring vulnerable package - not in allowed overrides", "name", vulnPackage.Library.Name)
+			continue
+		}
+		override, ok := versionMap[vulnPackage.Version]
+		if !ok {
+			slog.Debug("ignoring vulnerable package version, not in allowed overrides", "name", vulnPackage.Library.Name, "version", vulnPackage.Version)
+			continue
+		}
+
+		slog.Debug("overriding package", "from", fmt.Sprintf("%s@%s", vulnPackage.Library.Name, vulnPackage.Version), "to", fmt.Sprintf("%s@%s", override.Library, override.Version))
+		vulnPackage.RecommendedLibraryVersionString = override.Version
+		// keeping RecommendedLibraryVersionId as it is used to filter out non fixable packages; we will need to update this from BE
+		if override.Library != "" {
+			vulnPackage.Library.Name = override.Library
+		}
+
+		vulnPackage.OverrideMethod = api.OverriddenFromLocal
+		overriddenPackages = append(overriddenPackages, vulnPackage) // will be copied, needs to keep all the other information like vulnerabilities
+	}
+
+	// this can return a 0 length slice if no packages are allowed, which is OK
+	return overriddenPackages
+}
+
+func getVulnerablePackagesAccordingToOverride(vulnPackages []api.PackageVersion, actions *actions.ActionsFile) []api.PackageVersion {
+	if len(actions.Projects) > 1 {
+		// should be prevented by the validator when loading
+		slog.Error("found more than 1 project in actions file - using first", "count", len(actions.Projects))
+	}
+
+	projectId := maps.Keys(actions.Projects)[0]
+	projectSection := actions.Projects[projectId]
+	slog.Info("filtering according to overrides in project", "id", projectId)
+	return filterVulnerablePackageForProject(vulnPackages, projectSection)
+}
+
 func fixCommand() *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:   "fix [directory]",
@@ -81,6 +169,7 @@ func fixCommand() *cobra.Command {
 
 			targetDir := extractTargetDir(args)
 			verbosity := getFlag(cmd, verboseFlagKey)
+			ignoreActionsFile := getIgnoreActionsFlag(cmd)
 			summaryPath := getSummaryPath(cmd)
 
 			// IMPORTANT - after this point printing directly to console would mess up the progress bar, msg should be used instead
@@ -92,6 +181,18 @@ func fixCommand() *cobra.Command {
 
 			defer fixPhase.HideProgress() // should be gone when this is over, hide just in case
 
+			var actions *actions.ActionsFile = nil
+			if !ignoreActionsFile {
+				// performing here for better experience in case of invalid file
+				slog.Info("loading actions file")
+				actions, err = loadActionsFile(targetDir)
+				if err != nil {
+					slog.Error("failed opening local config for fix", "err", err)
+					return common.FallbackPrintableMsg(err, "failed loading local config")
+				}
+				// NOTE: ideally we change the BE to support querying any package, then we pre-fetch it here and notify user, instead of failing later
+			}
+
 			//  auth check could be run in parallel with scan sub command to improve experience
 			slog.Info("authenticating")
 			if err := fixPhase.Authenticate(); err != nil {
@@ -102,6 +203,14 @@ func fixCommand() *cobra.Command {
 			result, err := fixPhase.Scan()
 			if err != nil {
 				return common.FallbackPrintableMsg(err, "failed performing initial scan")
+			}
+
+			if actions != nil {
+				// replace existing slice
+				slog.Info("limiting results according to actions file", "before", len(result.Vulnerable))
+				overriddenPackages := getVulnerablePackagesAccordingToOverride(result.Vulnerable, actions)
+				result.Vulnerable = overriddenPackages // even if we have 0 after filtering, so we don't fix anything
+				slog.Info("total available vulnerable after overriding", "count", len(overriddenPackages))
 			}
 
 			if len(result.Vulnerable) == 0 {
@@ -137,6 +246,7 @@ func fixCommand() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().Bool(actionsIgnoreFlag, false, "ignore definitions in local config")
 	cmd.Flags().String(summaryFlag, "", "output fix summary to path")
 	return cmd
 }

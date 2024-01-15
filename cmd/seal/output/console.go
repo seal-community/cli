@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -96,7 +97,7 @@ func (p ConsolePrinter) Handle(vulnerablePackages []api.PackageVersion, allDeps 
 		t.AppendRow([]interface{}{
 			maliciousSign + vulnPackage.Library.Name,
 			vulnPackage.Version,
-			vulnPackage.Library.PackageManager,
+			strings.Title(vulnPackage.Ecosystem()),
 			formatVuln(vulnPackage.OpenVulnerabilities[0]),
 			hasSealed,
 			vulnPackage.RecommendedLibraryVersionString,

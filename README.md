@@ -17,13 +17,13 @@ Therefore, to get a complete result the dependencies must already be installed.
 2. Run `seal scan`. To save the output as a CSV use `seal scan --csv output.txt`. The dependencies will be checked against several vulnerability databases (such as OSV).
 3. The results will be presented as a table of packages and vulnerabilities, for example:
 
-| LIBRARY           | VERSION | ECOSYSTEM | VULNERABILITIES           | CAN SEAL | SEALED VERSION |
-| :---------------- | :------ | :-------- | :------------------------ | :------: | :------------- |
-| d3-color | 2.0.0 | NPM | GHSA-36jr-mh4h-2g58 (5.3) | V | 2.0.0-sp1 |
-| semver | 7.0.0 | NPM | CVE-2022-25883 (7.5) | V | 7.0.0-sp1 |
-| set-value | 3.0.3 | NPM | CVE-2021-23440 (7.3) | X | |
-| passport-saml | 1.5.0 | NPM | CVE-2022-39299 (8.1) <br> CVE-2021-39171 (5.3) | V | 1.5.0-sp1 |
-| axios | 0.21.4 | NPM | CVE-2023-45857 (7.1) | V | 0.21.4-sp1 |
+| LIBRARY       | VERSION | ECOSYSTEM | VULNERABILITIES                                | CAN SEAL | SEALED VERSION |
+| :------------ | :------ | :-------- | :--------------------------------------------- | :------: | :------------- |
+| d3-color      | 2.0.0   | Node      | GHSA-36jr-mh4h-2g58 (5.3)                      |    V     | 2.0.0-sp1      |
+| semver        | 7.0.0   | Node      | CVE-2022-25883 (7.5)                           |    V     | 7.0.0-sp1      |
+| set-value     | 3.0.3   | Node      | CVE-2021-23440 (7.3)                           |    X     |                |
+| passport-saml | 1.5.0   | Node      | CVE-2022-39299 (8.1) <br> CVE-2021-39171 (5.3) |    V     | 1.5.0-sp1      |
+| axios         | 0.21.4  | Node      | CVE-2023-45857 (7.1)                           |    V     | 0.21.4-sp1     |
 
 The `CAN SEAL` and `SEALED VERSION` columns show whether the particular vulnerable package has a patched version that is available on Seal's artifact server.
 

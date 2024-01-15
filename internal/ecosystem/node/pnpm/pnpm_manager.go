@@ -99,3 +99,11 @@ func listPnpmPackages(targetDir string, npmVersion string, prodOnly bool) (*comm
 	result, err := common.RunCmdWithArgs(targetDir, pnpmBaseCommand, args...)
 	return result, err == nil
 }
+
+func (m *PnpmPackageManager) GetEcosystem() string {
+	return shared.NodeEcosystem
+}
+
+func (m *PnpmPackageManager) GetScanTargets() []string {
+  return []string{utils.PackageJsonFile}
+}

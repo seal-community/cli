@@ -84,7 +84,7 @@ func packageDownloadWorker(ctx context.Context, server api.Server, downloadJobsC
 			data, err := server.DownloadNpmPackage(toDownload)
 			if err != nil {
 				slog.Error("failed downloading package", "err", err)
-				return common.NewPrintableError("failed downloading package %s", toDownload.Descriptor())
+				return common.NewPrintableError("failed downloading package %s", toDownload.RecommendedDescriptor())
 			}
 
 			downloadResultsChannel <- PackageDownload{packageVersion: &toDownload, data: data}

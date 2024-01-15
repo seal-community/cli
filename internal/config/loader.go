@@ -36,7 +36,7 @@ type Config struct {
 var FailedParsingConfYaml = common.NewPrintableError("could not parse configuration")
 var FailedParsingEnvVars = common.NewPrintableError("could not parse environment variables")
 
-const ConfigFileName = ".seal.yml"
+const ConfigFileName = ".seal-config.yml"
 
 type EnvGetter interface {
 	Getenv(key string) string

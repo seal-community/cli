@@ -2,11 +2,14 @@ package main
 
 import (
 	"cli/cmd/seal/output"
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/shared"
 	"cli/internal/phase"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -16,6 +19,16 @@ type ResultHandler interface {
 }
 
 const csvFlag = "csv"
+const actionFlag = "generate-local-config"
+
+func shouldGenerateActionsFile(cmd *cobra.Command) bool {
+	shouldGenerate, err := cmd.Flags().GetBool(actionFlag)
+	if err != nil {
+		// means misconfiguration in code
+		panic("failed getting flag generate-local-config value")
+	}
+	return shouldGenerate
+}
 
 func initResultHandler(cmd *cobra.Command) (ResultHandler, error) {
 	csvFilePath, err := cmd.Flags().GetString(csvFlag)
@@ -35,6 +48,125 @@ func initResultHandler(cmd *cobra.Command) (ResultHandler, error) {
 	}
 
 	return output.CsvExporter{Writer: csv}, nil
+}
+
+func createActionsObject(packages []api.PackageVersion, manager shared.PackageManager, project string, projectDir string, targetDir string) *actions.ActionsFile {
+	ps := actions.ProjectSection{
+		Manager: actions.ProjectManagerSection{
+			Ecosystem: manager.GetEcosystem(),
+			Name:      manager.Name(),
+			Version:   manager.GetVersion(projectDir),
+		},
+		Targets:   manager.GetScanTargets(),
+		Overrides: make(actions.LibraryOverrideMap),
+	}
+
+	for _, p := range packages {
+		if p.RecommendedLibraryVersionString == "" {
+			slog.Debug("skipping package - no recommended version", "id", p.Id())
+			continue
+		}
+
+		if ps.Overrides[p.Library.Name] == nil {
+			ps.Overrides[p.Library.Name] = make(actions.VersionOverrideMap)
+		}
+
+		ps.Overrides[p.Library.Name][p.Version] = actions.Override{Version: p.RecommendedLibraryVersionString}
+	}
+
+	actionFile := actions.New()
+	actionFile.Projects = map[string]actions.ProjectSection{project: ps}
+
+	return actionFile
+}
+
+func convertActionsOverride(af *actions.ActionsFile) []api.PackageVersion {
+	packages := make([]api.PackageVersion, 0, 10)
+	if len(af.Projects) > 1 {
+		slog.Warn("more than 1 project, not supported")
+	}
+
+	for projectName, projectSection := range af.Projects {
+		slog.Debug("converting override in project", "project", projectName)
+		for libraryName, versionMap := range projectSection.Overrides {
+			slog.Debug("converting override in library", "lib", libraryName)
+			for version, override := range versionMap {
+				packages = append(packages, api.PackageVersion{
+					Version:                         version,
+					RecommendedLibraryVersionString: override.Version,
+					// should add recommended library when supported from BE
+					Library: api.Package{Name: libraryName, PackageManager: api.EcosystemToBackendManager(projectSection.Manager.Ecosystem)}, // ideally the ecosystem would be validated to be from currently supported list
+				})
+			}
+		}
+		break // supports only 1 project for now
+	}
+
+	return packages
+}
+
+func getExistingConfigOverrides(targetDir string) ([]api.PackageVersion, error) {
+	actions, err := loadActionsFile(targetDir)
+	if err != nil {
+		slog.Error("failed opening local config", "err", err)
+		return nil, common.FallbackPrintableMsg(err, "failed opening local config file")
+	}
+
+	if actions == nil {
+		slog.Info("no local config found", "targetdir", targetDir)
+		return nil, nil
+	}
+
+	return convertActionsOverride(actions), nil
+}
+
+func getMergedOverride(allDeps common.DependencyMap, remotePackages []api.PackageVersion, oldOverrides []api.PackageVersion) []api.PackageVersion {
+
+	// the following maps are used to find remote package recommendations, even if the old overrides have been installed, therefore sending the 'installed' version; in case of old-override of `origin->sp1`, the server could return `sp1->sp2`, so we need to updated the override so it becomes `origin->sp2`
+	overrideIds := make(map[string]api.PackageVersion)
+	overrideRecommendedIds := make(map[string]api.PackageVersion)
+
+	// filter out stale overrides, that are not present on disk at all (neither fixed, nor vulnerable versions)
+	for _, override := range oldOverrides {
+		if _, found := allDeps[override.Id()]; !found {
+			if _, found = allDeps[override.RecommendedId()]; !found {
+				slog.Debug("ignoring old override - not found in local deps", "id", override.Id(), "recommended id", override.RecommendedId())
+				continue
+			}
+		}
+
+		slog.Debug("keeping old override", "id", override.Id(), "recommended id", override.RecommendedId())
+		overrideIds[override.Id()] = override
+		overrideRecommendedIds[override.RecommendedId()] = override
+	}
+
+	combined := make([]api.PackageVersion, 0, len(oldOverrides)+len(remotePackages))
+
+	// look for remote packages that update existing overrides
+	// if not found, will be added as a new rule
+	for _, remote := range remotePackages {
+		override, found := overrideIds[remote.Id()]
+		if !found {
+			override, found = overrideRecommendedIds[remote.Id()]
+		}
+
+		if found {
+			slog.Debug("adding new override, using the remote recommendation", "id", override.Id(), "recommended id", remote.RecommendedId())
+			override.RecommendedLibraryVersionString = remote.RecommendedLibraryVersionString
+			combined = append(combined, override)
+			delete(overrideIds, override.Id())
+		} else {
+			slog.Debug("adding new override from remote", "id", remote.Id(), "recommended id", remote.RecommendedId())
+			combined = append(combined, remote)
+		}
+	}
+
+	// add all remaining overrides that did not have any match from remote
+	for _, override := range overrideIds {
+		combined = append(combined, override)
+	}
+
+	return combined
 }
 
 func scanCommand() *cobra.Command {
@@ -79,6 +211,35 @@ func scanCommand() *cobra.Command {
 
 			scanPhase.HideProgress() // should be gone here, but before handling output
 
+			if shouldGenerateActionsFile(cmd) {
+				slog.Info("generating local actions file")
+				configOverrides := result.Vulnerable
+				oldOverrides, err := getExistingConfigOverrides(targetDir)
+				if err != nil {
+					return common.FallbackPrintableMsg(err, "failed getting existing local config file")
+				}
+
+				if len(oldOverrides) > 0 {
+					slog.Info("merging existing overrides file", "count", len(oldOverrides))
+					configOverrides = getMergedOverride(result.AllDependencies, configOverrides, oldOverrides)
+					slog.Info("new overrides", "count", len(configOverrides))
+				}
+
+				// Project name isn't validated when creating the actions file!
+				ao := createActionsObject(configOverrides, scanPhase.Manager, scanPhase.Config.Project, scanPhase.ProjectDir, targetDir)
+
+				w, err := common.CreateFile(filepath.Join(targetDir, actions.ActionFileName))
+				if err != nil {
+					return common.NewPrintableError("failed creating local config file")
+				}
+
+				err = actions.SaveActionFile(ao, w)
+				if err != nil {
+					slog.Error("failed saving action file", "err", err)
+					return common.FallbackPrintableMsg(err, "failed saving to local config file")
+				}
+			}
+
 			if len(result.Vulnerable) == 0 {
 				slog.Info("no vulnerable package found", "target", scanPhase.ProjectDir)
 				fmt.Println("No vulnerabilities found") // Print to screen
@@ -95,5 +256,6 @@ func scanCommand() *cobra.Command {
 	}
 
 	cmd.Flags().String(csvFlag, "", "output results as csv to path")
+	cmd.Flags().Bool(actionFlag, false, "generate a new local config file")
 	return cmd
 }

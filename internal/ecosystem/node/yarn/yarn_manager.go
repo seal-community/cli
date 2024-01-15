@@ -35,8 +35,7 @@ func IsYarnProjectDir(path string) bool {
 }
 
 func NewYarnManager(config *config.Config) *YarnPackageManager {
-
-	y := &YarnPackageManager{Config: config}
+	y := &YarnPackageManager{Config: config, npmManager:npm.NpmPackageManager{Config: config}}
 	return y
 }
 
@@ -83,4 +82,12 @@ func getYarnVersion(targetDir string) (string, bool) {
 
 	version := strings.TrimSuffix(result.Stdout, "\n") // if it contains a new line
 	return version, true
+}
+
+func (m *YarnPackageManager) GetEcosystem() string {
+	return shared.NodeEcosystem
+}
+
+func (m *YarnPackageManager) GetScanTargets() []string {
+	return m.npmManager.GetScanTargets()
 }

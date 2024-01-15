@@ -2,7 +2,9 @@ package api
 
 import (
 	"cli/internal/common"
+	"cli/internal/ecosystem/shared"
 	"fmt"
+	"log/slog"
 )
 
 type Page[T interface{}] struct {
@@ -41,6 +43,14 @@ type Package struct {
 	PackageManager string `json:"package_manager"`
 }
 
+type OverriddenMethod string
+
+const (
+	NotOverridden        OverriddenMethod = "" // default
+	OverriddenFromLocal  OverriddenMethod = "local"
+	OverriddenFromRemote OverriddenMethod = "remote"
+)
+
 type PackageVersion struct {
 	// this struct has much more fields, but we only need these
 	Version                         string          `json:"version"`
@@ -48,6 +58,8 @@ type PackageVersion struct {
 	RecommendedLibraryVersionId     string          `json:"recommended_library_version_id,omitempty"`
 	RecommendedLibraryVersionString string          `json:"recommended_library_version,omitempty"`
 	OpenVulnerabilities             []Vulnerability `json:"open_vulnerabilities"`
+
+	OverrideMethod OverriddenMethod `json:"-"` // currently only used internally until remote config support is added
 }
 
 type Metadata map[string]interface{}
@@ -82,6 +94,35 @@ func (p *PackageVersion) RecommendedId() string {
 func (p *PackageVersion) Descriptor() string {
 	return fmt.Sprintf("%s@%s", p.Library.Name, p.Version)
 }
+
 func (p *PackageVersion) RecommendedDescriptor() string {
 	return fmt.Sprintf("%s@%s", p.Library.Name, p.RecommendedLibraryVersionString)
+}
+
+func (p *PackageVersion) Ecosystem() string {
+	return BackendManagerToEcosystem(p.Library.PackageManager)
+}
+
+func (p *PackageVersion) IsOverridden() bool {
+	return p.OverrideMethod != NotOverridden
+}
+
+func BackendManagerToEcosystem(bem string) string {
+	switch bem {
+	case shared.NpmManager:
+		return shared.NodeEcosystem
+	default:
+		slog.Warn("unsupported manager", "manager", bem)
+		return ""
+	}
+}
+
+func EcosystemToBackendManager(es string) string {
+	switch es {
+	case shared.NodeEcosystem:
+		return shared.NpmManager
+	default:
+		slog.Warn("unsupported ecosystem", "value", es)
+		return ""
+	}
 }
