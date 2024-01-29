@@ -102,3 +102,30 @@ func (p *basePhase) addFinishedStep() {
 func (p *basePhase) addToMax(amount int) {
 	p.Bar.ChangeMax(p.Bar.GetMax() + amount)
 }
+
+func (p *basePhase) QueryFixesForPackages(vulnerablePackages []api.PackageVersion) ([]api.PackageVersion, error) {
+
+	slog.Info("grabbing information about available fixes", "vulnerableCount", len(vulnerablePackages))
+	// building array of 'deps' using the recommended fixed version
+	deps := make([]common.Dependency, 0, len(vulnerablePackages))
+	for _, vulnerable := range vulnerablePackages {
+		if vulnerable.RecommendedLibraryVersionString == "" {
+			slog.Info("ignoring vulnerable without recommendation")
+			continue
+		}
+
+		deps = append(deps, common.Dependency{Name: vulnerable.Library.Name,
+			Version:        vulnerable.RecommendedLibraryVersionString,
+			PackageManager: vulnerable.Library.PackageManager,
+		})
+	}
+
+	available, err := p.Server.GetFixedPackages(deps, nil, nil)
+	if err != nil {
+		slog.Error("failed getting fixed versions info", "err", err)
+		return nil, common.NewPrintableError("server error")
+	}
+
+	slog.Debug("got fixes info", "count", len(*available))
+	return *available, nil
+}

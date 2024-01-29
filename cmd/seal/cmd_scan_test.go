@@ -177,6 +177,43 @@ func TestOverrideMergeSanityFixedLocal(t *testing.T) {
 	}
 }
 
+func TestOverrideMergeSanityNoRecommended(t *testing.T) {
+	localDeps := common.DependencyMap{
+		"NPM|lodash@1.2.3-sp1": nil,
+	}
+	remotePackages := []api.PackageVersion{
+		{
+			Version: "1.2.3-sp1",
+			Library: api.Package{
+				Name:           "lodash",
+				PackageManager: shared.NpmManager},
+			RecommendedLibraryVersionString: "", // no fix available
+		},
+	}
+	overrides := []api.PackageVersion{
+		{
+			Version: "1.2.3",
+			Library: api.Package{
+				Name:           "lodash",
+				PackageManager: shared.NpmManager},
+			RecommendedLibraryVersionString: "1.2.3-sp1",
+		},
+	}
+	combined := getMergedOverride(localDeps, remotePackages, overrides)
+	if len(combined) != 1 {
+		t.Fatalf("wrong number of combined overrides %d", len(combined))
+	}
+
+	o := combined[0]
+	if o.Id() != "NPM|lodash@1.2.3" {
+		t.Fatalf("wrong id for override %s", o.Id())
+	}
+
+	if o.RecommendedId() != "NPM|lodash@1.2.3-sp1" {
+		t.Fatalf("wrong recommended id for override %s", o.RecommendedId())
+	}
+}
+
 func TestOverrideMergeSanityNewSp2(t *testing.T) {
 	localDeps := common.DependencyMap{
 		"NPM|lodash@1.2.3-sp1": nil,

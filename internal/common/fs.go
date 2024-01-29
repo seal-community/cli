@@ -36,6 +36,21 @@ func CreateFile(p string) (*os.File, error) {
 	return f, nil
 }
 
+func OpenFile(p string) (*os.File, error) {
+	f, err := os.Open(p)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			slog.Info("failed opening file", "err", err, "path", p)
+			return nil, NewPrintableError("could not open file in %s", p)
+		}
+		slog.Info("actions file not found", "path", p)
+		return nil, nil
+
+	}
+
+	return f, err
+}
+
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {

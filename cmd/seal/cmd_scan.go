@@ -7,6 +7,7 @@ import (
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/phase"
+	"cli/internal/snyk"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -20,23 +21,10 @@ type ResultHandler interface {
 
 const csvFlag = "csv"
 const actionFlag = "generate-local-config"
-
-func shouldGenerateActionsFile(cmd *cobra.Command) bool {
-	shouldGenerate, err := cmd.Flags().GetBool(actionFlag)
-	if err != nil {
-		// means misconfiguration in code
-		panic("failed getting flag generate-local-config value")
-	}
-	return shouldGenerate
-}
+const snykPolicyFlag = "generate-snyk-policy"
 
 func initResultHandler(cmd *cobra.Command) (ResultHandler, error) {
-	csvFilePath, err := cmd.Flags().GetString(csvFlag)
-	if err != nil {
-		// means misconfiguration in code
-		panic("failed getting flag csv value")
-	}
-
+	csvFilePath := getArgString(cmd, csvFlag)
 	if csvFilePath == "" {
 		return output.ConsolePrinter{}, nil
 	}
@@ -151,12 +139,16 @@ func getMergedOverride(allDeps common.DependencyMap, remotePackages []api.Packag
 		}
 
 		if found {
-			slog.Debug("adding new override, using the remote recommendation", "id", override.Id(), "recommended id", remote.RecommendedId())
-			override.RecommendedLibraryVersionString = remote.RecommendedLibraryVersionString
+			if remote.RecommendedLibraryVersionString != "" {
+				slog.Debug("adding new override, using the remote recommendation", "id", override.Id(), "recommended-version", remote.RecommendedLibraryVersionString)
+				override.RecommendedLibraryVersionString = remote.RecommendedLibraryVersionString
+			} else {
+				slog.Debug("remote is vulnerable with no recommended, keeping as is", "id", override.Id())
+			}
 			combined = append(combined, override)
 			delete(overrideIds, override.Id())
 		} else {
-			slog.Debug("adding new override from remote", "id", remote.Id(), "recommended id", remote.RecommendedId())
+			slog.Debug("adding new override from remote", "id", remote.Id()) // remote doesn't necessarily have a recommended id
 			combined = append(combined, remote)
 		}
 	}
@@ -194,8 +186,8 @@ func scanCommand() *cobra.Command {
 			}
 
 			targetDir := extractTargetDir(args)
-			verbosity := getFlag(cmd, verboseFlagKey)
-
+			verbosity := getArgCount(cmd, verboseFlagKey)
+			genActionsFile := getArgBool(cmd, actionFlag)
 			scanPhase, err := phase.NewScanPhase(targetDir, verbosity == 0)
 			if err != nil {
 				slog.Error("failed initializing scan", "err", err)
@@ -211,7 +203,9 @@ func scanCommand() *cobra.Command {
 
 			scanPhase.HideProgress() // should be gone here, but before handling output
 
-			if shouldGenerateActionsFile(cmd) {
+			// printing allowed from here
+
+			if genActionsFile {
 				slog.Info("generating local actions file")
 				configOverrides := result.Vulnerable
 				oldOverrides, err := getExistingConfigOverrides(targetDir)
@@ -238,6 +232,31 @@ func scanCommand() *cobra.Command {
 					slog.Error("failed saving action file", "err", err)
 					return common.FallbackPrintableMsg(err, "failed saving to local config file")
 				}
+
+				genSnykPolicy := getArgBool(cmd, snykPolicyFlag) // only available if we are generating actions file
+				snykUpdated := false
+				if genSnykPolicy && len(configOverrides) > 0 {
+					availableFixes, err := scanPhase.QueryFixesForPackages(configOverrides)
+					if err != nil {
+						slog.Error("failed querying fixes", "err", err)
+						return common.WrapWithPrintable(err, "failed to get package metadata") // using wrap to show prettier error than internal server one
+					}
+
+					if len(availableFixes) > 0 {
+						slog.Info("generating snyk policy")
+						policyFilePath := filepath.Join(targetDir, snyk.PolicyFileName)
+						// using overridden packages with versions from actions file too
+						if err = output.EditSnykPolicyFile(policyFilePath, configOverrides, availableFixes); err != nil {
+							return err // err already logged from func
+						}
+						snykUpdated = true
+					}
+				}
+
+				if !snykUpdated {
+					slog.Info("no available fixes, skipping snyk")
+					fmt.Println(common.Colorize("Nothing to add to .snyk file", common.AnsiDarkGrey)) // Print to screen
+				}
 			}
 
 			if len(result.Vulnerable) == 0 {
@@ -257,5 +276,6 @@ func scanCommand() *cobra.Command {
 
 	cmd.Flags().String(csvFlag, "", "output results as csv to path")
 	cmd.Flags().Bool(actionFlag, false, "generate a new local config file")
+	cmd.Flags().Bool(snykPolicyFlag, false, fmt.Sprintf("generate or update the .snyk file (can only be used with --%s)", actionFlag))
 	return cmd
 }

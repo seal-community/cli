@@ -34,23 +34,6 @@ const (
 	FailedCommandUsage   ErrorCode = 11
 )
 
-func extractTargetDir(args []string) string {
-	if len(args) > 0 {
-		return args[0]
-	}
-
-	return ""
-}
-
-func getFlag(cmd *cobra.Command, key string) int {
-	val, err := cmd.Flags().GetCount(key)
-	if err != nil {
-		panic(err) // means command names are misconfigured
-	}
-
-	return val
-}
-
 // implemented just to hide the default command added by cobra
 func completionCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -68,7 +51,7 @@ func rootCmd() *cobra.Command {
 		Use:           "seal [command]",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// this will be called before any subcommand is run, perform common setup that is beyond the commands scope
-			verbosity := getFlag(cmd, verboseFlagKey)
+			verbosity := getArgCount(cmd, verboseFlagKey)
 			logfile := cmd.Context().Value(logfileKey).(*os.File) // will panic if misconfigured in code
 
 			setupLogging(logfile, verbosity)
@@ -146,7 +129,7 @@ func cli() (errCode ErrorCode) {
 	}
 
 	// if succeeded we might want to keep the log file, depending on verbosity value
-	verbosity = getFlag(cmd, verboseFlagKey)
+	verbosity = getArgCount(cmd, verboseFlagKey)
 
 	return Success
 }

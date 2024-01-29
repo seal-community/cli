@@ -140,7 +140,7 @@ func (sp *scanPhase) Scan() (*ScanResult, error) {
 
 	if err != nil {
 		slog.Error("failed getting vulnerabilities", "err", err)
-		return nil, common.NewPrintableError("server issue")
+		return nil, common.NewPrintableError("server error")
 	}
 
 	result := &ScanResult{

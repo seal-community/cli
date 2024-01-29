@@ -13,7 +13,8 @@ func (s Server) CheckAuthenticationValid() error {
 		"GET",
 		"https://authorization.sealsecurity.io/",
 		nil,
-		HeaderPair{"Authorization", fmt.Sprintf("Basic %s", s.AuthToken)},
+		[]StringPair{{"Authorization", fmt.Sprintf("Basic %s", s.AuthToken)}},
+		[]StringPair{},
 	)
 
 	if err != nil {

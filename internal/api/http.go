@@ -13,7 +13,7 @@ import (
 
 const BaseURL = "https://api.sealsecurity.io"
 
-type HeaderPair struct {
+type StringPair struct {
 	Name  string
 	Value string
 }
@@ -26,7 +26,7 @@ func formatUserAgent() string {
 	return fmt.Sprintf("seal-cli/%s", common.CliVersion)
 }
 
-func sendApiRequest[RequestType any, ResponseType any](client http.Client, method string, path string, body *RequestType, headers ...HeaderPair) (*ResponseType, int, error) {
+func sendApiRequest[RequestType any, ResponseType any](client http.Client, method string, path string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
 	reqUrl, err := url.JoinPath(BaseURL, path)
 
 	if err != nil {
@@ -34,13 +34,13 @@ func sendApiRequest[RequestType any, ResponseType any](client http.Client, metho
 		return nil, 0, err
 	}
 
-	return sendRequestJson[RequestType, ResponseType](client, method, reqUrl, body, headers...)
+	return sendRequestJson[RequestType, ResponseType](client, method, reqUrl, body, headers, params)
 }
 
-func sendRequestJson[RequestType any, ResponseType any](client http.Client, method string, url string, body *RequestType, headers ...HeaderPair) (*ResponseType, int, error) {
+func sendRequestJson[RequestType any, ResponseType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
 	var responseObject ResponseType
 
-	responseData, statusCode, err := sendRequest[RequestType](client, method, url, body, headers...)
+	responseData, statusCode, err := sendRequest[RequestType](client, method, url, body, headers, params)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -61,7 +61,7 @@ func sendRequestJson[RequestType any, ResponseType any](client http.Client, meth
 
 }
 
-func sendRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers ...HeaderPair) ([]byte, int, error) {
+func sendRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
 	var err error
 	encodedBody := []byte{}
 	if body != nil {
@@ -90,7 +90,17 @@ func sendRequest[RequestType any](client http.Client, method string, url string,
 		req.Header.Add(header.Name, header.Value)
 	}
 
+	if len(params) > 0 {
+		query := req.URL.Query()
+		for _, param := range params {
+			query.Add(param.Name, param.Value)
+		}
+		req.URL.RawQuery = query.Encode()
+	}
+
+	common.Trace("raw query", "value", req.URL.RawQuery)
 	slog.Debug("sending request", "method", req.Method, "url", req.URL.String())
+
 	if len(encodedBody) > 0 {
 		common.Trace("sending body data", "body", string(encodedBody))
 	}

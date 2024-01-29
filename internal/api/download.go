@@ -20,13 +20,14 @@ type npmLibraryInfo struct {
 func (s Server) DownloadNpmPackage(p PackageVersion) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
-	authHeader := HeaderPair{"Authorization", fmt.Sprintf("Basic %s", s.AuthToken)}
+	authHeader := StringPair{"Authorization", fmt.Sprintf("Basic %s", s.AuthToken)}
 	libraryInfo, statusCode, err := sendRequestJson[any, npmLibraryInfo](
 		s.client,
 		"GET",
 		fmt.Sprintf("https://npm.sealsecurity.io/%s/", p.Library.Name),
 		nil,
-		authHeader,
+		[]StringPair{authHeader},
+		[]StringPair{},
 	)
 
 	if err != nil {
@@ -56,7 +57,8 @@ func (s Server) DownloadNpmPackage(p PackageVersion) ([]byte, error) {
 		"GET",
 		url,
 		nil,
-		authHeader,
+		[]StringPair{authHeader},
+		[]StringPair{},
 	)
 
 	if err != nil {

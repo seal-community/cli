@@ -18,24 +18,6 @@ import (
 const summaryFlag = "summarize"
 const actionsIgnoreFlag = "ignore-local-config"
 
-func getIgnoreActionsFlag(cmd *cobra.Command) bool {
-	shouldIgnore, err := cmd.Flags().GetBool(actionsIgnoreFlag)
-	if err != nil {
-		// means misconfiguration in code
-		panic("failed getting flag actions ignore value")
-	}
-	return shouldIgnore
-}
-
-func getSummaryPath(cmd *cobra.Command) string {
-	summaryPath, err := cmd.Flags().GetString(summaryFlag)
-	if err != nil {
-		// means misconfiguration in code
-		panic("failed getting flag summary value")
-	}
-	return summaryPath
-}
-
 func dumpSummary(summary *output.Summary, summaryPath string) error {
 
 	if summaryPath != "" {
@@ -168,9 +150,9 @@ func fixCommand() *cobra.Command {
 			}()
 
 			targetDir := extractTargetDir(args)
-			verbosity := getFlag(cmd, verboseFlagKey)
-			ignoreActionsFile := getIgnoreActionsFlag(cmd)
-			summaryPath := getSummaryPath(cmd)
+			verbosity := getArgCount(cmd, verboseFlagKey)
+			ignoreActionsFile := getArgBool(cmd, actionsIgnoreFlag)
+			summaryPath := getArgString(cmd, summaryFlag)
 
 			// IMPORTANT - after this point printing directly to console would mess up the progress bar, msg should be used instead
 			fixPhase, err := phase.NewFixPhase(targetDir, verbosity == 0)
@@ -246,7 +228,7 @@ func fixCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(actionsIgnoreFlag, false, "ignore definitions in local config")
 	cmd.Flags().String(summaryFlag, "", "output fix summary to path")
+	cmd.Flags().Bool(actionsIgnoreFlag, false, "ignore definitions in local config")
 	return cmd
 }

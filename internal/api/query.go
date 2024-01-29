@@ -19,16 +19,35 @@ type Server struct {
 	BulkChunkSize int
 }
 
+type PackageQueryType int
+
+const (
+	OnlyVulnerable PackageQueryType = iota
+	OnlyFixed      PackageQueryType = iota
+	// futue support for query all
+)
+
 type ChunkDownloadedCallback func(chunk []PackageVersion, idx int, total int)
 
 const MaxDependencyChunkSize = 800
 
-func (s Server) sendBulkRequest(request *BulkCheckRequest) (*Page[PackageVersion], error) {
+func (s Server) sendBulkRequest(request *BulkCheckRequest, queryType PackageQueryType) (*Page[PackageVersion], error) {
+	var param StringPair
+
+	if queryType == OnlyFixed {
+		param = StringPair{Name: "fixed", Value: "1"}
+	} else {
+		param = StringPair{Name: "fixed", Value: "0"}
+	}
+
 	data, statusCode, err := sendApiRequest[BulkCheckRequest, Page[PackageVersion]](
 		s.client,
 		"POST",
-		"/unauthenticated/artifact-management/v1/library_versions/bulk_query",
-		request)
+		"/unauthenticated/artifact-management/v1/library_versions/bulk",
+		request,
+		nil, // headers
+		[]StringPair{param},
+	)
 
 	if statusCode != 200 {
 		slog.Error("server returned bad status code for query", "status", statusCode, "err", err)
@@ -44,6 +63,14 @@ func (s Server) sendBulkRequest(request *BulkCheckRequest) (*Page[PackageVersion
 }
 
 func (s Server) CheckVulnerablePackages(deps []common.Dependency, metadata Metadata, chunkDone ChunkDownloadedCallback) (*[]PackageVersion, error) {
+	return s.FetchPackagesInfo(deps, metadata, OnlyVulnerable, chunkDone)
+}
+
+func (s Server) GetFixedPackages(deps []common.Dependency, metadata Metadata, chunkDone ChunkDownloadedCallback) (*[]PackageVersion, error) {
+	return s.FetchPackagesInfo(deps, metadata, OnlyFixed, chunkDone)
+}
+
+func (s Server) FetchPackagesInfo(deps []common.Dependency, metadata Metadata, queryType PackageQueryType, chunkDone ChunkDownloadedCallback) (*[]PackageVersion, error) {
 	defer common.ExecutionTimer().Log()
 	g, errCtx := errgroup.WithContext(context.Background()) // allows to run goroutines and cancel them if one fails, or wait for all
 	m := &sync.Mutex{}
@@ -79,7 +106,7 @@ func (s Server) CheckVulnerablePackages(deps []common.Dependency, metadata Metad
 				data, err := s.sendBulkRequest(&BulkCheckRequest{
 					Metadata: metadata,
 					Entries:  depsChunk,
-				})
+				}, queryType)
 
 				// check group was not cancelled due to error
 				select {
