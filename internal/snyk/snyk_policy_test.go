@@ -223,6 +223,99 @@ ignore:
 	}
 }
 
+func TestSnykPolicySanityAddDupRuleProtected(t *testing.T) {
+	original := `# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore:
+  SNYK-JS-FOLLOWREDIRECTS-6141137:
+    - '* > follow-redirects@1.15.2-sp1':
+        reason: Fixed by Seal Security
+        created: 2024-01-25T19:31:14.000Z
+`
+	pf, err := LoadPolicy(strings.NewReader(original))
+	if err != nil || pf == nil {
+		t.Fatalf("failed loading %v", err)
+	}
+	ct := time.Now().UTC()
+	pf.createTime = ct
+
+	pf.AddRule("SNYK-JS-FOLLOWREDIRECTS-6141137", "lodash", "4.15.17")
+	addedDup := pf.AddRule("SNYK-JS-FOLLOWREDIRECTS-6141137", "lodash", "4.15.17")
+
+	w := bytes.NewBufferString("")
+	err = SavePolicy(pf, w)
+	if err != nil {
+		t.Fatalf("failed dumping ")
+	}
+	result := w.String()
+	expected := fmt.Sprintf(`# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore:
+  SNYK-JS-FOLLOWREDIRECTS-6141137:
+    - '* > follow-redirects@1.15.2-sp1':
+        reason: Fixed by Seal Security
+        created: 2024-01-25T19:31:14.000Z
+    - '* > lodash@4.15.17':
+        reason: Fixed by Seal Security
+        created: %s
+`, formatCreatedTime(ct))
+	if result != expected {
+		t.Fatalf("\nexpected:\n`%s`\n~~~~~~~~~~~\nGenerated:\n`%s`\n", expected, result)
+	}
+
+	if addedDup {
+		t.Fatalf("added dup")
+	}
+}
+
+func TestSnykPolicySanityAddDupIssueProtected(t *testing.T) {
+	original := `# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore:
+  SNYK-JS-FOLLOWREDIRECTS-6141137:
+    - '* > follow-redirects@1.15.2-sp1':
+        reason: Fixed by Seal Security
+        created: 2024-01-25T19:31:14.000Z
+`
+	pf, err := LoadPolicy(strings.NewReader(original))
+	if err != nil || pf == nil {
+		t.Fatalf("failed loading %v", err)
+	}
+	ct := time.Now().UTC()
+	pf.createTime = ct
+
+	if added := pf.AddRule("SNYK-JS-FOLLOWREDIRECTS-6141137", "lodash", "4.15.17"); !added {
+		t.Fatalf("failed to add initial rule")
+	}
+
+	addedDup := pf.AddRule("SNYK-JS-FOLLOWREDIRECTS-6141137", "lodash", "4.15.17")
+
+	w := bytes.NewBufferString("")
+	err = SavePolicy(pf, w)
+	if err != nil {
+		t.Fatalf("failed dumping ")
+	}
+	result := w.String()
+	expected := fmt.Sprintf(`# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore:
+  SNYK-JS-FOLLOWREDIRECTS-6141137:
+    - '* > follow-redirects@1.15.2-sp1':
+        reason: Fixed by Seal Security
+        created: 2024-01-25T19:31:14.000Z
+    - '* > lodash@4.15.17':
+        reason: Fixed by Seal Security
+        created: %s
+`, formatCreatedTime(ct))
+	if result != expected {
+		t.Fatalf("\nexpected:\n`%s`\n~~~~~~~~~~~\nGenerated:\n`%s`\n", expected, result)
+	}
+
+	if addedDup {
+		t.Fatalf("added dup")
+	}
+}
+
 func TestSnykPolicySanityAddToExistingIssueAndOtherFields(t *testing.T) {
 	original := `# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
 version: v1.25.0

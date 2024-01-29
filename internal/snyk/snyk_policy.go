@@ -20,9 +20,10 @@ type ruleNodeMap struct {
 type issueMap map[string]ruleNodeMap
 type PolicyFile struct {
 	root       yaml.Node
-	ignore     *yaml.Node // to inject new issue id
-	issues     issueMap   // to inject new rule path object
-	createTime time.Time  // used for all new rules added
+	ignore     *yaml.Node      // to inject new issue id
+	issues     issueMap        // to inject new rule path object
+	createTime time.Time       // used for all new rules added
+	newRules   map[string]bool // used to prevent addition of rules with duplicate values
 }
 
 // references for uses in the wild https://github.com/search?q=path%3A%22%2F.snyk%22&type=code
@@ -166,6 +167,10 @@ func buildIgnoreRule(ruleFilter string, createTime time.Time) *yaml.Node {
 	}
 }
 
+func _buildInternalRuleId(issueId string, pkg string, version string) string {
+	return fmt.Sprintf("%s|%s|%s", issueId, pkg, version)
+}
+
 // these path components are actually in the dependency graph see https://docs.snyk.io/snyk-cli/commands/ignore#path-less-than-path_to_resource-greater-than
 // e.g. `chokidar > fsevents > node-pre-gyp > tar-pack`
 //
@@ -173,6 +178,13 @@ func buildIgnoreRule(ruleFilter string, createTime time.Time) *yaml.Node {
 func (pf *PolicyFile) AddRule(issueId string, pkg string, version string) bool {
 	ruleFilter := formatRule(pkg, version)
 	slog.Info("adding ignore rule for snyk yaml", "issue", issueId, "rule", ruleFilter)
+	ruleid := _buildInternalRuleId(issueId, pkg, version)
+	if _, exists := pf.newRules[ruleid]; exists {
+		// must not add duplicate issues, causes snyk cli / scm integration to fail
+		// seems like a dup rulepath still works, but this should prevent them as well
+		slog.Warn("rule was already added", "id", ruleid)
+		return false
+	}
 
 	ignoreRuleNode := buildIgnoreRule(ruleFilter, pf.createTime)
 
@@ -205,6 +217,10 @@ func (pf *PolicyFile) AddRule(issueId string, pkg string, version string) bool {
 		} else {
 			slog.Info("skipped rule since it already exists", "issue", issueId, "rule", ruleFilter)
 		}
+	}
+
+	if added {
+		pf.newRules[ruleid] = true // don't care about the value
 	}
 
 	return added
@@ -260,6 +276,7 @@ func decodeSnykFile(r io.Reader) (*PolicyFile, error) {
 		root:       root,
 		issues:     issues,
 		ignore:     ignore,
+		newRules:   make(map[string]bool),
 		createTime: time.Now().UTC(), // same as outputted by snyk when generated from commandline
 	}
 
