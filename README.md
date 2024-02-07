@@ -32,24 +32,44 @@ To fix the vulnerabilities using the CLI you will need an access token to the se
 You can register [here](https://app.sealsecurity.io/).
 
 1. Go to the root directory of the project and install its dependencies (e.g `npm install`).
-2. Set the access token and project name. There are two ways to do this:
-	1. Set the access token in the `SEAL_TOKEN` environment variable, and the project name in `SEAL_PROJECT`.
+2. Set the access token and project ID. There are two ways to do this:
+	1. Set the access token in the `SEAL_TOKEN` environment variable, and the project ID in `SEAL_PROJECT`.
 	```bash
 	export SEAL_TOKEN=ey534tj9htrmoikNMNDakn43jaI5453tjkthspj==
 	```
 	```bash
 	export SEAL_PROJECT=my-test-project
 	```
-	2. Set the access token and project name in the `seal-config.yml` configuration file in the local work directory as in the following example:
+	2. Set the access token and project ID in the `.seal-config.yml` configuration file in the local work directory as in the following example:
 	```yml
 	token: ey534tj9htrmoikNMNDakn43jaI5453tjkthspj==
 	project: my-test-project
 	```
-Note that the project name may include only ASCII letters, digits, underscore, hyphen or period, and mustn't be over 255 characters long.
+Note that the project ID is what uniquely identifies the project on the Seal platform.
+It may only include ASCII letters, digits, underscores, hyphens or periods, and mustn't be over 255 characters long.
 
-3. Run `seal fix`. The vulnerable packages that have a patched version will be replaced in place with the sealed version.
+3. Run `seal fix --mode all`. All the vulnerable packages that have sealed versions will be replaced with them in place. If you prefer to fix only specific packages, see [here](#fixing-specific-packages).
 
 Logging verbosity can be set by providing `-v`, `-vv` or `-vvv`.
+
+### Fixing Specific Packages
+The `seal fix --mode all` command fixes all the vulnerable packages for which a sealed version exists.
+The CLI also supports selecting which packages to fix by using the ```seal fix --mode local``` command.
+To specify which packages to seal use the `.seal-actions.yml` file (also known as the local configuration file).
+The file is saved in the project's root directory, and contains instructions for the fix phase.
+
+For each package you wish to fix use the following command: `seal add package-name version`.
+For example: `seal add ejs 2.7.4`.
+This command will add to the local configuration file an instruction to replace `ejs@2.7.4` with its sealed version `ejs@2.7.4-sp1`. If the file does not exist, a new one will be generated.<br/>
+To generate a local configuration file with instructions to fix everything that has a sealed version in the project, you can use `seal scan --generate-local-config` instead of adding packages one-by-one.
+
+Note that it's also possible to manually edit the `overrides` section in the local configuration file, as its format is straightforward:
+```yml
+    overrides:
+	  ejs:
+	    2.7.4:
+		  use: 2.7.4-sp1
+```
 
 ## How to Contribute
 We're always looking for feedback, discuss possible integrations and receive feature requests.
