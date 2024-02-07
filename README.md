@@ -54,21 +54,22 @@ Logging verbosity can be set by providing `-v`, `-vv` or `-vvv`.
 
 ### Fixing Specific Packages
 The `seal fix --mode all` command fixes all the vulnerable packages for which a sealed version exists.
-The CLI also supports selecting which packages to fix by using the ```seal fix --mode local``` command.
-To specify which packages to seal use the `.seal-actions.yml` file (also known as the local configuration file).
+The CLI also supports selecting which packages to fix by using `--mode local` together with the `.seal-actions.yml` file (hereby known as the local configuration file).
 The file is saved in the project's root directory, and contains instructions for the fix phase.
 
-For each package you wish to fix use the following command: `seal add package-name version`.
+For each package you wish to fix, use the following command: `seal add package-name version`.
 For example: `seal add ejs 2.7.4`.
-This command will add to the local configuration file an instruction to replace `ejs@2.7.4` with its sealed version `ejs@2.7.4-sp1`. If the file does not exist, a new one will be generated.<br/>
+This command will add to the local configuration file an instruction to replace `ejs@2.7.4` with its sealed version `ejs@2.7.4-sp1`. If the file does not exist, a new one will be generated.
+
 To generate a local configuration file with instructions to fix everything that has a sealed version in the project, you can use `seal scan --generate-local-config` instead of adding packages one-by-one.
 
 Note that it's also possible to manually edit the `overrides` section in the local configuration file, as its format is straightforward:
 ```yml
+...
     overrides:
-	  ejs:
-	    2.7.4:
-		  use: 2.7.4-sp1
+      ejs:
+        2.7.4:
+          use: 2.7.4-sp1
 ```
 
 ## How to Contribute
