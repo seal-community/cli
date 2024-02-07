@@ -10,13 +10,32 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
 )
 
 const summaryFlag = "summarize"
-const actionsIgnoreFlag = "ignore-local-config"
+
+type fixMode string
+
+const (
+	localMode fixMode = "local"
+	allMode fixMode = "all"
+)
+
+func fixModeFromString(s string) fixMode {
+	modes := []fixMode{localMode, allMode}
+	fm := fixMode(s)
+	if slices.Contains(modes, fm) {
+		return fm
+	} else {
+		return ""
+	}
+}
+
+const modeFlag = "mode"
 
 func dumpSummary(summary *output.Summary, summaryPath string) error {
 
@@ -151,8 +170,14 @@ func fixCommand() *cobra.Command {
 
 			targetDir := extractTargetDir(args)
 			verbosity := getArgCount(cmd, verboseFlagKey)
-			ignoreActionsFile := getArgBool(cmd, actionsIgnoreFlag)
 			summaryPath := getArgString(cmd, summaryFlag)
+			fm := getArgString(cmd, modeFlag)
+			fixModeUsed := fixModeFromString(fm)
+			if fixModeUsed == "" {
+				slog.Error("fix mode is unsupported", "mode", fm)
+				return common.NewPrintableError("fix mode is unsupported")
+			}
+			slog.Info("Fix mode", "mode", fixModeUsed)
 
 			// IMPORTANT - after this point printing directly to console would mess up the progress bar, msg should be used instead
 			fixPhase, err := phase.NewFixPhase(targetDir, verbosity == 0)
@@ -164,13 +189,19 @@ func fixCommand() *cobra.Command {
 			defer fixPhase.HideProgress() // should be gone when this is over, hide just in case
 
 			var actions *actions.ActionsFile = nil
-			if !ignoreActionsFile {
+			if fixModeUsed == localMode {
 				// performing here for better experience in case of invalid file
 				slog.Info("loading actions file")
 				actions, err = loadActionsFile(targetDir)
 				if err != nil {
 					slog.Error("failed opening local config for fix", "err", err)
 					return common.FallbackPrintableMsg(err, "failed loading local config")
+				}
+
+				if actions == nil {
+					slog.Warn("actions file not found or empty", "dirpath", targetDir)
+					fmt.Printf(common.Colorize("Warning: Using local configuration, but local config not found. No fixes will be applied.\n", common.AnsiWarnYellow))
+					return nil
 				}
 				// NOTE: ideally we change the BE to support querying any package, then we pre-fetch it here and notify user, instead of failing later
 			}
@@ -203,7 +234,7 @@ func fixCommand() *cobra.Command {
 					return err
 				}
 
-				fmt.Println("No vulnerabilities found")
+				fmt.Println("No applicable fix available")
 				return nil
 			}
 
@@ -229,6 +260,6 @@ func fixCommand() *cobra.Command {
 	}
 
 	cmd.Flags().String(summaryFlag, "", "output fix summary to path")
-	cmd.Flags().Bool(actionsIgnoreFlag, false, "ignore definitions in local config")
+	cmd.Flags().String(modeFlag, "local", fmt.Sprintf("Fix mode, options: [%s|%s]", localMode, allMode))
 	return cmd
 }

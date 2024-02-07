@@ -159,3 +159,20 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 		t.Fatalf("wrong result length filtered %v", result)
 	}
 }
+
+func TestFixModeParsing(t *testing.T) {
+  f := fixModeFromString("local")
+  if f != localMode {
+    t.Fatalf("failed to parse local mode")
+  }
+
+  f = fixModeFromString("all")
+  if f != allMode {
+    t.Fatalf("failed to parse all mode")
+  }
+
+  f = fixModeFromString("fail")
+  if f != "" {
+    t.Fatalf("failed to parse unknown mode")
+  }
+}
