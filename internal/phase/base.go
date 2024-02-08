@@ -104,6 +104,7 @@ func (p *basePhase) addToMax(amount int) {
 }
 
 func (p *basePhase) QueryFixesForPackages(vulnerablePackages []api.PackageVersion) ([]api.PackageVersion, error) {
+	// uses the recommended fields to create a new common.Dependency instance and query the BE about it
 
 	slog.Info("grabbing information about available fixes", "vulnerableCount", len(vulnerablePackages))
 	// building array of 'deps' using the recommended fixed version
@@ -121,6 +122,27 @@ func (p *basePhase) QueryFixesForPackages(vulnerablePackages []api.PackageVersio
 	}
 
 	available, err := p.Server.GetFixedPackages(deps, nil, nil)
+	if err != nil {
+		slog.Error("failed getting fixed versions info", "err", err)
+		return nil, common.NewPrintableError("server error")
+	}
+
+	slog.Debug("got fixes info", "count", len(*available))
+	return *available, nil
+}
+
+func (p *basePhase) QueryPackages(vulnerablePackages []api.PackageVersion, qt api.PackageQueryType) ([]api.PackageVersion, error) {
+	slog.Info("grabbing information about available fixes", "vulnerableCount", len(vulnerablePackages))
+	// building array of 'deps' using the recommended fixed version
+	deps := make([]common.Dependency, 0, len(vulnerablePackages))
+	for _, vulnerable := range vulnerablePackages {
+		deps = append(deps, common.Dependency{Name: vulnerable.Library.Name,
+			Version:        vulnerable.Version,
+			PackageManager: vulnerable.Library.PackageManager,
+		})
+	}
+
+	available, err := p.Server.FetchPackagesInfo(deps, nil, qt, nil)
 	if err != nil {
 		slog.Error("failed getting fixed versions info", "err", err)
 		return nil, common.NewPrintableError("server error")

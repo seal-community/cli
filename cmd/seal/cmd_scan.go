@@ -38,7 +38,7 @@ func initResultHandler(cmd *cobra.Command) (ResultHandler, error) {
 	return output.CsvExporter{Writer: csv}, nil
 }
 
-func createActionsObject(packages []api.PackageVersion, manager shared.PackageManager, project string, projectDir string, targetDir string) *actions.ActionsFile {
+func createActionsObject(packages []api.PackageVersion, manager shared.PackageManager, project string, projectDir string) *actions.ActionsFile {
 	ps := actions.ProjectSection{
 		Manager: actions.ProjectManagerSection{
 			Ecosystem: manager.GetEcosystem(),
@@ -68,6 +68,23 @@ func createActionsObject(packages []api.PackageVersion, manager shared.PackageMa
 	return actionFile
 }
 
+func recreateActionsFile(overrides []api.PackageVersion, manager shared.PackageManager, project string, projectDir string) error {
+	ao := createActionsObject(overrides, manager, project, projectDir) // should not fail
+	w, err := common.CreateFile(filepath.Join(projectDir, actions.ActionFileName))
+	if err != nil {
+		return common.NewPrintableError("failed creating local config file")
+	}
+
+	err = actions.SaveActionFile(ao, w)
+	if err != nil {
+		slog.Error("failed saving action file", "err", err)
+		return common.FallbackPrintableMsg(err, "failed saving to local config file")
+	}
+
+	return nil
+}
+
+// creates fake PackageVersion for each override, assumes only 1 project
 func convertActionsOverride(af *actions.ActionsFile) []api.PackageVersion {
 	packages := make([]api.PackageVersion, 0, 10)
 	if len(af.Projects) > 1 {
@@ -220,17 +237,9 @@ func scanCommand() *cobra.Command {
 				}
 
 				// Project name isn't validated when creating the actions file!
-				ao := createActionsObject(configOverrides, scanPhase.Manager, scanPhase.Config.Project, scanPhase.ProjectDir, targetDir)
-
-				w, err := common.CreateFile(filepath.Join(targetDir, actions.ActionFileName))
-				if err != nil {
-					return common.NewPrintableError("failed creating local config file")
-				}
-
-				err = actions.SaveActionFile(ao, w)
-				if err != nil {
-					slog.Error("failed saving action file", "err", err)
-					return common.FallbackPrintableMsg(err, "failed saving to local config file")
+				if err = recreateActionsFile(configOverrides, scanPhase.Manager, scanPhase.Config.Project, scanPhase.ProjectDir); err != nil {
+					// only a wrapper func, logged from withing
+					return err
 				}
 
 				genSnykPolicy := getArgBool(cmd, snykPolicyFlag) // only available if we are generating actions file
@@ -246,10 +255,9 @@ func scanCommand() *cobra.Command {
 						slog.Info("generating snyk policy")
 						policyFilePath := filepath.Join(targetDir, snyk.PolicyFileName)
 						// using overridden packages with versions from actions file too
-						if err = output.EditSnykPolicyFile(policyFilePath, configOverrides, availableFixes); err != nil {
+						if snykUpdated, err = output.EditSnykPolicyFile(policyFilePath, configOverrides, availableFixes); err != nil {
 							return err // err already logged from func
 						}
-						snykUpdated = true
 					}
 				}
 

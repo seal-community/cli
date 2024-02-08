@@ -65,6 +65,7 @@ func rootCmd() *cobra.Command {
 		scanCommand(),
 		fixCommand(),
 		versionCommand(),
+		addCommand(),
 		completionCommand(),
 	)
 

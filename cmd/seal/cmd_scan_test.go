@@ -88,7 +88,7 @@ projects:
 `
 	manager := &FakePackageManager{}
 	vulns := getTestVulns()
-	actionsObject := createActionsObject(vulns, manager, "project", "projectDir", "targetDir")
+	actionsObject := createActionsObject(vulns, manager, "project", "projectDir")
 	if actionsObject == nil {
 		t.Fatalf("actionObject is nil")
 	}

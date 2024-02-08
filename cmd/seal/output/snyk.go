@@ -9,9 +9,10 @@ import (
 
 // adds new rules to snyk policy file (unless no changes found)
 // currently there is no support for removing old entries
-func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, fixed []api.PackageVersion) error {
+func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, fixed []api.PackageVersion) (bool, error) {
 	slog.Info("working on snyk policy file", "path", policyFilePath)
 	recommendedToVulnerable := make(map[string]api.PackageVersion)
+	addedRules := false
 
 	// building map of fixes to their respective vulnerable package
 	for _, vulnPackage := range vulnerable {
@@ -32,7 +33,7 @@ func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, 
 
 	f, err := common.OpenFile(policyFilePath)
 	if err != nil {
-		return common.WrapWithPrintable(err, "failed to open existing .snyk file %s", policyFilePath)
+		return false, common.WrapWithPrintable(err, "failed to open existing .snyk file %s", policyFilePath)
 	}
 
 	var pf *snyk.PolicyFile
@@ -44,10 +45,9 @@ func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, 
 	}
 
 	if err != nil {
-		return common.FallbackPrintableMsg(err, "faild loading .snyk file")
+		return false, common.FallbackPrintableMsg(err, "faild loading .snyk file")
 	}
 
-	addedRules := false
 	for _, fixedPackage := range fixed {
 		linkedVulnPackage, exist := recommendedToVulnerable[fixedPackage.Id()]
 		if !exist {
@@ -70,15 +70,15 @@ func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, 
 		slog.Info("have new rules for snyk policy file")
 		f, err = common.CreateFile(policyFilePath)
 		if err != nil {
-			return common.WrapWithPrintable(err, "failed to create .snyk file: %s", policyFilePath)
+			return false, common.WrapWithPrintable(err, "failed to create .snyk file: %s", policyFilePath)
 		}
 		defer f.Close()
 
 		if err = snyk.SavePolicy(pf, f); err != nil {
 			slog.Error("failed dumping updated policy", "err", err)
-			return common.NewPrintableError("failed to save .snyk file")
+			return false, common.NewPrintableError("failed to save .snyk file")
 		}
 	}
 
-	return nil
+	return addedRules, nil
 }

@@ -52,7 +52,7 @@ func (sp *scanPhase) metadata() (*PackageManagerMetadata, error) {
 	return &PackageManagerMetadata{Version: version, Name: name}, nil
 }
 
-func (sp *scanPhase) collect() (common.DependencyMap, error) {
+func (sp *scanPhase) Collect() (common.DependencyMap, error) {
 	defer common.ExecutionTimer().Log()
 	packageManager := sp.Manager
 	targetDir := sp.ProjectDir
@@ -118,7 +118,7 @@ func (sp *scanPhase) Scan() (*ScanResult, error) {
 
 	sp.advanceStep("Scanning local dependencies")
 
-	dependencyMap, err := sp.collect()
+	dependencyMap, err := sp.Collect()
 	slog.Debug("done collecting npm dependencies")
 	if err != nil {
 		return nil, common.FallbackPrintableMsg(err, "failed collecting dependencies")

@@ -8,12 +8,10 @@ run:
 
 linters:
   enable:
-    - godox # to prevent todos/fixmes from remaining in code
+    - godox # checks no BUG/FIXME/TODO
+    - forbidigo # arbitrary forbidden patterns
 
 linters-settings:
-  godox:
-    keywords: ["TODO", "FIXME"]
-
   staticcheck:
     checks:
       - "-S1008" # about simplifying conditions https://staticcheck.dev/docs/checks/#S1008
@@ -22,3 +20,9 @@ linters-settings:
     exclude-functions:
       # used with defer without error checking, can't do anything if failed
       - (*github.com/schollz/progressbar/v3.ProgressBar).Finish
+
+  forbidigo:
+    # for more options see https://golangci-lint.run/usage/linters/#forbidigo
+    forbid:
+      - p: time.Sleep
+        msg: "`time.Sleep` not allowed"
