@@ -81,15 +81,21 @@ func getPnpmVersion(targetDir string) (string, bool) {
 
 func listPnpmPackages(targetDir string, npmVersion string, prodOnly bool) (*common.ProcessResult, bool) {
 	/*
-		runs pnpm to list dependencies in json format
-
-		using (testsed on version 5.18.10, 8.x):
-			`ll`: 			        using ll to have "from" field, which is used as the package name (unknown if cannot be trusted)
+		runs pnpm to list dependencies in parseable format
+			`ls`:
 			`--json`:		        json output
 			`--depth Infinity`:		show all transitive dependencies
+			`--long`				shows version as well as path (`ll` was not always supported)
+		testsed commandline flags on:
+			- 3.8.1
+			- 4.14.4
+			- 5.18.10
+			- 6.35.1
+			- 7.33.7
+			- 8.15.3
 	*/
 
-	args := []string{"ll", "--depth", "Infinity", "--json"}
+	args := []string{"ls", "--depth", "Infinity", "--parseable", "--long"}
 	if prodOnly {
 		slog.Info("will ignore dev dependencies")
 		prodOnlyFlag := "--prod" // available from at least version 7: https://pnpm.io/7.x/cli/install
@@ -105,5 +111,5 @@ func (m *PnpmPackageManager) GetEcosystem() string {
 }
 
 func (m *PnpmPackageManager) GetScanTargets() []string {
-  return []string{utils.PackageJsonFile}
+	return []string{utils.PackageJsonFile}
 }

@@ -1,12 +1,13 @@
 package pnpm
 
 import (
+	"bufio"
 	"cli/internal/common"
 	"cli/internal/config"
 	"cli/internal/ecosystem/node/utils"
 	"cli/internal/ecosystem/shared"
-	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -28,168 +29,165 @@ type pnpmDependencyParser struct {
 	config *config.Config // in the future we might want to only pass the npm specific config object
 }
 
-func (parser *pnpmDependencyParser) shouldSkip(p *PnpmPackage, dev bool) bool {
-	if p.Name == "" || p.Version == "" {
+func shouldSkip(d common.Dependency) bool {
+	if d.Link {
+		slog.Info("skipping link dependency", "path", d.DiskPath, "package", d.Name)
+		return true
+	}
+
+	if d.Name == "" || d.Version == "" {
 		slog.Warn("empty dependency")
 		return true
 	}
 
-	fi, err := os.Lstat(p.Path)
-	if err == nil {
-		// skip symlink for cases:
-		//	- manually altered node_modules
-		// this won't FP since using pnpm list command gives the paths within .pnpm instead of symlinks it creates for node
-		mode := fi.Mode()
-		if mode&os.ModeSymlink != 0 {
-			slog.Warn("symlink dependency")
-			return true
-		}
-	} else {
-		// currently warn if this fails, needs to be mocked in all tests once this is implemented
-		// ignore for dev-deps
-		if !dev {
-			slog.Error("failed getting stat", "path", p.Path, "err", err)
-		}
+	fi, err := os.Lstat(d.DiskPath)
+	if err != nil {
+		// stat could fail, usually happens when deps were not installed (dev usually); can't distinguish between prod and dev in current implementation so only debug log for it
+		slog.Debug("failed getting stat", "path", d.DiskPath, "err", err)
+		return true
+	}
+
+	// skip symlink for cases:
+	//	- manually altered node_modules
+	// this won't FP since using pnpm list command gives the paths within .pnpm instead of symlinks it creates for node
+	mode := fi.Mode()
+	if mode&os.ModeSymlink != 0 {
+		slog.Warn("symlink dependency", "path", d.DiskPath)
+		return true
 	}
 
 	return false
 }
 
-func (parser *pnpmDependencyParser) parseDependencyNode(node *PnpmPackage, deps common.DependencyMap, depth int, parent *common.Dependency, branch string, inDevTree bool) error {
-	if parent != nil {
-		parentDescriptor := fmt.Sprintf("%s@%s", node.Name, node.Version)
-		if branch == "" {
-			// direct dep
-			branch = parentDescriptor
-		} else {
-			branch = fmt.Sprintf("%s > %s", branch, parentDescriptor) // might be better to construct ourselves instead of using internalId
-		}
-	}
-
-	for keyName, p := range node.Dependencies {
-		if parser.shouldSkip(p, inDevTree) {
-			slog.Warn("skipping dep", "name", p.Name, "version", p.Version, "depth", depth, "parent", node)
-			continue
-		}
-
-		current := pnpmAddDepInstance(deps, p, keyName, parent, inDevTree, branch)
-		err := parser.parseDependencyNode(p, deps, depth+1, current, branch, inDevTree)
-		if err != nil {
-			return err
-		}
-	}
-
-	// needs to explictly parse dev deps on root node
-	if !parser.config.Pnpm.ProdOnlyDeps && parent == nil {
-		slog.Info("parsing dev deps on root node")
-		for keyName, p := range node.DevDependencies {
-			// since this is the root node, all deps here on down are dev
-			if parser.shouldSkip(p, true) {
-				slog.Warn("skipping dev dep", "name", p.Name, "version", p.Version, "depth", depth, "parent", node)
-				continue
-			}
-
-			current := pnpmAddDepInstance(deps, p, keyName, parent, true, branch)
-			err := parser.parseDependencyNode(p, deps, depth+1, current, branch, true)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func pnpmAddDepInstance(deps common.DependencyMap, p *PnpmPackage, keyName string, parent *common.Dependency, dev bool, branch string) *common.Dependency {
-	common.Trace("adding dep", "name", p.Name, "version", p.Version, "path", p.Path, "key", keyName, "branch", branch)
-	newDep := &common.Dependency{
-		Name:           p.Name,
-		Version:        p.Version,
-		PackageManager: shared.NpmManager, // using NPM here as well for the sake of the BE
-		DiskPath:       p.Path,
-		NameAlias:      keyName,
-		Parent:         parent,
-		Branch:         branch,
-		Dev:            dev,
-	}
-
-	key := newDep.Id()
-	if _, ok := deps[key]; !ok {
-		deps[key] = make([]*common.Dependency, 0, 1)
-	}
-
-	if keyName != p.Name {
-		slog.Warn("possible alias dependency", "alias", keyName, "name", p.Name, "path", p.Path, "transitive", newDep.IsTransitive())
-	}
-
-	deps[key] = append(deps[key], newDep)
-	return newDep
-}
-
-func skipUntilJsonStarts(output string) string {
+func skipToPackages(output *bufio.Reader, projectDir string) error {
 	// pnpm's prints to stdout a warning line for failing to replace an env variable
 	//		this only happens for the first var due to uncaught exception
 	// 		ref: https://github.com/pnpm/pnpm/issues/5914#issuecomment-1378997369
-	// will skip input lines until reaches the first '[' character denoting start of valid json output
-
-	if output == "" {
-		return output
-	}
-
-	// this assumes --json flag outputs an array
-	if string(output[0]) == "[" {
-		return output
-	}
-
-	newlineIdx := strings.Index(output, "\n")
-	if newlineIdx == -1 {
-		slog.Warn("cant skip line of pnpm output")
+	// will skip first 'project' line, and error line if exists
+	firstLine, err := output.ReadString('\n') // this should work regardless of OS, will skip \r
+	if firstLine == "" || err != nil {
 		// unknown input 'format'
-		return ""
+		slog.Warn("could not read first line of pnpm output")
+		return io.EOF
 	}
 
-	slog.Info("skipped first line due to bad pnpm output", "skipped", newlineIdx)
-	return output[newlineIdx+1:] // skip the \n
+	// handle warn message if exists
+	if strings.HasPrefix(firstLine, projectDir) {
+		return nil // expected output; first line should be the project itself
+	}
 
+	slog.Info("skipped first line due to bad pnpm output", "line", firstLine)
+	secondLine, err := output.ReadString('\n')
+	if secondLine == "" || err != nil {
+		slog.Warn("could not read second line of pnpm output")
+		return io.EOF
+	}
+
+	// this assumes the first listed package is the project itself, starting with the project dir
+	if !strings.HasPrefix(secondLine, projectDir) {
+		slog.Warn("did not find project perfix in pnpm output", "prefix", projectDir, "line", secondLine)
+		return fmt.Errorf("project path prefix missing in pnpm output line %s", secondLine)
+	}
+
+	return nil
+}
+
+func parseLine(line string, projectDir string) *common.Dependency {
+	// format: {diskpath}:{package}@{version}
+	// 	 package - can be scoped, limitations: https://docs.npmjs.com/cli/v10/configuring-npm/package-json#name
+	//	 dispath - windows/unix path, absolute, can contain may characters
+	// ref for pnpm: https://github.com/btea/pnpm/blob/main/reviewing/list/src/renderParseable.ts#L24
+	link := false
+
+	verSepIdx := strings.LastIndex(line, "@") // using last index
+	if verSepIdx == -1 {
+		slog.Warn("did not find @ separator between name and version")
+		return nil
+	}
+
+	version := line[verSepIdx+1:]
+	remainder := line[:verSepIdx]
+
+	packageSepIdx := strings.LastIndex(remainder, ":")
+	if packageSepIdx == -1 {
+		slog.Warn("did not find : separator between diskpath and package name")
+		return nil
+	}
+
+	path := remainder[:packageSepIdx]
+	pkgName := remainder[packageSepIdx+1:]
+
+	if strings.HasPrefix(version, "link:") {
+		// happens when adding folders or using link command
+		// unsupported for now, seems to be replacing the version:
+		//		{package}@link:{relative-path}
+		slog.Warn("unsupported link/folder dependency", "line", line)
+		link = true
+		version = "" // unsupported, should prevent from using this
+	}
+
+	if !strings.HasPrefix(line, projectDir) {
+		slog.Warn("external path to dependency", "line", line, "projectdir", projectDir)
+		// could be added to struct so we could filter them out better
+	}
+
+	return &common.Dependency{
+		Name:           pkgName,
+		Version:        version,
+		PackageManager: shared.NpmManager, // using NPM here as well for the sake of the BE
+		DiskPath:       path,
+		Link:           link,
+	}
 }
 
 func (parser *pnpmDependencyParser) Parse(lsOutput string, projectDir string) (common.DependencyMap, error) {
 	deps := make(common.DependencyMap)
-	roots := []PnpmPackage{}
 
-	lsOutput = skipUntilJsonStarts(lsOutput)
 	if lsOutput == "" {
+		// could happen if node_modules exists but empty, before installing dependencies
+		slog.Warn("empty output from pnpm, dependencies not installed")
+		return nil, common.NewPrintableError("please run pnpm install before using the cli")
+	}
+
+	r := bufio.NewReader(strings.NewReader(lsOutput))
+	err := skipToPackages(r, projectDir)
+	if err != nil {
 		slog.Error("failed skipping bad pnpm output", "output", lsOutput)
-		return nil, fmt.Errorf("failed skipping bad output from pnpm")
+		return nil, fmt.Errorf("failed skipping bad output from pnpm %w", err) // caller should wrap this error
 	}
 
-	err := json.Unmarshal([]byte(lsOutput), &roots)
-	if err != nil {
-		slog.Error("failed unmarshal ls output", "err", err)
-		return nil, err
-	}
+	scanner := bufio.NewScanner(r) // handles line-endings correctly
 
-	if len(roots) == 0 {
-		slog.Error("bad json, empty list")
-		return nil, fmt.Errorf("bad output from pnpm")
-	}
+	for i := 0; scanner.Scan(); i++ {
+		line := scanner.Text()
 
-	if len(roots) > 1 {
-		slog.Warn("got multiple roots", "count", len(roots))
-	}
+		d := parseLine(line, projectDir)
+		if d == nil {
+			slog.Warn("failed parsing dep", "idx", i, "line", line)
+			return nil, fmt.Errorf("failed parsing pnpm output line %d", i) // returning genreal error, up to caller to use fallback
+		}
 
-	root := roots[0]
-	if root.Path != projectDir {
-		// the first node in the tree is the project's package
-		// use it to validate we're in the correct directory
-		slog.Error("root is not the same as project dir", "root_path", root.Path, "project_dir", projectDir)
-		return nil, utils.CwdWrongProjectDir
-	}
+		if shouldSkip(*d) {
+			slog.Debug("skipping dep", "name", d.Name, "version", d.Version, "idx", i)
+			continue
+		}
 
-	slog.Info("root package", "direct_deps", len(root.Dependencies))
-	// currently dependencies can hold dupes, extranious, invalid, etc
-	err = parser.parseDependencyNode(&root, deps, 1, nil, "", false)
-	if err != nil {
-		return nil, err
+		// compare actual vs reported version
+		// this could happen if we already fixed a package on disk
+		// since pnpm does not report the updated versoin
+		actualVersion := utils.GetVersion(d.DiskPath)
+		if actualVersion != "" && actualVersion != d.Version {
+			slog.Info("overwriting version due to mismatch between pnpm report and disk", "actual", actualVersion, "reported", d.DiskPath, "package", d.Name)
+			d.Version = actualVersion // using the one in disk could help differentiate between fixed and unfixed instances of same package
+		}
+
+		key := d.Id()
+		if _, ok := deps[key]; !ok {
+			// in case they are not dedup'd
+			deps[key] = make([]*common.Dependency, 0, 1)
+		}
+
+		deps[key] = append(deps[key], d)
 	}
 
 	return deps, nil

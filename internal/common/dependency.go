@@ -12,6 +12,7 @@ type Dependency struct {
 	Extraneous     bool        `json:"-"` // currently npm-specific
 	Branch         string      `json:"-"` // chain of dependencies that reached this
 	Dev            bool        `json:"-"` // currently useful for pnpm since npm handles it implicitly
+	Link           bool        `json:"-"` // currently useful for pnpm - is a link to another place
 }
 
 func (d *Dependency) HasAlias() bool {

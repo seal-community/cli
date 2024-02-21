@@ -24,6 +24,21 @@ func GetProjectName(dir string) string {
 	return sVal
 }
 
+func GetVersion(dir string) string {
+	pgk := loadPackageJson(dir)
+	val, ok := pgk["version"]
+	if !ok {
+		slog.Warn("version not found in package json", "dir", dir)
+		return ""
+	}
+	sVal, ok := val.(string)
+	if !ok {
+		slog.Warn("version value is bad type", "dir", dir)
+		return ""
+	}
+	return sVal
+}
+
 func loadPackageJson(dir string) map[string]any {
 	var pkg map[string]any
 	p := filepath.Join(dir, PackageJsonFile)
