@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/go-playground/validator/v10 v10.16.0
+	github.com/google/uuid v1.6.0
 	github.com/jedib0t/go-pretty/v6 v6.4.8
 	github.com/lmittmann/tint v1.0.2
 	github.com/schollz/progressbar/v3 v3.13.1

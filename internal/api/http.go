@@ -21,6 +21,7 @@ type StringPair struct {
 var BadServerResponseCode = common.NewPrintableError("remote server issue")
 
 const SealVersionHeader = "X-Seal-Version"
+const SealSessionIdHeader = "X-Seal-CLI-Session-ID"
 
 func formatUserAgent() string {
 	return fmt.Sprintf("seal-cli/%s", common.CliVersion)
@@ -81,6 +82,7 @@ func SendRequest[RequestType any](client http.Client, method string, url string,
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add(SealVersionHeader, common.CliVersion)
+	req.Header.Add(SealSessionIdHeader, common.SessionId)
 	req.Header.Add("User-Agent", formatUserAgent())
 
 	for _, header := range headers {

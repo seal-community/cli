@@ -55,7 +55,7 @@ func rootCmd() *cobra.Command {
 			logfile := cmd.Context().Value(logfileKey).(*os.File) // will panic if misconfigured in code
 
 			setupLogging(logfile, verbosity)
-			slog.Info("cli started", "version", common.CliVersion, "logfile", logfile.Name())
+			slog.Info("cli started", "version", common.CliVersion, "sessionId", common.SessionId, "logfile", logfile.Name())
 
 			return nil
 		},

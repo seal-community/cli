@@ -247,6 +247,37 @@ func TestCustomHeaderCliVersion(t *testing.T) {
 	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil)
 }
 
+func TestSessionIdHeaderAdded(t *testing.T) {
+	// IMPORTANT: this will fail if run from vs code, see .vscode/settings.json
+	fakeRoundTripper := fakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
+		sessionValues := req.Header.Values(SealSessionIdHeader)
+		if len(sessionValues) == 0 {
+			t.Fatalf("no session session header")
+		}
+
+		if len(sessionValues) > 1 {
+			t.Fatalf("multple session session headers %v", sessionValues)
+		}
+
+		session := sessionValues[0]
+		if session == "" {
+			t.Fatalf("empty session header value")
+		}
+
+		if session != common.SessionId {
+			t.Fatalf("wrong session header value - got `%s` expected `%s`", session, common.SessionId)
+		}
+	}}
+
+	client := http.Client{Transport: fakeRoundTripper}
+
+	method := "POST"
+	url := "https://seal/a/url/endpoint"
+
+	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil) // check twice is using the same one
+}
+
 func TestHeaderUserAgent(t *testing.T) {
 	fakeRoundTripper := fakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
 		userAgentValues := req.Header.Values("User-Agent")
