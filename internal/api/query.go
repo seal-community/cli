@@ -40,12 +40,20 @@ func (s Server) sendBulkRequest(request *BulkCheckRequest, queryType PackageQuer
 		param = StringPair{Name: "fixed", Value: "0"}
 	}
 
+	var headers []StringPair
+
+	if s.AuthToken != "" {
+		// send token if we have it configured
+		headers = []StringPair{BuildBasicAuthHeader(s.AuthToken)}
+		common.Trace("sending auth header in bulk request")
+	}
+
 	data, statusCode, err := sendApiRequest[BulkCheckRequest, Page[PackageVersion]](
 		s.Client,
 		"POST",
 		"/unauthenticated/artifact-management/v1/library_versions/bulk",
 		request,
-		nil, // headers
+		headers,
 		[]StringPair{param},
 	)
 

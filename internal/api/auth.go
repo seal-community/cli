@@ -6,6 +6,10 @@ import (
 	"log/slog"
 )
 
+func BuildBasicAuthHeader(token string) StringPair {
+	return StringPair{"Authorization", fmt.Sprintf("Basic %s", token)}
+}
+
 func (s Server) CheckAuthenticationValid() error {
 	defer common.ExecutionTimer().Log()
 	_, statusCode, err := SendRequest[any](
@@ -13,7 +17,7 @@ func (s Server) CheckAuthenticationValid() error {
 		"GET",
 		"https://authorization.sealsecurity.io/",
 		nil,
-		[]StringPair{{"Authorization", fmt.Sprintf("Basic %s", s.AuthToken)}},
+		[]StringPair{BuildBasicAuthHeader(s.AuthToken)},
 		[]StringPair{},
 	)
 

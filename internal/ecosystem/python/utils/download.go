@@ -58,7 +58,7 @@ func getVersionUrl(libraryInfo []byte, version string, compatibleTags []string) 
 func DownloadPythonPackage(s api.Server, name string, version string, compatibleTags []string) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
-	authHeader := api.StringPair{Name: "Authorization", Value: fmt.Sprintf("Basic %s", s.AuthToken)}
+	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
 	libraryInfo, statusCode, err := api.SendRequest[any](
 		s.Client,
 		"GET",

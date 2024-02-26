@@ -63,3 +63,14 @@ func TestAuthenticaionFailureOnStatusCode(t *testing.T) {
 		})
 	}
 }
+
+func TestBasicTokenHeader(t *testing.T) {
+	h := BuildBasicAuthHeader("fake-token")
+	if h.Value != "Basic fake-token" {
+		t.Fatalf("bad auth header value: `%s`", h.Value)
+	}
+
+	if h.Name != "Authorization" {
+		t.Fatalf("bad auth header name: %s", h.Name)
+	}
+}

@@ -64,10 +64,11 @@ func (m *PipPackageManager) GetFixer(projectDir string, workdir string) shared.D
 func IsPipProjectDir(path string) (bool, error) {
 	packageFile := filepath.Join(path, Pipfile)
 	exists, err := common.PathExists(packageFile)
-	if err != nil || !exists {
-		slog.Error("failed checking %s exists", Pipfile, "err", err)
+	if err != nil {
+		slog.Error("failed checking pip exists", "file", Pipfile, "err", err)
 		return false, err
 	}
+
 	if exists {
 		return true, nil
 	}

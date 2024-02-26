@@ -21,7 +21,7 @@ type npmLibraryInfo struct {
 func DownloadNPMPackage(s api.Server, name string, version string) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
-	authHeader := api.StringPair{Name: "Authorization", Value: fmt.Sprintf("Basic %s", s.AuthToken)}
+	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
 	libraryInfo, statusCode, err := api.SendRequestJson[any, npmLibraryInfo](
 		s.Client,
 		"GET",
