@@ -1,6 +1,7 @@
-package api
+package utils
 
 import (
+	"cli/internal/api"
 	"cli/internal/common"
 	"crypto/sha1"
 	"encoding/hex"
@@ -17,21 +18,21 @@ type npmLibraryInfo struct {
 	} `json:"versions"`
 }
 
-func (s Server) DownloadNpmPackage(p PackageVersion) ([]byte, error) {
+func DownloadNPMPackage(s api.Server, name string, version string) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
-	authHeader := StringPair{"Authorization", fmt.Sprintf("Basic %s", s.AuthToken)}
-	libraryInfo, statusCode, err := sendRequestJson[any, npmLibraryInfo](
-		s.client,
+	authHeader := api.StringPair{Name: "Authorization", Value: fmt.Sprintf("Basic %s", s.AuthToken)}
+	libraryInfo, statusCode, err := api.SendRequestJson[any, npmLibraryInfo](
+		s.Client,
 		"GET",
-		fmt.Sprintf("https://npm.sealsecurity.io/%s/", p.Library.Name),
+		fmt.Sprintf("https://npm.sealsecurity.io/%s/", name),
 		nil,
-		[]StringPair{authHeader},
-		[]StringPair{},
+		[]api.StringPair{authHeader},
+		[]api.StringPair{},
 	)
 
 	if err != nil {
-		slog.Error("failed sending request for npm libary info", "err", err, "package", p)
+		slog.Error("failed sending request for npm libary info", "err", err, "name", name, "version", version)
 		return nil, err
 	}
 
@@ -45,24 +46,24 @@ func (s Server) DownloadNpmPackage(p PackageVersion) ([]byte, error) {
 		return nil, fmt.Errorf("no data from server: %d", statusCode)
 	}
 
-	versionInfo, ok := libraryInfo.Versions[p.RecommendedLibraryVersionString]
+	versionInfo, ok := libraryInfo.Versions[version]
 	if !ok {
 		slog.Error("failed finding fixed package")
-		return nil, fmt.Errorf("could not find version %s in package info %s", p.RecommendedLibraryVersionString, p.Library.Name)
+		return nil, fmt.Errorf("could not find version %s in package info %s", version, name)
 	}
 
 	url := versionInfo.Distribution.Tarball
-	libraryData, statusCode, err := sendRequest[any](
-		s.client,
+	libraryData, statusCode, err := api.SendRequest[any](
+		s.Client,
 		"GET",
 		url,
 		nil,
-		[]StringPair{authHeader},
-		[]StringPair{},
+		[]api.StringPair{authHeader},
+		[]api.StringPair{},
 	)
 
 	if err != nil {
-		slog.Error("failed sending request for npm package data", "err", err, "package", p)
+		slog.Error("failed sending request for npm package data", "err", err, "name", name, "version", version)
 		return nil, err
 	}
 

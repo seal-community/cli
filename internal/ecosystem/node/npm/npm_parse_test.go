@@ -3,8 +3,8 @@ package npm
 import (
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/utils"
-	"cli/internal/ecosystem/shared"
 	"os"
 
 	"errors"
@@ -12,14 +12,6 @@ import (
 
 	"golang.org/x/exp/maps"
 )
-
-func TestDependencySignatureId(t *testing.T) {
-	signature := "bbb|lodash@1.2.3"
-	generated := common.DependencyId("bbb", "lodash", "1.2.3")
-	if generated != signature {
-		t.Fatalf("wrong dep version signature; generated: '%s' expected: '%s'", generated, signature)
-	}
-}
 
 func TestParseNoDeps(t *testing.T) {
 	conf, _ := config.New(nil)
@@ -53,7 +45,7 @@ func TestParseSingleDependency(t *testing.T) {
 	deps := maps.Values(dependencies)
 	dep := deps[0][0]
 
-	if dep.PackageManager != shared.NpmManager {
+	if dep.PackageManager != mappings.NpmManager {
 		t.Fatalf("wrong package manager %v", dep.PackageManager)
 	}
 
@@ -84,7 +76,7 @@ func TestParseSameDependencyMultipleVersions(t *testing.T) {
 		t.Fatalf("got wrong number of dependencies: %v %v", len(dependencies), dependencies)
 	}
 
-	lodashSignatureA := common.DependencyId(shared.NpmManager, "lodash", "4.17.11")
+	lodashSignatureA := common.DependencyId(mappings.NpmManager, "lodash", "4.17.11")
 	lodashDepsA, ok := dependencies[lodashSignatureA]
 	if !ok {
 		t.Fatalf("could not find dependency: %s", lodashSignatureA)
@@ -101,7 +93,7 @@ func TestParseSameDependencyMultipleVersions(t *testing.T) {
 		t.Fatalf("wrong version for first lodash; got '%s'", lodashDepsA[0].Version)
 	}
 
-	lodashSignatureB := common.DependencyId(shared.NpmManager, "lodash", "4.17.11")
+	lodashSignatureB := common.DependencyId(mappings.NpmManager, "lodash", "4.17.11")
 	lodashDepsB, ok := dependencies[lodashSignatureB]
 	if !ok {
 		t.Fatalf("could not find dependency: %s", lodashSignatureB)
@@ -136,7 +128,7 @@ func TestParseSingleDependencyNamespace(t *testing.T) {
 
 	dep := maps.Values(dependencies)[0][0] // taking first instance
 
-	if dep.PackageManager != shared.NpmManager {
+	if dep.PackageManager != mappings.NpmManager {
 		t.Fatalf("wrong package manager %v", dep.PackageManager)
 	}
 	if dep.Name != "@fastify/multipart" {

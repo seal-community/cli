@@ -8,8 +8,8 @@ import (
 
 func (s Server) CheckAuthenticationValid() error {
 	defer common.ExecutionTimer().Log()
-	_, statusCode, err := sendRequest[any](
-		s.client,
+	_, statusCode, err := SendRequest[any](
+		s.Client,
 		"GET",
 		"https://authorization.sealsecurity.io/",
 		nil,

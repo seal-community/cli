@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/utils"
-	"cli/internal/ecosystem/shared"
 	"fmt"
 	"io"
 	"log/slog"
@@ -134,7 +134,7 @@ func parseLine(line string, projectDir string) *common.Dependency {
 	return &common.Dependency{
 		Name:           pkgName,
 		Version:        version,
-		PackageManager: shared.NpmManager, // using NPM here as well for the sake of the BE
+		PackageManager: mappings.NpmManager, // using NPM here as well for the sake of the BE
 		DiskPath:       path,
 		Link:           link,
 	}

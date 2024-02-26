@@ -25,7 +25,7 @@ bin/
 node_modules/
 package-lock.json
 package.json
-test/output/
+test/*/output/
 
 *.seal-config.yml
 *.seal-actions.yml

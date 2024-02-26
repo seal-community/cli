@@ -1,7 +1,7 @@
-package api
+package utils
 
 import (
-	"cli/internal/ecosystem/shared"
+	"cli/internal/api"
 	"io"
 	"net/http"
 	"strings"
@@ -9,16 +9,10 @@ import (
 )
 
 func TestDownloadNpm(t *testing.T) {
-	p := PackageVersion{
-		Version: "123",
-		Library: Package{
-			Name:           "lodash",
-			PackageManager: shared.NpmManager,
-		},
-		RecommendedLibraryVersionString: "123-sp1",
-	}
+	name := "lodash"
+	version := "123-sp1"
 	fakePackageContent := `asdf` // sha1(asdf) -> 3da541559918a808c2402bba5012f6c60b27661c
-	transparentRoundTripper := transparentRoundTripper{Callback: func(req *http.Request) *http.Response {
+	transparentRoundTripper := api.TransparentRoundTripper{Callback: func(req *http.Request) *http.Response {
 
 		uri := req.URL.Path
 		var content string
@@ -49,9 +43,9 @@ func TestDownloadNpm(t *testing.T) {
 	}}
 
 	client := http.Client{Transport: transparentRoundTripper}
-	server := Server{client: client}
+	server := api.Server{Client: client}
 
-	data, err := server.DownloadNpmPackage(p)
+	data, err := DownloadNPMPackage(server, name, version)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}

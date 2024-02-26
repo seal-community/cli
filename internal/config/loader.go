@@ -24,8 +24,9 @@ type NpmConfig struct {
 }
 
 type PnpmConfig struct {
-	ProdOnlyDeps bool `yaml:"prod-only"          env:"PROD_ONLY"` // same as np
+	ProdOnlyDeps bool `yaml:"prod-only"          env:"PROD_ONLY"` // same as npm
 }
+
 type Config struct {
 	Token   string     `yaml:"token"           env:"TOKEN"`
 	Project string     `yaml:"project"         env:"PROJECT"`

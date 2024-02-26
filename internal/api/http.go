@@ -34,13 +34,13 @@ func sendApiRequest[RequestType any, ResponseType any](client http.Client, metho
 		return nil, 0, err
 	}
 
-	return sendRequestJson[RequestType, ResponseType](client, method, reqUrl, body, headers, params)
+	return SendRequestJson[RequestType, ResponseType](client, method, reqUrl, body, headers, params)
 }
 
-func sendRequestJson[RequestType any, ResponseType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
+func SendRequestJson[RequestType any, ResponseType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
 	var responseObject ResponseType
 
-	responseData, statusCode, err := sendRequest[RequestType](client, method, url, body, headers, params)
+	responseData, statusCode, err := SendRequest[RequestType](client, method, url, body, headers, params)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -61,7 +61,7 @@ func sendRequestJson[RequestType any, ResponseType any](client http.Client, meth
 
 }
 
-func sendRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
+func SendRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
 	var err error
 	encodedBody := []byte{}
 	if body != nil {

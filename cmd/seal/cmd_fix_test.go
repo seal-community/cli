@@ -3,7 +3,7 @@ package main
 import (
 	"cli/internal/actions"
 	"cli/internal/api"
-	"cli/internal/ecosystem/shared"
+	"cli/internal/ecosystem/mappings"
 	"slices"
 	"testing"
 )
@@ -12,14 +12,14 @@ func TestOverrideFilterSanity(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
 		},
 		{
 			Version:                         "1.0.0",
-			Library:                         api.Package{Name: "semver-regex", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "semver-regex", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-12312", UnifiedScore: 9.8}},
@@ -29,7 +29,7 @@ func TestOverrideFilterSanity(t *testing.T) {
 	overrides := actions.LibraryOverrideMap{"lodash": actions.VersionOverrideMap{"1.2.3": actions.Override{Version: overriddenVersion}}}
 	proj := actions.ProjectSection{Manager: actions.ProjectManagerSection{
 		Ecosystem: "node",
-		Name:      shared.NpmManager,
+		Name:      mappings.NpmManager,
 	}, Overrides: overrides}
 
 	result := filterVulnerablePackageForProject(vulnPackages, proj)
@@ -71,7 +71,7 @@ func TestOverrideFilterNoMatchLibrary(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
@@ -81,7 +81,7 @@ func TestOverrideFilterNoMatchLibrary(t *testing.T) {
 	overrides := actions.LibraryOverrideMap{"semver-regex": actions.VersionOverrideMap{"1.0.0": actions.Override{Version: overriddenVersion}}}
 	proj := actions.ProjectSection{Manager: actions.ProjectManagerSection{
 		Ecosystem: "node",
-		Name:      shared.NpmManager,
+		Name:      mappings.NpmManager,
 	}, Overrides: overrides}
 
 	result := filterVulnerablePackageForProject(vulnPackages, proj)
@@ -94,7 +94,7 @@ func TestOverrideFilterNoMatchVersion(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
@@ -104,7 +104,7 @@ func TestOverrideFilterNoMatchVersion(t *testing.T) {
 	overrides := actions.LibraryOverrideMap{"lodash": actions.VersionOverrideMap{"4.5.15": actions.Override{Version: overriddenVersion}}}
 	proj := actions.ProjectSection{Manager: actions.ProjectManagerSection{
 		Ecosystem: "node",
-		Name:      shared.NpmManager,
+		Name:      mappings.NpmManager,
 	}, Overrides: overrides}
 
 	result := filterVulnerablePackageForProject(vulnPackages, proj)
@@ -117,7 +117,7 @@ func TestOverrideFilterDoesNotAllowOverrideNonSealable(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "",
 			RecommendedLibraryVersionString: "",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
@@ -127,7 +127,7 @@ func TestOverrideFilterDoesNotAllowOverrideNonSealable(t *testing.T) {
 	overrides := actions.LibraryOverrideMap{"lodash": actions.VersionOverrideMap{"1.2.3": actions.Override{Version: overriddenVersion}}}
 	proj := actions.ProjectSection{Manager: actions.ProjectManagerSection{
 		Ecosystem: "node",
-		Name:      shared.NpmManager,
+		Name:      mappings.NpmManager,
 	}, Overrides: overrides}
 
 	result := filterVulnerablePackageForProject(vulnPackages, proj)
@@ -139,7 +139,7 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "",
 			RecommendedLibraryVersionString: "",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
@@ -149,7 +149,7 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 	proj := actions.ProjectSection{
 		Manager: actions.ProjectManagerSection{
 			Ecosystem: "node",
-			Name:      shared.NpmManager,
+			Name:      mappings.NpmManager,
 		},
 		Overrides: overrides,
 	}
@@ -161,18 +161,18 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 }
 
 func TestFixModeParsing(t *testing.T) {
-  f := fixModeFromString("local")
-  if f != localMode {
-    t.Fatalf("failed to parse local mode")
-  }
+	f := fixModeFromString("local")
+	if f != localMode {
+		t.Fatalf("failed to parse local mode")
+	}
 
-  f = fixModeFromString("all")
-  if f != allMode {
-    t.Fatalf("failed to parse all mode")
-  }
+	f = fixModeFromString("all")
+	if f != allMode {
+		t.Fatalf("failed to parse all mode")
+	}
 
-  f = fixModeFromString("fail")
-  if f != "" {
-    t.Fatalf("failed to parse unknown mode")
-  }
+	f = fixModeFromString("fail")
+	if f != "" {
+		t.Fatalf("failed to parse unknown mode")
+	}
 }

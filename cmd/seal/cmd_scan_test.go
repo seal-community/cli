@@ -4,6 +4,7 @@ import (
 	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"slices"
 
@@ -48,13 +49,17 @@ func (m *FakePackageManager) ListDependencies(targetDir string) (*common.Process
 	return nil, false
 }
 
+func (m *FakePackageManager) DownloadPackage(server api.Server, name string, version string) ([]byte, error) {
+	return nil, nil
+}
+
 func getTestVulns() []api.PackageVersion {
 	vulns := []api.PackageVersion{
 		{
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager,
+				PackageManager: mappings.NpmManager,
 			},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
@@ -119,7 +124,7 @@ func TestOverrideMergeSanitySamePackage(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -128,7 +133,7 @@ func TestOverrideMergeSanitySamePackage(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -158,7 +163,7 @@ func TestOverrideMergeSanityFixedLocal(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -186,7 +191,7 @@ func TestOverrideMergeSanityNoRecommended(t *testing.T) {
 			Version: "1.2.3-sp1",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "", // no fix available
 		},
 	}
@@ -195,7 +200,7 @@ func TestOverrideMergeSanityNoRecommended(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -223,7 +228,7 @@ func TestOverrideMergeSanityNewSp2(t *testing.T) {
 			Version: "1.2.3-sp1",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp2",
 		},
 	}
@@ -232,7 +237,7 @@ func TestOverrideMergeSanityNewSp2(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -261,7 +266,7 @@ func TestOverrideMergeOverrideRemovedIfNotInLocal(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -270,7 +275,7 @@ func TestOverrideMergeOverrideRemovedIfNotInLocal(t *testing.T) {
 			Version: "1.0.0",
 			Library: api.Package{
 				Name:           "semver-regex",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
 	}
@@ -300,14 +305,14 @@ func TestOverrideMergeRemoteAddsNewOverride(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		{
 			Version: "1.0.0",
 			Library: api.Package{
 				Name:           "semver-regex",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
 	}
@@ -317,7 +322,7 @@ func TestOverrideMergeRemoteAddsNewOverride(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -358,7 +363,7 @@ func TestOverrideMergeRemoteAddsNewOverrideAfterFix(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -368,7 +373,7 @@ func TestOverrideMergeRemoteAddsNewOverrideAfterFix(t *testing.T) {
 			Version: "1.0.0",
 			Library: api.Package{
 				Name:           "semver-regex",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
 	}
@@ -406,7 +411,7 @@ func TestOverrideMergeNoLocalDeps(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
@@ -475,14 +480,14 @@ func TestOverrideMergeMultipleOverrides(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		{
 			Version: "1.0.0",
 			Library: api.Package{
 				Name:           "semver-regex",
-				PackageManager: shared.NpmManager},
+				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
 	}

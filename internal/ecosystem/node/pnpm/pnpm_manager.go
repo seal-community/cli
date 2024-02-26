@@ -1,8 +1,10 @@
 package pnpm
 
 import (
+	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/utils"
 	"cli/internal/ecosystem/shared"
 	"log/slog"
@@ -79,22 +81,21 @@ func getPnpmVersion(targetDir string) (string, bool) {
 	return version, true
 }
 
+// runs pnpm to list dependencies in parseable format
+//
+//	`ls`:
+//	`--json`:		        json output
+//	`--depth Infinity`:		show all transitive dependencies
+//	`--long`				shows version as well as path (`ll` was not always supported)
+//
+// testsed commandline flags on:
+//   - 3.8.1
+//   - 4.14.4
+//   - 5.18.10
+//   - 6.35.1
+//   - 7.33.7
+//   - 8.15.3
 func listPnpmPackages(targetDir string, npmVersion string, prodOnly bool) (*common.ProcessResult, bool) {
-	/*
-		runs pnpm to list dependencies in parseable format
-			`ls`:
-			`--json`:		        json output
-			`--depth Infinity`:		show all transitive dependencies
-			`--long`				shows version as well as path (`ll` was not always supported)
-		testsed commandline flags on:
-			- 3.8.1
-			- 4.14.4
-			- 5.18.10
-			- 6.35.1
-			- 7.33.7
-			- 8.15.3
-	*/
-
 	args := []string{"ls", "--depth", "Infinity", "--parseable", "--long"}
 	if prodOnly {
 		slog.Info("will ignore dev dependencies")
@@ -107,9 +108,13 @@ func listPnpmPackages(targetDir string, npmVersion string, prodOnly bool) (*comm
 }
 
 func (m *PnpmPackageManager) GetEcosystem() string {
-	return shared.NodeEcosystem
+	return mappings.NodeEcosystem
 }
 
 func (m *PnpmPackageManager) GetScanTargets() []string {
 	return []string{utils.PackageJsonFile}
+}
+
+func (m *PnpmPackageManager) DownloadPackage(server api.Server, name string, version string) ([]byte, error) {
+	return utils.DownloadNPMPackage(server, name, version)
 }

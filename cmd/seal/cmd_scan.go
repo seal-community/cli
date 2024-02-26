@@ -5,6 +5,7 @@ import (
 	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/phase"
 	"cli/internal/snyk"
@@ -100,7 +101,7 @@ func convertActionsOverride(af *actions.ActionsFile) []api.PackageVersion {
 					Version:                         version,
 					RecommendedLibraryVersionString: override.Version,
 					// should add recommended library when supported from BE
-					Library: api.Package{Name: libraryName, PackageManager: api.EcosystemToBackendManager(projectSection.Manager.Ecosystem)}, // ideally the ecosystem would be validated to be from currently supported list
+					Library: api.Package{Name: libraryName, PackageManager: mappings.EcosystemToBackendManager(projectSection.Manager.Ecosystem)}, // ideally the ecosystem would be validated to be from currently supported list
 				})
 			}
 		}

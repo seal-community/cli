@@ -9,14 +9,6 @@ import (
 )
 
 type requestValidatorCallback func(*http.Request)
-type roundTriphandler func(*http.Request) *http.Response
-type transparentRoundTripper struct {
-	Callback roundTriphandler
-}
-
-func (t transparentRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	return t.Callback(req), nil
-}
 
 type fakeRoundTripper struct {
 	// data to return for request
@@ -48,7 +40,7 @@ func TestEmpty(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := sendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := SendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -126,7 +118,7 @@ func TestSanity(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := sendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := SendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -202,7 +194,7 @@ func TestMalicious(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := sendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := SendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -252,7 +244,7 @@ func TestCustomHeaderCliVersion(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = sendRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil)
 }
 
 func TestHeaderUserAgent(t *testing.T) {
@@ -281,7 +273,7 @@ func TestHeaderUserAgent(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = sendRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil)
 }
 
 func TestExtraHeaderAdded(t *testing.T) {
@@ -307,7 +299,7 @@ func TestExtraHeaderAdded(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = sendRequestJson[any, any](client,
+	_, _, _ = SendRequestJson[any, any](client,
 		method,
 		url,
 		nil,
@@ -335,7 +327,7 @@ func TestQueryParamsAdded(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = sendRequestJson[any, any](client,
+	_, _, _ = SendRequestJson[any, any](client,
 		method,
 		url,
 		nil,

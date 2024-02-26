@@ -1,7 +1,6 @@
 package api
 
 import (
-	"cli/internal/ecosystem/shared"
 	"testing"
 )
 
@@ -102,29 +101,5 @@ func TestPreferredIdSnyk(t *testing.T) {
 	}
 	if vulnerability.PreferredId() != "SNYK-123" {
 		t.Fatalf("expected SNYK-123")
-	}
-}
-
-func TestEcosystemConversion(t *testing.T) {
-	res := BackendManagerToEcosystem(shared.NpmManager)
-	if res != "node" {
-		t.Fatalf("wrong ecosystem: %s", res)
-	}
-
-	res = BackendManagerToEcosystem("asdasdasda")
-	if res != "" {
-		t.Fatalf("wrong ecosystem: %s", res)
-	}
-}
-
-func TestManagerToEcosystemConversion(t *testing.T) {
-	res := EcosystemToBackendManager(shared.NodeEcosystem)
-	if res != "NPM" {
-		t.Fatalf("wrong ecosystem: %s", res)
-	}
-
-	res = EcosystemToBackendManager("asdasdasda")
-	if res != "" {
-		t.Fatalf("wrong ecosystem: %s", res)
 	}
 }

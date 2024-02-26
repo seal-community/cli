@@ -2,9 +2,8 @@ package api
 
 import (
 	"cli/internal/common"
-	"cli/internal/ecosystem/shared"
+	"cli/internal/ecosystem/mappings"
 	"fmt"
-	"log/slog"
 )
 
 type Page[T interface{}] struct {
@@ -102,29 +101,9 @@ func (p *PackageVersion) RecommendedDescriptor() string {
 }
 
 func (p *PackageVersion) Ecosystem() string {
-	return BackendManagerToEcosystem(p.Library.PackageManager)
+	return mappings.BackendManagerToEcosystem(p.Library.PackageManager)
 }
 
 func (p *PackageVersion) IsOverridden() bool {
 	return p.OverrideMethod != NotOverridden
-}
-
-func BackendManagerToEcosystem(bem string) string {
-	switch bem {
-	case shared.NpmManager:
-		return shared.NodeEcosystem
-	default:
-		slog.Warn("unsupported manager", "manager", bem)
-		return ""
-	}
-}
-
-func EcosystemToBackendManager(es string) string {
-	switch es {
-	case shared.NodeEcosystem:
-		return shared.NpmManager
-	default:
-		slog.Warn("unsupported ecosystem", "value", es)
-		return ""
-	}
 }

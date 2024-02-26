@@ -1,14 +1,8 @@
 package shared
 
-import "cli/internal/common"
-
-// backend package manager enum
-const (
-	NpmManager = "NPM"
-)
-
-const (
-	NodeEcosystem = "node"
+import (
+	"cli/internal/api"
+	"cli/internal/common"
 )
 
 type DependencyFixer interface {
@@ -28,6 +22,7 @@ type PackageManager interface {
 	GetParser() ResultParser
 	GetProjectName(dir string) string // empty string means failure
 	GetFixer(projectDir string, workdir string) DependencyFixer
-  GetEcosystem() string
-  GetScanTargets() []string
+	GetEcosystem() string
+	GetScanTargets() []string
+	DownloadPackage(server api.Server, name string, version string) ([]byte, error)
 }

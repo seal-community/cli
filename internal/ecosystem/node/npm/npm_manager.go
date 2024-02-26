@@ -1,8 +1,10 @@
 package npm
 
 import (
+	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/utils"
 	"cli/internal/ecosystem/shared"
 	"log/slog"
@@ -83,24 +85,21 @@ func getNpmVersion(targetDir string) (string, bool) {
 	return version, true
 }
 
+// runs npm command at target dir to list npm packages.
+// there is possible additional text that is printed to stderr like version upgrade and warnings that are ignored
+
+// using:
+// 	`ll`: 			show the versions as well as paths
+// 	`--json`:		prints verbose json tree for all dependencies
+// 	`--all`:		show transitive dependencies as well
+
+// according to https://docs.npmjs.com/cli/v6/commands/npm-ls?v=true:
+// 	- `parseable` and using `ll` are supported in all listed version
+// 	- `--all` was required since version 7.x
+// 	- `--json` supported since 6.x, maybe earlier
+
+// --prod works since npm 6.x, but shows warning to replace with --omit=dev on versions newer than 7.x
 func listPackages(targetDir string, npmVersion string, prodOnly bool) (*common.ProcessResult, bool) {
-	/*
-		runs npm command at target dir to list npm packages.
-		there is possible additional text that is printed to stderr like version upgrade and warnings that are ignored
-
-		using:
-			`ll`: 			show the versions as well as paths
-			`--json`:		prints verbose json tree for all dependencies
-			`--all`:		show transitive dependencies as well
-
-		according to https://docs.npmjs.com/cli/v6/commands/npm-ls?v=true:
-			- `parseable` and using `ll` are supported in all listed version
-			- `--all` was required since version 7.x
-			- `--json` supported since 6.x, maybe earlier
-
-		--prod works since npm 6.x, but shows warning to replace with --omit=dev on versions newer than 7.x
-	*/
-
 	args := []string{"ll", "--json", "--all"}
 	if prodOnly {
 		slog.Info("will ignore dev dependencies")
@@ -125,9 +124,13 @@ func listPackages(targetDir string, npmVersion string, prodOnly bool) (*common.P
 }
 
 func (m *NpmPackageManager) GetEcosystem() string {
-	return shared.NodeEcosystem
+	return mappings.NodeEcosystem
 }
 
 func (m *NpmPackageManager) GetScanTargets() []string {
-  return []string{utils.PackageJsonFile}
+	return []string{utils.PackageJsonFile}
+}
+
+func (m *NpmPackageManager) DownloadPackage(server api.Server, name string, version string) ([]byte, error) {
+	return utils.DownloadNPMPackage(server, name, version)
 }

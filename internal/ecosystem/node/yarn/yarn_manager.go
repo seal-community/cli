@@ -1,8 +1,10 @@
 package yarn
 
 import (
+	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/npm"
 	"cli/internal/ecosystem/node/utils"
 	"cli/internal/ecosystem/shared"
@@ -35,7 +37,7 @@ func IsYarnProjectDir(path string) bool {
 }
 
 func NewYarnManager(config *config.Config) *YarnPackageManager {
-	y := &YarnPackageManager{Config: config, npmManager:npm.NpmPackageManager{Config: config}}
+	y := &YarnPackageManager{Config: config, npmManager: npm.NpmPackageManager{Config: config}}
 	return y
 }
 
@@ -85,9 +87,13 @@ func getYarnVersion(targetDir string) (string, bool) {
 }
 
 func (m *YarnPackageManager) GetEcosystem() string {
-	return shared.NodeEcosystem
+	return mappings.NodeEcosystem
 }
 
 func (m *YarnPackageManager) GetScanTargets() []string {
 	return m.npmManager.GetScanTargets()
+}
+
+func (m *YarnPackageManager) DownloadPackage(server api.Server, name string, version string) ([]byte, error) {
+	return utils.DownloadNPMPackage(server, name, version)
 }

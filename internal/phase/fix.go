@@ -61,7 +61,7 @@ func FormatFixKey(p *api.PackageVersion) string {
 	return fmt.Sprintf("%s -> %s", packageId, recommendedId)
 }
 
-func packageDownloadWorker(ctx context.Context, server api.Server, downloadJobsChannel chan api.PackageVersion, downloadResultsChannel chan PackageDownload) (err error) {
+func packageDownloadWorker(ctx context.Context, server api.Server, manager shared.PackageManager, downloadJobsChannel chan api.PackageVersion, downloadResultsChannel chan PackageDownload) (err error) {
 	defer func() {
 		if panicObj := recover(); panicObj != nil {
 			slog.Error("panic caught", "err", panicObj, "trace", string(debug.Stack()))
@@ -81,7 +81,7 @@ func packageDownloadWorker(ctx context.Context, server api.Server, downloadJobsC
 				return nil
 			}
 
-			data, err := server.DownloadNpmPackage(toDownload)
+			data, err := manager.DownloadPackage(server, toDownload.Library.Name, toDownload.RecommendedLibraryVersionString)
 			if err != nil {
 				slog.Error("failed downloading package", "err", err)
 				return common.NewPrintableError("failed downloading package %s", toDownload.RecommendedDescriptor())
@@ -189,7 +189,7 @@ func (fp *fixPhase) Fix(scanResult *ScanResult) (_ FixMap, err error) {
 	// start workers
 	for i := 0; i < ConcurrentDownloadCount; i++ {
 		g.Go(func() (err error) {
-			return packageDownloadWorker(ctx, fp.Server, downloadJobsChannel, downloadResultsChannel)
+			return packageDownloadWorker(ctx, fp.Server, fp.Manager, downloadJobsChannel, downloadResultsChannel)
 		})
 	}
 

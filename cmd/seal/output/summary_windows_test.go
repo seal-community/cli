@@ -4,7 +4,7 @@ package output
 
 import (
 	"cli/internal/api"
-	"cli/internal/ecosystem/shared"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/phase"
 	"testing"
 )
@@ -13,7 +13,7 @@ func TestSummarySanity(t *testing.T) {
 	projDir := `C:\fuwawa\proj`
 	f1 := phase.FixedEntry{Package: &api.PackageVersion{
 		Version:                         "1.2.3",
-		Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "123123",
 		RecommendedLibraryVersionString: "1.2.3-sp1",
 	},

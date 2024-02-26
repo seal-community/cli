@@ -29,7 +29,7 @@ func TestAuthentication(t *testing.T) {
 	}}
 
 	client := http.Client{Transport: fakeRoundTripper}
-	server := Server{client: client, AuthToken: authToken}
+	server := Server{Client: client, AuthToken: authToken}
 
 	err := server.CheckAuthenticationValid()
 	if err != nil {
@@ -51,7 +51,7 @@ func TestAuthenticaionFailureOnStatusCode(t *testing.T) {
 
 			fakeRoundTripper := fakeRoundTripper{statusCode: testCase.code}
 			client := http.Client{Transport: fakeRoundTripper}
-			server := Server{client: client, AuthToken: authToken}
+			server := Server{Client: client, AuthToken: authToken}
 
 			err := server.CheckAuthenticationValid()
 			if testCase.ok && err != nil {

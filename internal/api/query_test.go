@@ -18,7 +18,7 @@ func TestBulkQuerySingleChunk(t *testing.T) {
 			m.Unlock()
 		}}
 	client := http.Client{Transport: fakeRoundTripper}
-	s := Server{client: client}
+	s := Server{Client: client}
 	_, err := s.CheckVulnerablePackages([]common.Dependency{
 		{Name: "a", Version: "1.2.3", PackageManager: "mmm"},
 	},
@@ -46,7 +46,7 @@ func TestBulkQueryChunks(t *testing.T) {
 			m.Unlock()
 		}}
 	client := http.Client{Transport: fakeRoundTripper}
-	s := Server{client: client, BulkChunkSize: 1}
+	s := Server{Client: client, BulkChunkSize: 1}
 	_, err := s.CheckVulnerablePackages([]common.Dependency{
 		{Name: "a", Version: "1.2.3", PackageManager: "mmm"},
 		{Name: "b", Version: "1.0.0", PackageManager: "mmm"},

@@ -5,7 +5,7 @@ package npm
 import (
 	"cli/internal/common"
 	"cli/internal/config"
-	"cli/internal/ecosystem/shared"
+	"cli/internal/ecosystem/mappings"
 	"os"
 	"path/filepath"
 	"testing"
@@ -57,7 +57,7 @@ func TestDupVersionInTree(t *testing.T) {
 		t.Fatalf("wrong number of deps %d", len(deps))
 	}
 
-	lodashKey := common.DependencyId(shared.NpmManager, "lodash", "4.17.11")
+	lodashKey := common.DependencyId(mappings.NpmManager, "lodash", "4.17.11")
 	depInstances := deps[lodashKey]
 
 	if len(depInstances) != 2 {
@@ -74,7 +74,7 @@ func TestAliasDependency(t *testing.T) {
 		t.Fatalf("failed parsing with dup deps %v", err)
 	}
 
-	replacedKey := common.DependencyId(shared.NpmManager, "semver-regex", "0.1.1")
+	replacedKey := common.DependencyId(mappings.NpmManager, "semver-regex", "0.1.1")
 	replacedDeps, ok := deps[replacedKey]
 	if !ok {
 		t.Fatalf("did not find deps for %s", replacedKey)
@@ -104,7 +104,7 @@ func TestExtraneousDepNotIgnored(t *testing.T) {
 		t.Fatalf("ignored extraneous dep")
 	}
 
-	instances := deps[common.DependencyId(shared.NpmManager, "semver-regex", "1.0.0")]
+	instances := deps[common.DependencyId(mappings.NpmManager, "semver-regex", "1.0.0")]
 	if len(instances) != 1 {
 		t.Fatalf("wrong number of deps for extraneous: %v", instances)
 	}
@@ -151,7 +151,7 @@ func TestLocalFolderPackageInstallLinks(t *testing.T) {
 	deps := maps.Values(dependencies)
 	dep := deps[0][0]
 
-	if dep.PackageManager != shared.NpmManager {
+	if dep.PackageManager != mappings.NpmManager {
 		t.Fatalf("wrong package manager %v", dep.PackageManager)
 	}
 

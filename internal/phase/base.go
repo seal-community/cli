@@ -5,6 +5,7 @@ import (
 	"cli/internal/common"
 	"cli/internal/config"
 	"cli/internal/ecosystem/node"
+	"cli/internal/ecosystem/python"
 	"cli/internal/ecosystem/shared"
 	"log/slog"
 	"path/filepath"
@@ -23,6 +24,39 @@ type basePhase struct {
 	Fixer      shared.DependencyFixer
 }
 
+func findPackageManager(configDir *config.Config, projectDir string) (shared.PackageManager, error) {
+	nodeManager, nodeErr := node.GetPackageManager(configDir, projectDir)
+	pythonManager, pythonErr := python.GetPackageManager(configDir, projectDir)
+
+	errs := []error{nodeErr, pythonErr}
+	nilErrors := 0
+	for _, e := range errs {
+		if e == nil {
+			nilErrors++
+		}
+	}
+
+	if nilErrors == 0 {
+		slog.Error("no package manager found in the project directory", "errs", errs)
+		return nil, common.NewPrintableError("failed to find a supported package manager in the project directory")
+	}
+	if nilErrors == 2 {
+		// Default to node, to not break previous setups
+		slog.Info("multiple package managers found, defaulting to node")
+		return nodeManager, nil
+	}
+
+	var manager shared.PackageManager
+	if nodeErr == nil {
+		manager = nodeManager
+	} else if pythonErr == nil {
+		manager = pythonManager
+	}
+
+	slog.Info("found package manager", "manager", manager.Name())
+	return manager, nil
+}
+
 func (p *basePhase) init(path string, showProgress bool) error {
 	var err error
 	p.ProjectDir = getProjectDir(path)
@@ -37,17 +71,17 @@ func (p *basePhase) init(path string, showProgress bool) error {
 		return err
 	}
 
-	p.Manager, err = node.GetPackageManager(p.Config, p.ProjectDir) // currently only node ecosystem managers are supported
+	p.Manager, err = findPackageManager(p.Config, p.ProjectDir)
 	if err != nil {
 		return err
 	}
 
 	if p.Config.Project == "" {
 		// perform best effort to find a project name if it was not configured;
-		slog.Info("project name not configured, using package.json value")
+		slog.Info("project name not configured, using manager value")
 		projName := p.Manager.GetProjectName(p.ProjectDir)
 		if projName == "" {
-			slog.Warn("package.json name not viable, using folder name")
+			slog.Warn("manager name not viable, using folder name")
 			projName = filepath.Base(p.ProjectDir)
 		}
 
@@ -61,6 +95,7 @@ func (p *basePhase) init(path string, showProgress bool) error {
 	}
 
 	p.Server = api.Server{AuthToken: buildAuthToken(p.Config)}
+
 	p.Bar = common.NewProgressBar(showProgress, 0) // no steps, should be configured by actual phase
 	p.showBar = showProgress                       // bar should not be changed directly
 

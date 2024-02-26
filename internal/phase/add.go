@@ -4,6 +4,7 @@ import (
 	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/mappings"
 	"errors"
 	"log/slog"
 )
@@ -84,7 +85,7 @@ func (ap *addPhase) Resolve(rule AddRule) (*ResolvedRule, error) {
 
 	ap.Bar.Describe("Checking package version")
 
-	mngr := api.EcosystemToBackendManager(ap.Manager.GetEcosystem())
+	mngr := mappings.EcosystemToBackendManager(ap.Manager.GetEcosystem())
 
 	var resolvedTo *api.PackageVersion
 	resolvedFrom, err := ap.resolveOverride(mngr, rule.From, api.OnlyVulnerable)

@@ -3,8 +3,8 @@ package npm
 import (
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/utils"
-	"cli/internal/ecosystem/shared"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -88,7 +88,7 @@ func addDepInstance(deps common.DependencyMap, p *NpmPackage, keyName string, pa
 	newDep := &common.Dependency{
 		Name:           p.Name,
 		Version:        p.Version,
-		PackageManager: shared.NpmManager,
+		PackageManager: mappings.NpmManager,
 		DiskPath:       p.Path,
 		NameAlias:      keyName,
 		Parent:         parent,

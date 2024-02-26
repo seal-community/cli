@@ -2,7 +2,7 @@ package pnpm
 
 import (
 	"bufio"
-	"cli/internal/ecosystem/shared"
+	"cli/internal/ecosystem/mappings"
 	"io"
 	"strings"
 	"testing"
@@ -85,7 +85,7 @@ func TestPnpmLineParse(t *testing.T) {
 		t.Fatalf("wrongly detected link")
 	}
 
-	if d.PackageManager != shared.NpmManager {
+	if d.PackageManager != mappings.NpmManager {
 		t.Fatalf("did not use correct package manager")
 	}
 
@@ -112,7 +112,7 @@ func TestPnpmLineParseWindowsPath(t *testing.T) {
 		t.Fatalf("wrongly detected link")
 	}
 
-	if d.PackageManager != shared.NpmManager {
+	if d.PackageManager != mappings.NpmManager {
 		t.Fatalf("did not use correct package manager")
 	}
 
@@ -135,7 +135,7 @@ func TestPnpmLineParseScoped(t *testing.T) {
 		t.Fatalf("failed parsing line")
 	}
 
-	if d.PackageManager != shared.NpmManager {
+	if d.PackageManager != mappings.NpmManager {
 		t.Fatalf("did not use correct package manager")
 	}
 
@@ -178,7 +178,7 @@ func TestPnpmLineParseExtraA(t *testing.T) {
 		t.Fatalf("wrongly detected link")
 	}
 
-	if d.PackageManager != shared.NpmManager {
+	if d.PackageManager != mappings.NpmManager {
 		t.Fatalf("did not use correct package manager")
 	}
 
@@ -223,7 +223,7 @@ func TestPnpmLineParseScopedWindowsPath(t *testing.T) {
 		t.Fatalf("failed parsing line")
 	}
 
-	if d.PackageManager != shared.NpmManager {
+	if d.PackageManager != mappings.NpmManager {
 		t.Fatalf("did not use correct package manager")
 	}
 
@@ -249,7 +249,7 @@ func TestPnpmLineParseGitInstall(t *testing.T) {
 		t.Fatalf("failed parsing line")
 	}
 
-	if d.PackageManager != shared.NpmManager {
+	if d.PackageManager != mappings.NpmManager {
 		t.Fatalf("did not use correct package manager")
 	}
 
@@ -280,7 +280,7 @@ func TestPnpmLineParseLocalTgz(t *testing.T) {
 		t.Fatalf("failed parsing line")
 	}
 
-	if d.PackageManager != shared.NpmManager {
+	if d.PackageManager != mappings.NpmManager {
 		t.Fatalf("did not use correct package manager")
 	}
 

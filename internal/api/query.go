@@ -14,7 +14,7 @@ import (
 )
 
 type Server struct {
-	client        http.Client
+	Client        http.Client
 	AuthToken     string
 	BulkChunkSize int
 }
@@ -41,7 +41,7 @@ func (s Server) sendBulkRequest(request *BulkCheckRequest, queryType PackageQuer
 	}
 
 	data, statusCode, err := sendApiRequest[BulkCheckRequest, Page[PackageVersion]](
-		s.client,
+		s.Client,
 		"POST",
 		"/unauthenticated/artifact-management/v1/library_versions/bulk",
 		request,

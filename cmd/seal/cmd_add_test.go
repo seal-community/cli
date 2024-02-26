@@ -2,7 +2,7 @@ package main
 
 import (
 	"cli/internal/api"
-	"cli/internal/ecosystem/shared"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/phase"
 	"testing"
 )
@@ -11,13 +11,13 @@ func TestFindRuleSanity(t *testing.T) {
 	packages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "111",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		{
 			Version:                         "1.0.0",
-			Library:                         api.Package{Name: "semver-regex", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "semver-regex", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
@@ -26,7 +26,7 @@ func TestFindRuleSanity(t *testing.T) {
 	toFind := api.PackageVersion{
 
 		Version:                         "1.2.3",
-		Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
 
@@ -52,13 +52,13 @@ func TestFindRuleNotFoundVersion(t *testing.T) {
 	packages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "111",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		{
 			Version:                         "1.0.0",
-			Library:                         api.Package{Name: "semver-regex", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "semver-regex", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
@@ -67,7 +67,7 @@ func TestFindRuleNotFoundVersion(t *testing.T) {
 	toFind := api.PackageVersion{
 
 		Version:                         "1.2.3-sp1",
-		Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionString: "1.2.3-sp2",
 	}
 
@@ -81,13 +81,13 @@ func TestFindRuleNotFoundLibrary(t *testing.T) {
 	packages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "111",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		{
 			Version:                         "1.0.0",
-			Library:                         api.Package{Name: "semver-regex", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "semver-regex", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
@@ -96,7 +96,7 @@ func TestFindRuleNotFoundLibrary(t *testing.T) {
 	toFind := api.PackageVersion{
 
 		Version:                         "1.2.3",
-		Library:                         api.Package{Name: "bloop", PackageManager: shared.NpmManager},
+		Library:                         api.Package{Name: "bloop", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
 
@@ -112,7 +112,7 @@ func TestFindRuleNotFoundEmpty(t *testing.T) {
 	toFind := api.PackageVersion{
 
 		Version:                         "1.2.3",
-		Library:                         api.Package{Name: "bloop", PackageManager: shared.NpmManager},
+		Library:                         api.Package{Name: "bloop", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
 
@@ -126,13 +126,13 @@ func TestUpsertAddedNew(t *testing.T) {
 	existing := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "111",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		{
 			Version:                         "1.0.0",
-			Library:                         api.Package{Name: "semver-regex", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "semver-regex", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
@@ -141,12 +141,12 @@ func TestUpsertAddedNew(t *testing.T) {
 	resolved := phase.ResolvedRule{
 		From: api.PackageVersion{
 			Version:                         "2.7.4",
-			Library:                         api.Package{Name: "ejs", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "ejs", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "2.7.4-sp1",
 		},
 		To: &api.PackageVersion{
 			Version:                         "2.7.4-sp1",
-			Library:                         api.Package{Name: "ejs", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "ejs", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "",
 		},
 	}
@@ -161,12 +161,12 @@ func TestUpsertFoundExact(t *testing.T) {
 	existing := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		{
 			Version:                         "2.7.4",
-			Library:                         api.Package{Name: "ejs", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "ejs", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "2.7.4-sp1",
 		},
 	}
@@ -174,12 +174,12 @@ func TestUpsertFoundExact(t *testing.T) {
 	resolved := phase.ResolvedRule{
 		From: api.PackageVersion{
 			Version:                         "2.7.4",
-			Library:                         api.Package{Name: "ejs", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "ejs", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "2.7.4-sp1",
 		},
 		To: &api.PackageVersion{
 			Version:                         "2.7.4-sp1",
-			Library:                         api.Package{Name: "ejs", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "ejs", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "",
 		},
 	}
@@ -194,12 +194,12 @@ func TestUpsertModifiedNotExact(t *testing.T) {
 	existing := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		{
 			Version:                         "2.7.4",
-			Library:                         api.Package{Name: "ejs", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "ejs", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "2.7.4-sp1",
 		},
 	}
@@ -207,14 +207,14 @@ func TestUpsertModifiedNotExact(t *testing.T) {
 	resolved := phase.ResolvedRule{
 		From: api.PackageVersion{
 			Version:                         "2.7.4",
-			Library:                         api.Package{Name: "ejs", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "ejs", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "2.7.4-sp2",
 			RecommendedLibraryVersionId:     "recommended-id",
 		},
 		To: &api.PackageVersion{
 			VersionId:                       "recommended-id",
 			Version:                         "2.7.4-sp2",
-			Library:                         api.Package{Name: "ejs", PackageManager: shared.NpmManager},
+			Library:                         api.Package{Name: "ejs", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "",
 		},
 	}
