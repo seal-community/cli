@@ -13,12 +13,12 @@ func TestPipManagerDetectionNoRequirementsFile(t *testing.T) {
 	}
 	defer os.Remove(target)
 
-	found, err := IsPipProjectDir(target)
+	found, err := GetPythonIndicatorFile(target)
 	if err != nil {
 		t.Fatalf("had error %v", err)
 	}
 
-	if found {
+	if found != "" {
 		t.Fatal("detected pip")
 	}
 }
@@ -30,20 +30,24 @@ func TestPipManagerDetectionRequirementsFile(t *testing.T) {
 	}
 	defer os.Remove(target)
 
-	p := filepath.Join(target, Pipfile)
-	f, err := os.Create(p)
-	if err != nil {
-		panic(err)
-	}
-	f.Close()
-	defer os.Remove(p)
+	for _, indicator := range pythonIndicators {
+		p := filepath.Join(target, indicator)
+		f, err := os.Create(p)
+		if err != nil {
+			panic(err)
+		}
+		f.Close()
 
-	found, err := IsPipProjectDir(target)
-	if err != nil {
-		t.Fatalf("had error %v", err)
-	}
+		func() {
+			defer os.Remove(p)
+			found, err := GetPythonIndicatorFile(target)
+			if err != nil {
+				t.Fatalf("had error %v", err)
+			}
 
-	if !found {
-		t.Fatal("did not detect pip")
+			if found != indicator {
+				t.Fatalf("did not detect pip %v, found %v", indicator, found)
+			}
+		}()
 	}
 }

@@ -8,13 +8,10 @@ import (
 )
 
 func GetPackageManager(config *config.Config, targetDir string) (shared.PackageManager, error) {
-	isPipDir, err := pip.IsPipProjectDir(targetDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed detecting pip directory %w", err)
-	}
-	if !isPipDir {
-		return nil, fmt.Errorf("failed detecting pip directory")
+	pythonFile, err := pip.GetPythonIndicatorFile(targetDir)
+	if err != nil || pythonFile == "" {
+		return nil, fmt.Errorf("failed detecting python directory %w", err)
 	}
 
-	return pip.NewPipManager(config), nil
+	return pip.NewPipManager(config, pythonFile), nil
 }

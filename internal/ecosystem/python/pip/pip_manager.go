@@ -17,19 +17,22 @@ const pipExeName = "pip"
 
 const PipManagerName = "pip"
 
-const Pipfile = "requirements.txt"
+// Ordered by priority
+var pythonIndicators = []string{"poetry.lock", "pipfile.lock", "requirements.txt", "pyproject.toml", "pipfile"}
+
 const versionFlag = "--version"
 const pipResultSeparator = "~-~-~-~"
 
 type PipPackageManager struct {
-	Config         *config.Config
-	version        string
-	workDir        string
-	compatibleTags []string
+	Config           *config.Config
+	version          string
+	workDir          string
+	compatibleTags   []string
+	pythonTargetFile string
 }
 
-func NewPipManager(config *config.Config) *PipPackageManager {
-	return &PipPackageManager{Config: config}
+func NewPipManager(config *config.Config, pythonFile string) *PipPackageManager {
+	return &PipPackageManager{Config: config, pythonTargetFile: pythonFile}
 }
 
 func (m *PipPackageManager) Name() string {
@@ -54,26 +57,31 @@ func (m *PipPackageManager) GetParser() shared.ResultParser {
 }
 
 func (m *PipPackageManager) GetProjectName(projectDir string) string {
-	return Pipfile
+	return ""
 }
 
 func (m *PipPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
 	return utils.NewFixer(projectDir, workdir)
 }
 
-func IsPipProjectDir(path string) (bool, error) {
-	packageFile := filepath.Join(path, Pipfile)
-	exists, err := common.PathExists(packageFile)
-	if err != nil {
-		slog.Error("failed checking pip exists", "file", Pipfile, "err", err)
-		return false, err
+func GetPythonIndicatorFile(path string) (string, error) {
+	// Assumes pythonIndicators are ordered by priority
+	for _, file := range pythonIndicators {
+		packageFile := filepath.Join(path, file)
+		exists, err := common.PathExists(packageFile)
+		if err != nil {
+			slog.Error("failed checking file exists", "file", file, "err", err)
+			continue
+		}
+
+		if exists {
+			slog.Info("found python indicator file", "file", file, "path", packageFile)
+			return file, nil
+		}
 	}
 
-	if exists {
-		return true, nil
-	}
-
-	return false, nil
+	slog.Debug("no python indicator file found")
+	return "", nil
 }
 
 func getPipVersion(targetDir string) (string, bool) {
@@ -130,7 +138,7 @@ func (m *PipPackageManager) GetEcosystem() string {
 }
 
 func (m *PipPackageManager) GetScanTargets() []string {
-	return []string{Pipfile}
+	return []string{m.pythonTargetFile}
 }
 
 // Extract compatible tags from pip debug output, see tests for example.
