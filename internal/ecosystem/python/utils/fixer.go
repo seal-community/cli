@@ -20,9 +20,10 @@ const recordFilename = "RECORD"
 var distRecordPath = fmt.Sprintf(".dist-info/%s", recordFilename)
 
 type fixer struct {
-	rollback   map[string]string // original-dependency-path -> tmp-location
-	projectDir string
-	workdir    string
+	rollback       map[string]string // original-dependency-path -> tmp-location
+	rollbackRemove []string          // sp-version dist-info paths
+	projectDir     string
+	workdir        string
 }
 
 func unzipFile(file *zip.File, sitePackages string) error {
@@ -62,7 +63,11 @@ func unzipFile(file *zip.File, sitePackages string) error {
 // The payload is a .whl file, which is actually a zip file.
 // It's content should be places directly under site-packages.
 // To rollback easily, we return the dist-info path, which should look like: `.../site-packages/<name>-<version>.dist-info`
-func (f *fixer) extractPackage(sitePackagesPath string, payload []byte) (string, error) {
+//
+// The function will append any dot-dot paths found in the original RECORD file to the new RECORD file
+// dot-dot paths in the original RECORD are paths created during installation of the original package, such that their content can't be overriden by the sealed package
+// They should be kept as is
+func (f *fixer) extractPackage(sitePackagesPath string, payload []byte, dotdotPaths []string) (string, error) {
 	// Open zipfile in memory
 	r, err := zip.NewReader(bytes.NewReader(payload), int64(len(payload)))
 	if err != nil {
@@ -88,6 +93,33 @@ func (f *fixer) extractPackage(sitePackagesPath string, payload []byte) (string,
 		}
 	}
 
+	if distInfoPath == "" {
+		slog.Warn("no dist-info directory found")
+		return "", nil
+	}
+
+	f.rollbackRemove = append(f.rollbackRemove, filepath.Join(sitePackagesPath, distInfoPath))
+
+	if len(dotdotPaths) == 0 {
+		return distInfoPath, nil
+	}
+
+	// Append dot-dot paths to the new RECORD file
+	recordFile, err := os.OpenFile(filepath.Join(sitePackagesPath, distInfoPath, recordFilename), os.O_APPEND|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		slog.Error("failed reading RECORD file while appending dot-dot paths", "err", err)
+		return distInfoPath, err
+	}
+	defer recordFile.Close()
+
+	// append dot-dot paths to the new RECORD file
+	for _, p := range dotdotPaths {
+		if _, err := recordFile.WriteString(p + ",,\r\n"); err != nil {
+			slog.Error("failed writing to RECORD file", "err", err)
+			return distInfoPath, err
+		}
+	}
+
 	return distInfoPath, nil
 }
 
@@ -101,7 +133,7 @@ func parseRecordFile(recordFile io.Reader) ([]string, error) {
 			break
 		}
 		if err != nil {
-			slog.Error("failed reading RECORD file", "err", err)
+			slog.Error("failed parsing RECORD file", "err", err)
 			return nil, err
 		}
 
@@ -161,13 +193,29 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 	return nil
 }
 
+func splitDotdotPaths(paths []string) ([]string, []string) {
+	dotdotPaths := make([]string, 0)
+	absPaths := make([]string, 0)
+
+	for _, p := range paths {
+		if strings.HasPrefix(p, "..") {
+			dotdotPaths = append(dotdotPaths, p)
+		} else {
+			absPaths = append(absPaths, p)
+		}
+	}
+
+	return absPaths, dotdotPaths
+}
+
 // Will fix the dependency, assuming payload is a .whl file
 func (f *fixer) Fix(dep *common.Dependency, payload []byte) (bool, error) {
-	files, err := readRecordFile(dep.DiskPath)
+	recordPaths, err := readRecordFile(dep.DiskPath)
 	if err != nil {
-		slog.Error("failed reading RECORD file", "err", err)
 		return false, fmt.Errorf("failed reading RECORD file for package %s", dep.PrintableName())
 	}
+
+	recordPaths, dotdotPaths := splitDotdotPaths(recordPaths)
 
 	// Create a temporary directory for the dependency
 	tmpName := filepath.Join(f.workdir, "site-packages", dep.Name)
@@ -178,14 +226,14 @@ func (f *fixer) Fix(dep *common.Dependency, payload []byte) (bool, error) {
 	}
 
 	sitePackages := filepath.Dir(dep.DiskPath)
-	err = backupDependency(*dep, sitePackages, tmpName, files)
+	err = backupDependency(*dep, sitePackages, tmpName, recordPaths)
 	if err != nil {
 		return false, err
 	}
 
 	f.rollback[dep.DiskPath] = tmpName
 
-	distInfoPath, err := f.extractPackage(sitePackages, payload)
+	distInfoPath, err := f.extractPackage(sitePackages, payload, dotdotPaths)
 	if err != nil {
 		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(payload))
 		return false, fmt.Errorf("failed applying fix for package %s", dep.PrintableName())
@@ -210,6 +258,13 @@ func (f *fixer) Rollback() bool {
 		}
 	}
 
+	for _, distInfoPath := range f.rollbackRemove {
+		if err := os.RemoveAll(distInfoPath); err != nil {
+			slog.Error("failed removing dist-info", "err", err, "path", distInfoPath)
+			finishedOk = false
+		}
+	}
+
 	return finishedOk
 }
 
@@ -227,6 +282,9 @@ func (f *fixer) rollbackDependecy(from string, to string) error {
 	for _, d := range dirs {
 		fromDir := filepath.Join(from, d.Name())
 		toDir := filepath.Join(sitePackages, d.Name())
+
+		// remove the target dir, ignore if doesn't exist
+		_ = os.RemoveAll(toDir)
 
 		if err := os.Rename(fromDir, toDir); err != nil {
 			slog.Error("failed rollback", "err", err, "from", fromDir, "to", toDir)
