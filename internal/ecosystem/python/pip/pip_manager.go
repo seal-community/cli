@@ -57,7 +57,7 @@ func (m *PipPackageManager) GetParser() shared.ResultParser {
 }
 
 func (m *PipPackageManager) GetProjectName(projectDir string) string {
-	return ""
+	return utils.GetProjectName(projectDir)
 }
 
 func (m *PipPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
