@@ -13,5 +13,5 @@ func GetPackageManager(config *config.Config, targetDir string) (shared.PackageM
 		return nil, fmt.Errorf("failed detecting python directory %w", err)
 	}
 
-	return pip.NewPipManager(config, pythonFile), nil
+	return pip.NewPipManager(config, pythonFile, targetDir), nil
 }

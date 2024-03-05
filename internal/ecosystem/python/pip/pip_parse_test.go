@@ -3,6 +3,7 @@ package pip
 import (
 	"cli/internal/config"
 	"cli/internal/ecosystem/mappings"
+	"cli/internal/ecosystem/python/utils"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -74,7 +75,7 @@ func TestParseDefaultDependencies(t *testing.T) {
 			t.Fatalf("unexpected package %v", dep[0].Name)
 		}
 
-		if dep[0].DiskPath != filepath.Join("/usr/local/lib/python3.7/site-packages", fmt.Sprintf("%s-%s.dist-info", escapePackageName(dep[0].Name), dep[0].Version)) {
+		if dep[0].DiskPath != filepath.Join("/usr/local/lib/python3.7/site-packages", fmt.Sprintf("%s-%s.dist-info", utils.EscapePackageName(dep[0].Name), dep[0].Version)) {
 			t.Fatalf("wrong disk path %v", dep[0].DiskPath)
 		}
 	}
@@ -147,7 +148,7 @@ func TestParseSP(t *testing.T) {
 		t.Fatalf("wrong version %v", dep.Version)
 	}
 
-	if dep.DiskPath != filepath.Join("/usr/local/lib/python3.7/site-packages", fmt.Sprintf("%s-%s.dist-info", escapePackageName(dep.Name), dep.Version)) {
+	if dep.DiskPath != filepath.Join("/usr/local/lib/python3.7/site-packages", utils.DistInfoPath(dep.Name, dep.Version)) {
 		t.Fatalf("wrong disk path %v", dep.DiskPath)
 	}
 }
@@ -188,7 +189,7 @@ func TestParseWindowsDependencies(t *testing.T) {
 		t.Fatalf("wrong version %v", dep.Version)
 	}
 
-	if dep.DiskPath != filepath.Join(`C:\Python\site-packages`, fmt.Sprintf("%s-%s.dist-info", escapePackageName(dep.Name), dep.Version)) {
+	if dep.DiskPath != filepath.Join(`C:\Python\site-packages`, utils.DistInfoPath(dep.Name, dep.Version)) {
 		t.Fatalf("wrong disk path %v", dep.DiskPath)
 	}
 }
@@ -222,45 +223,5 @@ func TestShouldFix(t *testing.T) {
 
 	if !parser.shouldSkip(skipEditable) {
 		t.Fatalf("should not skip")
-	}
-}
-
-func TestEscapePackageName(t *testing.T) {
-	tests := []struct {
-		name     string
-		expected string
-	}{
-		{"foo", "foo"},
-		{"foo-bar", "foo_bar"},
-		{"foo-bar-baz", "foo_bar_baz"},
-		{"foo-bar-baz-qux", "foo_bar_baz_qux"},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if result := escapePackageName(test.name); result != test.expected {
-				t.Fatalf("wrong result, expected: `%s` got: `%s`", test.expected, result)
-			}
-		})
-	}
-}
-
-func TestGetSitePackages(t *testing.T) {
-	tests := []struct {
-		name     string
-		expected string
-	}{
-		{"pip 24.0 from /usr/local/lib/python3.7/site-packages/pip (python 3.7)", "/usr/local/lib/python3.7/site-packages/"},
-		{"pip 1.2.3 from /usr/local/lib/python3.7/site-packages/pip (python 3.7)", "/usr/local/lib/python3.7/site-packages/"},
-		{"pip 24.0 from /usr/local/lib/python3.7/site-packages/pip (python 3.3)", "/usr/local/lib/python3.7/site-packages/"},
-		{`pip 24.0 from C:\Python\site-packages\pip (python 3.7)`, `C:\Python\site-packages\`},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if result, err := getSitePackages(test.name); err != nil || result != test.expected {
-				t.Fatalf("wrong result, expected: `%s` got: `%s`", test.expected, result)
-			}
-		})
 	}
 }

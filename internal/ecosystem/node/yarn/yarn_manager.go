@@ -94,6 +94,6 @@ func (m *YarnPackageManager) GetScanTargets() []string {
 	return m.npmManager.GetScanTargets()
 }
 
-func (m *YarnPackageManager) DownloadPackage(server api.Server, name string, version string) ([]byte, error) {
-	return utils.DownloadNPMPackage(server, name, version)
+func (m *YarnPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
+	return utils.DownloadNPMPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
 }

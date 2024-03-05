@@ -49,7 +49,7 @@ func (m *FakePackageManager) ListDependencies(targetDir string) (*common.Process
 	return nil, false
 }
 
-func (m *FakePackageManager) DownloadPackage(server api.Server, name string, version string) ([]byte, error) {
+func (m *FakePackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
 	return nil, nil
 }
 

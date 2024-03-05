@@ -131,6 +131,6 @@ func (m *NpmPackageManager) GetScanTargets() []string {
 	return []string{utils.PackageJsonFile}
 }
 
-func (m *NpmPackageManager) DownloadPackage(server api.Server, name string, version string) ([]byte, error) {
-	return utils.DownloadNPMPackage(server, name, version)
+func (m *NpmPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
+	return utils.DownloadNPMPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
 }

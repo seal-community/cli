@@ -81,7 +81,7 @@ func packageDownloadWorker(ctx context.Context, server api.Server, manager share
 				return nil
 			}
 
-			data, err := manager.DownloadPackage(server, toDownload.Library.Name, toDownload.RecommendedLibraryVersionString)
+			data, err := manager.DownloadPackage(server, toDownload)
 			if err != nil {
 				slog.Error("failed downloading package", "err", err)
 				return common.NewPrintableError("failed downloading package %s", toDownload.RecommendedDescriptor())

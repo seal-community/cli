@@ -9,6 +9,7 @@ import (
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -22,33 +23,71 @@ var pythonIndicators = []string{"poetry.lock", "pipfile.lock", "requirements.txt
 
 const versionFlag = "--version"
 const pipResultSeparator = "~-~-~-~"
+const whlFilename = "WHEEL"
+
+type pipMetadata struct {
+	version          string
+	sitePackagesPath string
+}
 
 type PipPackageManager struct {
 	Config           *config.Config
-	version          string
 	workDir          string
 	compatibleTags   []string
 	pythonTargetFile string
+	metadata         *pipMetadata
 }
 
-func NewPipManager(config *config.Config, pythonFile string) *PipPackageManager {
-	return &PipPackageManager{Config: config, pythonTargetFile: pythonFile}
+func NewPipManager(config *config.Config, pythonFile string, targetDir string) *PipPackageManager {
+	m := &PipPackageManager{Config: config, pythonTargetFile: pythonFile, workDir: targetDir}
+	m.metadata = getPipMetadata(targetDir)
+
+	return m
 }
 
 func (m *PipPackageManager) Name() string {
 	return PipManagerName
 }
 
-func (m *PipPackageManager) GetVersion(targetDir string) string {
-	if m.version == "" {
-		m.version, _ = getPipVersion(targetDir)
+func getPipMetadata(targetDir string) *pipMetadata {
+	result, err := common.RunCmdWithArgs(targetDir, pipExeName, versionFlag)
+	if err != nil {
+		slog.Error("failed running pip version", "err", err)
+		return nil
+	}
+	if result.Code != 0 {
+		slog.Error("running pip version returned non-zero", "result", result)
+		return nil
 	}
 
-	return m.version
+	metadata := &pipMetadata{}
+	metadata.version, metadata.sitePackagesPath, err = utils.GetMetadata(result.Stdout)
+	if err != nil {
+		slog.Error("failed getting metadata", "err", err)
+		metadata.version = ""
+		metadata.sitePackagesPath = ""
+	}
+
+	return metadata
+}
+
+func (m *PipPackageManager) GetVersion(targetDir string) string {
+	if m.metadata != nil {
+		return m.metadata.version
+	}
+
+	return ""
+}
+
+func (m *PipPackageManager) getSitePackages() string {
+	if m.metadata != nil {
+		return m.metadata.sitePackagesPath
+	}
+
+	return ""
 }
 
 func (m *PipPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	m.workDir = targetDir // Store the workdir for later use
 	return listPackages(targetDir)
 }
 
@@ -84,23 +123,6 @@ func GetPythonIndicatorFile(path string) (string, error) {
 	return "", nil
 }
 
-func getPipVersion(targetDir string) (string, bool) {
-	result, err := common.RunCmdWithArgs(targetDir, pipExeName, versionFlag)
-	if err != nil {
-		return "", false
-	}
-
-	// version command should not fail
-	if result.Code != 0 {
-		return "", false
-	}
-
-	versionWithSuffix := strings.TrimPrefix(result.Stdout, "pip ") // it contains a new line
-	spaceIndex := strings.Index(versionWithSuffix, " ")
-	version := versionWithSuffix[:spaceIndex]
-	return version, true
-}
-
 // runs pip command twice at target dir to gather all information needed for scanning and fixing.
 // 1. `pip list --format json` to get the list of dependencies in json format.
 // 2. `pip --version` to get the path to site-packages.
@@ -110,9 +132,9 @@ func listPackages(targetDir string) (*common.ProcessResult, bool) {
 	if err != nil {
 		return nil, false
 	}
-	args = []string{versionFlag}
-	versionResult, err := common.RunCmdWithArgs(targetDir, pipExeName, args...)
+	versionResult, err := common.RunCmdWithArgs(targetDir, pipExeName, versionFlag)
 	if err != nil {
+		slog.Error("failed running pip version", "err", err)
 		return nil, false
 	}
 
@@ -166,7 +188,7 @@ func parseCompatibleTags(debugOutput string) ([]string, error) {
 	return tags, nil
 }
 
-func (m *PipPackageManager) getCompatibleTags() ([]string, error) {
+func (m *PipPackageManager) getHostCompatibleTags() ([]string, error) {
 	if m.compatibleTags != nil {
 		return m.compatibleTags, nil
 	}
@@ -188,10 +210,67 @@ func (m *PipPackageManager) getCompatibleTags() ([]string, error) {
 	return tags, nil
 }
 
-func (m *PipPackageManager) DownloadPackage(server api.Server, name string, version string) ([]byte, error) {
-	compatibleTags, err := m.getCompatibleTags()
+func parseWheelTags(wheel string) []string {
+	tags := make([]string, 0)
+
+	lines := strings.Split(wheel, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Tag:") {
+			tag := strings.TrimPrefix(line, "Tag: ")
+			tag = strings.TrimSpace(tag)
+			tags = append(tags, tag)
+		}
+	}
+
+	return tags
+}
+
+func (m *PipPackageManager) getPackageCompatibleTags(name string, version string) ([]string, error) {
+	distInfo := utils.DistInfoPath(name, version)
+
+	sitePackagesPath := m.getSitePackages()
+	if sitePackagesPath == "" {
+		return nil, fmt.Errorf("site packages path not found")
+	}
+
+	whlPath := filepath.Join(sitePackagesPath, distInfo, whlFilename)
+	if exists, err := common.PathExists(whlPath); err != nil || !exists {
+		return nil, fmt.Errorf("whl file not found")
+	}
+
+	whl, err := os.ReadFile(whlPath)
+	if err != nil {
+		slog.Error("failed reading whl file", "err", err, "path", whlPath)
+		return nil, err
+	}
+
+	tags := parseWheelTags(string(whl))
+	slog.Debug("parsed wheel tags", "name", name, "version", version, "tags", tags)
+
+	return tags, nil
+}
+
+// Finds the compatible tags to use when choosing a .whl file to download.
+// Takes the tags of the existing installation if available.
+// If not, takes the tags of the host based on pip debug.
+func (m *PipPackageManager) getCompatibleTags(name string, version string) ([]string, error) {
+	slog.Info("getting package compatible tags", "name", name, "version", version)
+	compatibleTags, err := m.getPackageCompatibleTags(name, version)
+	if err == nil {
+		return compatibleTags, nil
+	}
+
+	// In the rare case we failed parsing tags, don't fail the whole process.
+	slog.Warn("failed getting package compatible tags, using host compatible tags", "err", err)
+
+	return m.getHostCompatibleTags()
+}
+
+func (m *PipPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
+	compatibleTags, err := m.getCompatibleTags(pkg.Library.Name, pkg.Version)
 	if err != nil {
 		return nil, err
 	}
-	return utils.DownloadPythonPackage(server, name, version, compatibleTags)
+
+	return utils.DownloadPythonPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString, compatibleTags)
 }

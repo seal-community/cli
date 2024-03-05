@@ -4,11 +4,11 @@ import (
 	"cli/internal/common"
 	"cli/internal/config"
 	"cli/internal/ecosystem/mappings"
+	"cli/internal/ecosystem/python/utils"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -35,13 +35,9 @@ func (parser *dependencyParser) shouldSkip(p *PythonPackage) bool {
 	return false
 }
 
-func escapePackageName(name string) string {
-	return strings.ReplaceAll(name, "-", "_")
-}
-
 func addDepInstance(deps common.DependencyMap, p *PythonPackage, sitePackages string) *common.Dependency {
 	common.Trace("adding dep", "name", p.Name, "version", p.Version, "editableProjectLocation", p.EditableProjectLocation)
-	diskPath := filepath.Join(sitePackages, fmt.Sprintf("%s-%s.dist-info", escapePackageName(p.Name), p.Version))
+	diskPath := filepath.Join(sitePackages, utils.DistInfoPath(p.Name, p.Version))
 
 	newDep := &common.Dependency{
 		Name:           p.Name,
@@ -59,31 +55,6 @@ func addDepInstance(deps common.DependencyMap, p *PythonPackage, sitePackages st
 	return newDep
 }
 
-func getSitePackages(pipOutput string) (string, error) {
-	// Parse pip version result, example:
-	// pip 10.0.0 from /usr/local/lib/python3.7/site-packages/pip (python 3.7)
-	r, err := regexp.Compile(`pip (?:[0-9.]+) from (.+) \(python [0-9.]+\)`)
-	if err != nil {
-		slog.Error("failed compiling regex", "err", err)
-		return "", err
-	}
-
-	matches := r.FindStringSubmatch(pipOutput)
-	if len(matches) != 2 {
-		slog.Error("failed matching regex", "result", pipOutput)
-		return "", fmt.Errorf("failed matching regex")
-	}
-	pipSitePackages := matches[1]
-	if pipSitePackages == "" {
-		slog.Error("failed matching regex", "result", pipOutput)
-		return "", fmt.Errorf("failed matching regex")
-	}
-
-	sitePackagesPath := strings.TrimSuffix(pipSitePackages, "pip")
-
-	return sitePackagesPath, nil
-}
-
 func (parser *dependencyParser) Parse(pipOutput string, projectDir string) (common.DependencyMap, error) {
 	deps := make(common.DependencyMap)
 
@@ -97,7 +68,7 @@ func (parser *dependencyParser) Parse(pipOutput string, projectDir string) (comm
 
 	versionOutput, listOutput := pipResult[0], pipResult[1]
 
-	sitePackages, err := getSitePackages(versionOutput)
+	sitePackages, err := utils.GetSitePackages(versionOutput)
 	if err != nil {
 		slog.Error("failed getting site packages", "err", err)
 		return nil, fmt.Errorf("failed getting site packages")

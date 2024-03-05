@@ -24,5 +24,5 @@ type PackageManager interface {
 	GetFixer(projectDir string, workdir string) DependencyFixer
 	GetEcosystem() string
 	GetScanTargets() []string
-	DownloadPackage(server api.Server, name string, version string) ([]byte, error)
+	DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error)
 }
