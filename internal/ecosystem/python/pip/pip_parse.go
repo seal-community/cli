@@ -40,7 +40,7 @@ func addDepInstance(deps common.DependencyMap, p *PythonPackage, sitePackages st
 	diskPath := filepath.Join(sitePackages, utils.DistInfoPath(p.Name, p.Version))
 
 	newDep := &common.Dependency{
-		Name:           p.Name,
+		Name:           strings.ToLower(p.Name),
 		Version:        p.Version,
 		PackageManager: mappings.PythonManager,
 		DiskPath:       diskPath,
