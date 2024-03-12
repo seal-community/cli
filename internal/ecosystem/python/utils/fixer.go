@@ -174,7 +174,7 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 		tmp := filepath.Join(dst, file)
 		origDir := filepath.Dir(orig)
 
-		if !slices.Contains(dirs, origDir) {
+		if filepath.Base(file) != file && !slices.Contains(dirs, origDir) {
 			dirs = append(dirs, origDir)
 		}
 
