@@ -27,9 +27,18 @@ type fixer struct {
 }
 
 func unzipFile(file *zip.File, sitePackages string) error {
+	if file.FileInfo().IsDir() {
+		if err := os.MkdirAll(file.Name, os.ModePerm); err != nil {
+			slog.Error("failed creating dir for dir zip record", "err", err, "target", file.Name)
+			return err
+		}
+
+		return nil
+	}
+
 	target := filepath.Join(sitePackages, file.Name)
 	if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {
-		slog.Error("failed creating target dir", "err", err, "target", target)
+		slog.Error("failed creating target dir while extracting", "err", err, "target", target)
 		return err
 	}
 
@@ -171,7 +180,7 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 
 		err := os.MkdirAll(filepath.Dir(tmp), os.ModePerm)
 		if err != nil {
-			slog.Error("failed creating target dir", "err", err, "target", tmp)
+			slog.Error("failed creating target dir while backing up", "err", err, "target", tmp)
 			return err
 		}
 
