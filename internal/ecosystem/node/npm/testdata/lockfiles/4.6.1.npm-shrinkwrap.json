@@ -1,0 +1,11 @@
+{
+  "name": "cli-internal-mirror",
+  "version": "1.0.0",
+  "dependencies": {
+    "semver-regex": {
+      "version": "1.0.0",
+      "from": "semver-regex@1.0.0",
+      "resolved": "https://registry.npmjs.org/semver-regex/-/semver-regex-1.0.0.tgz"
+    }
+  }
+}

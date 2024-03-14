@@ -44,21 +44,9 @@ type PackageDownload struct {
 	packageVersion *api.PackageVersion
 	data           []byte
 }
-type FixedEntry struct {
-	Package *api.PackageVersion
-	Paths   map[string]bool
-}
-
-type FixMap map[string]*FixedEntry
 
 type FixReporter interface {
-	Report(FixMap)
-}
-
-func FormatFixKey(p *api.PackageVersion) string {
-	recommendedId := p.RecommendedId()
-	packageId := p.Id()
-	return fmt.Sprintf("%s -> %s", packageId, recommendedId)
+	Report(shared.FixMap)
 }
 
 func packageDownloadWorker(ctx context.Context, server api.Server, manager shared.PackageManager, downloadJobsChannel chan api.PackageVersion, downloadResultsChannel chan PackageDownload) (err error) {
@@ -118,11 +106,11 @@ func (fp *fixPhase) Authenticate() error {
 	return err
 }
 
-func addFixToMap(summary FixMap, p *api.PackageVersion, localPath string) {
-	fixKey := FormatFixKey(p)
+func addFixToMap(summary shared.FixMap, p *api.PackageVersion, localPath string) {
+	fixKey := shared.FormatFixKey(p)
 	entry, exists := summary[fixKey]
 	if !exists {
-		entry = &FixedEntry{Package: p, Paths: make(map[string]bool)}
+		entry = &shared.FixedEntry{Package: p, Paths: make(map[string]bool)}
 		summary[fixKey] = entry
 	}
 
@@ -149,7 +137,7 @@ func shouldSkipPackage(p api.PackageVersion, allDeps common.DependencyMap) bool 
 	return false
 }
 
-func (fp *fixPhase) fixPackage(summary FixMap, downloadedPackage PackageDownload, allDeps common.DependencyMap, fixer shared.DependencyFixer) error {
+func (fp *fixPhase) fixPackage(summary shared.FixMap, downloadedPackage PackageDownload, allDeps common.DependencyMap, fixer shared.DependencyFixer) error {
 	var err error
 	packageId := downloadedPackage.packageVersion.Id()
 	packageDesc := downloadedPackage.packageVersion.Descriptor()
@@ -173,7 +161,7 @@ func (fp *fixPhase) fixPackage(summary FixMap, downloadedPackage PackageDownload
 	return nil
 }
 
-func (fp *fixPhase) Fix(scanResult *ScanResult) (_ FixMap, err error) {
+func (fp *fixPhase) Fix(scanResult *ScanResult) (_ shared.FixMap, err error) {
 	// currently will only work for node, and assumes running from the directory of the project
 	// 		relies on dependencies being installed beforehand (e.g. `npm install`)
 	fixer := fp.Manager.GetFixer(fp.ProjectDir, fp.Workdir)
@@ -215,9 +203,16 @@ func (fp *fixPhase) Fix(scanResult *ScanResult) (_ FixMap, err error) {
 	fp.addToMax(jobCount) // add steps here to bump the progress bar once
 
 	// Fix packages one at a time
-	summary := make(FixMap)
+	summary := make(shared.FixMap)
 	for downloadedPackage := range downloadResultsChannel {
 		if err = fp.fixPackage(summary, downloadedPackage, allDeps, fixer); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(summary) > 0 {
+		if err := fp.Manager.HandleFixes(fp.ProjectDir, summary); err != nil {
+			slog.Error("manager failed to handle fixes", "err", err)
 			return nil, err
 		}
 	}

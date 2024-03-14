@@ -36,7 +36,7 @@ func shouldSkip(d common.Dependency) bool {
 	}
 
 	if d.Name == "" || d.Version == "" {
-		slog.Warn("empty dependency")
+		slog.Debug("empty dependency")
 		return true
 	}
 
@@ -52,7 +52,7 @@ func shouldSkip(d common.Dependency) bool {
 	// this won't FP since using pnpm list command gives the paths within .pnpm instead of symlinks it creates for node
 	mode := fi.Mode()
 	if mode&os.ModeSymlink != 0 {
-		slog.Warn("symlink dependency", "path", d.DiskPath)
+		slog.Debug("symlink dependency", "path", d.DiskPath)
 		return true
 	}
 

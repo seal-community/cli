@@ -63,7 +63,7 @@ func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, 
 
 		for _, vuln := range fixedPackage.SealedVulnerabilities {
 			if vuln.SnykID != "" {
-				slog.Info("adding fixed vulerability to snyk policy", "issue", vuln.SnykID, "package", fixedPackage.Library.Name, "recommended version", fixedPackage.RecommendedLibraryVersionString)
+				slog.Debug("adding fixed vulerability to snyk policy", "issue", vuln.SnykID, "package", fixedPackage.Library.Name, "recommended version", fixedPackage.RecommendedLibraryVersionString)
 				// IMPORTANT: using original version since snyk does not detect our fix
 				if pf.AddRule(vuln.SnykID, linkedVulnPackage.Library.Name, linkedVulnPackage.Version) { // using the vuln package for the rule since snyk is not aware of our fixed changes on disk
 					addedRules = true // will not edit the file if we have nothing to change

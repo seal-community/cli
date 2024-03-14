@@ -19,18 +19,19 @@ const SealEnvPrefix = "SEAL_"
 
 // boolean env vars will need to be set to a value XXX=1 or XXX=true; otherwise will not detect it
 type NpmConfig struct {
-	ProdOnlyDeps     bool `yaml:"prod-only"          env:"PROD_ONLY"`    // this affects the output of npm list command; only affects direct deps
-	IgnoreExtraneous bool `yaml:"ignore-extraneous"  env:"IGNORE_EXTRA"` // will ignore packages that are marked as extraneous (like `npm i XXX --no-save`)
+	ProdOnlyDeps       bool `yaml:"prod-only"             env:"PROD_ONLY"`            // this affects the output of npm list command; only affects direct deps
+	IgnoreExtraneous   bool `yaml:"ignore-extraneous"     env:"IGNORE_EXTRA"`         // will ignore packages that are marked as extraneous (like `npm i XXX --no-save`)
+	UpdatePackageNames bool `yaml:"update-package-names"  env:"UPDATE_PACKAGE_NAMES"` // will update lock file so that fixed packages will have our name
 }
 
 type PnpmConfig struct {
-	ProdOnlyDeps bool `yaml:"prod-only"          env:"PROD_ONLY"` // same as npm
+	ProdOnlyDeps bool `yaml:"prod-only"         env:"PROD_ONLY"` // same as npm
 }
 
 type Config struct {
-	Token   string     `yaml:"token"           env:"TOKEN"`
-	Project string     `yaml:"project"         env:"PROJECT"`
-	Npm     NpmConfig  `yaml:"npm"             envPrefix:"NPM_"`
+	Token   string     `yaml:"token"            env:"TOKEN"`
+	Project string     `yaml:"project"          env:"PROJECT"`
+	Npm     NpmConfig  `yaml:"npm"              envPrefix:"NPM_"`
 	Pnpm    PnpmConfig `yaml:"pnpm"             envPrefix:"PNPM_"`
 }
 

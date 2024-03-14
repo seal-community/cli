@@ -5,13 +5,13 @@ package output
 import (
 	"cli/internal/api"
 	"cli/internal/ecosystem/mappings"
-	"cli/internal/phase"
+	"cli/internal/ecosystem/shared"
 	"testing"
 )
 
 func TestSummarySanity(t *testing.T) {
 	projDir := "/Users/fuwawa/proj"
-	f1 := phase.FixedEntry{Package: &api.PackageVersion{
+	f1 := shared.FixedEntry{Package: &api.PackageVersion{
 		Version:                         "1.2.3",
 		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "123123",
@@ -22,7 +22,7 @@ func TestSummarySanity(t *testing.T) {
 			"/Users/fuwawa/proj/node_modules/other/node_modules/lodash": true,
 			"/Users/fuwawa/zzz/lodash":                                  true, // using zzz so it will be last one in sorted slice
 		}}
-	fixes := phase.FixMap{phase.FormatFixKey(f1.Package): &f1}
+	fixes := shared.FixMap{shared.FormatFixKey(f1.Package): &f1}
 
 	s := NewSummary(projDir, fixes)
 	if s.Root != projDir {

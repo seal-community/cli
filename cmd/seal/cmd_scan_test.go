@@ -53,6 +53,10 @@ func (m *FakePackageManager) DownloadPackage(server api.Server, pkg api.PackageV
 	return nil, nil
 }
 
+func (m *FakePackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+	return nil
+}
+
 func getTestVulns() []api.PackageVersion {
 	vulns := []api.PackageVersion{
 		{

@@ -18,6 +18,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
+require github.com/iancoleman/orderedmap v0.3.0 // indirect
+
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect

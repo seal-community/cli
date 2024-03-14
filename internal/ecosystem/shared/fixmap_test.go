@@ -1,4 +1,4 @@
-package phase
+package shared
 
 import (
 	"cli/internal/api"

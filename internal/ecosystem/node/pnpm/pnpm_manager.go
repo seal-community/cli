@@ -118,3 +118,7 @@ func (m *PnpmPackageManager) GetScanTargets() []string {
 func (m *PnpmPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
 	return utils.DownloadNPMPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
 }
+
+func (m *PnpmPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+	return nil
+}

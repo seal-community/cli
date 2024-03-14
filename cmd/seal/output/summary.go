@@ -3,7 +3,7 @@ package output
 import (
 	"cli/internal/api"
 	"cli/internal/common"
-	"cli/internal/phase"
+	"cli/internal/ecosystem/shared"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,7 +24,7 @@ type Summary struct {
 	Fixes []*summaryFix `json:"fixes"`
 }
 
-func NewSummary(projectDir string, fixes phase.FixMap) *Summary {
+func NewSummary(projectDir string, fixes shared.FixMap) *Summary {
 	s := &Summary{Root: projectDir,
 		Fixes: make([]*summaryFix, 0, 10), // allocate, so if empty in json will be [] instead of null
 	}

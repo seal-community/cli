@@ -15,6 +15,13 @@ type ResultParser interface {
 	Parse(lsOutput string, projectDir string) (common.DependencyMap, error)
 }
 
+type FixedEntry struct {
+	Package *api.PackageVersion
+	Paths   map[string]bool
+}
+
+type FixMap map[string]*FixedEntry
+
 type PackageManager interface {
 	Name() string
 	GetVersion(targetDir string) string
@@ -25,4 +32,5 @@ type PackageManager interface {
 	GetEcosystem() string
 	GetScanTargets() []string
 	DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error)
+	HandleFixes(projectDir string, fixes FixMap) error
 }

@@ -26,7 +26,7 @@ type dependencyParser struct {
 
 func (parser *dependencyParser) shouldSkip(p *NpmPackage) bool {
 	if p.Name == "" || p.Version == "" {
-		slog.Warn("empty dependency")
+		slog.Debug("empty dependency")
 		return true
 	}
 
@@ -46,12 +46,12 @@ func (parser *dependencyParser) shouldSkip(p *NpmPackage) bool {
 		//	- manually altered node_modules
 		mode := fi.Mode()
 		if mode&os.ModeSymlink != 0 {
-			slog.Warn("symlink dependency")
+			slog.Debug("symlink dependency")
 			return true
 		}
 	} else {
 		// currently warn if this fails, needs to be mocked in all tests once this is implemented
-		slog.Error("failed getting stat", "path", p.Path, "err", err)
+		slog.Warn("failed getting stat", "path", p.Path, "err", err)
 	}
 
 	return false
@@ -69,7 +69,7 @@ func (parser *dependencyParser) parseDependencyNode(node *NpmPackage, deps commo
 
 	for keyName, p := range node.Dependencies {
 		if parser.shouldSkip(p) {
-			slog.Warn("skipping dep", "name", p.Name, "version", p.Version, "depth", depth, "parent", node)
+			slog.Warn("skipping dep", "name", p.Name, "version", p.Version, "depth", depth, "parentId", node.IntenralId)
 			continue
 		}
 

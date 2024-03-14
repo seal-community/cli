@@ -24,7 +24,7 @@ type dependencyParser struct {
 
 func (parser *dependencyParser) shouldSkip(p *PythonPackage) bool {
 	if p.Name == "" || p.Version == "" {
-		slog.Warn("empty dependency")
+		slog.Debug("empty dependency")
 		return true
 	}
 	if p.EditableProjectLocation != "" {

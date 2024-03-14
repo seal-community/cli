@@ -97,3 +97,7 @@ func (m *YarnPackageManager) GetScanTargets() []string {
 func (m *YarnPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
 	return utils.DownloadNPMPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
 }
+
+func (m *YarnPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+	return nil
+}

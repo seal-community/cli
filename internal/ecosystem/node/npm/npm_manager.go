@@ -64,7 +64,7 @@ func IsNpmProjectDir(path string) (bool, error) {
 		return false, err
 	}
 	if !exists {
-		slog.Warn("package.json does not exist", "path", packageFile)
+		slog.Info("package.json does not exist", "path", packageFile)
 		return false, nil
 	}
 	return true, nil
@@ -112,8 +112,8 @@ func listPackages(targetDir string, npmVersion string, prodOnly bool) (*common.P
 				prodOnlyFlag = "--prod"
 			}
 		} else {
-			slog.Error("failed converting semver major to int", "err", err, "version", npmVersion)
-			slog.Warn("using old flag due to error") // it is still supported as of version 10 of npm
+			// it is still supported as of version 10 of npm
+			slog.Warn("failed converting semver major to int", "err", err, "version", npmVersion)
 		}
 
 		args = append(args, prodOnlyFlag)
@@ -133,4 +133,31 @@ func (m *NpmPackageManager) GetScanTargets() []string {
 
 func (m *NpmPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
 	return utils.DownloadNPMPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
+}
+
+// according to config, update lock file with the seal prefix
+func (m *NpmPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+	if !m.Config.Npm.UpdatePackageNames {
+		slog.Debug("not updating package lock")
+		return nil
+	}
+
+	slog.Info("updating npm package lock file with fixes", "count", len(fixes))
+	lock := loadLockfile(projectDir)
+	if lock == nil {
+		slog.Error("failed loading lockfile in", "dir", projectDir)
+		return common.NewPrintableError("failed loading package-lock.json")
+	}
+
+	if err := UpdateLockfile(lock, fixes, projectDir); err != nil {
+		slog.Error("failed updating lockfile", "err", err)
+		return common.FallbackPrintableMsg(err, "failed updating package-lock.json")
+	}
+
+	if err := saveLockfile(lock, projectDir); err != nil {
+		slog.Error("failed saving updated lockfile", "err", err)
+		return common.FallbackPrintableMsg(err, "failed saving new package-lock.json")
+	}
+
+	return nil
 }

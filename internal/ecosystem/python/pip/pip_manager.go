@@ -274,3 +274,7 @@ func (m *PipPackageManager) DownloadPackage(server api.Server, pkg api.PackageVe
 
 	return utils.DownloadPythonPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString, compatibleTags)
 }
+
+func (m *PipPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+	return nil
+}
