@@ -167,3 +167,5 @@ func TestLocalFolderPackageInstallLinks(t *testing.T) {
 		t.Fatalf("did not detect as direct dep %v", dep)
 	}
 }
+
+

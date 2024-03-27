@@ -6,6 +6,8 @@ import (
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/utils"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"errors"
 	"testing"
@@ -178,12 +180,97 @@ func TestSymlinkSkipped(t *testing.T) {
 	defer os.Remove(linkPath) // removes the link
 
 	// test
-	if !parser.shouldSkip(&NpmPackage{
+	root := &NpmPackage{
 		Extraenous: false, // we don't want it to be skipped because it's extraneous
 		Version:    "1.4.2",
 		Name:       "name",
 		Path:       linkPath,
-	}) {
+	}
+	if !parser.shouldSkip(root, root) {
 		t.Fatalf("did not detect symlink for %s", linkPath)
+	}
+}
+
+func TestWorkspaceIsNotSkipped(t *testing.T) {
+	// testing without npm output file since we're performing os.Lstat and needs to be created on disk
+	conf, _ := config.New(nil)
+	parser := dependencyParser{conf}
+
+	target, err := os.MkdirTemp("", "test_seal_cli_*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(target)
+	
+	if err := os.MkdirAll(filepath.Join(target, "workspace1"), 0755) ; err != nil {
+		panic(err)
+	}
+	if err := os.MkdirAll(filepath.Join(target, "workspace2"), 0755) ; err != nil {
+		panic(err)
+	}
+	if err := os.MkdirAll(filepath.Join(target, "node_modules", "@babel", "cli"), 0755) ; err != nil {
+		panic(err)
+	}
+	if err := os.MkdirAll(filepath.Join(target, "node_modules", "yup"), 0755) ; err != nil {
+		panic(err)
+	}
+	if err := os.Symlink(filepath.Join(target,"workspace1"), filepath.Join(target, "node_modules", "workspace1")); err != nil {
+		panic(err)
+	}
+	if err := os.Symlink(filepath.Join(target,"workspace2"), filepath.Join(target, "node_modules", "workspace2")); err != nil {
+		panic(err)
+	}
+
+	workspacesTemplate := getTestFile("workspaces.json")
+	workspacesTemplate = strings.ReplaceAll(workspacesTemplate, "BASE_DIR", strings.ReplaceAll(target, "\\", "\\\\"))
+	// test
+	dependencies, err := parser.Parse(workspacesTemplate, target)
+	if err != nil {
+		t.Fatalf("failed parsing %v", err)
+	}
+
+	workspace1 := dependencies[common.DependencyId("NPM", "workspace1-package", "1.0.0")]
+	if len(workspace1) != 2 {
+		t.Fatalf("did not detect workspace1")
+	}
+	if workspace1[0].DiskPath != filepath.Join(target, "node_modules", "workspace1") {
+		t.Fatalf("wrong path for workspace1 %s %s", workspace1[0].DiskPath, filepath.Join(target, "node_modules", "workspace1"))
+	}
+	if workspace1[1].DiskPath != filepath.Join(target, "node_modules", "workspace1") {
+		t.Fatalf("wrong path for workspace1 %s %s", workspace1[1].DiskPath, filepath.Join(target, "node_modules", "workspace1"))
+	}
+	if ! ((workspace1[0].Branch == "" && workspace1[1].Branch == "workspace2@1.8.0") || 
+		(workspace1[0].Branch == "workspace2@1.8.0" && workspace1[1].Branch == "")) {
+		t.Fatalf("wrong branch for workspace1 %s %s", workspace1[0].Branch, workspace1[1].Branch)
+	}
+	workspace2 := dependencies[common.DependencyId("NPM", "workspace2-package", "1.8.0")]
+	if len(workspace2) != 1 {
+		t.Fatalf("did not detect workspace2")
+	}
+	if workspace2[0].DiskPath != filepath.Join(target, "node_modules", "workspace2") {
+		t.Fatalf("wrong path for workspace2 %s", workspace2[0].DiskPath)
+	}
+	if workspace2[0].Branch != "" {
+		t.Fatalf("wrong branch for workspace0 %s", workspace2[0].Branch)
+	}
+	babelCli := dependencies[common.DependencyId("NPM", "@babel/cli", "7.23.4")]
+	if len(babelCli) != 1 {
+		t.Fatalf("did not detect @babel/cli")
+	}
+	if babelCli[0].DiskPath != filepath.Join(target, "node_modules", "@babel", "cli") {
+		t.Fatalf("wrong path for @babel/cli %s", babelCli[0].DiskPath)
+	}
+	if babelCli[0].Branch != "workspace1@1.0.0" {
+		t.Fatalf("wrong branch for @babel/cli %s", babelCli[0].Branch)
+	}
+	yup := dependencies[common.DependencyId("NPM", "yup", "1.3.3")]
+	if len(yup) != 1 {
+		t.Fatalf("did not detect yup")
+	}
+	if yup[0].DiskPath != filepath.Join(target, "node_modules", "yup") {
+		t.Fatalf("wrong path for yup %s", yup[0].DiskPath)
+	}
+	if yup[0].Branch != "workspace2@1.8.0" {
+		t.Fatalf("wrong branch for yup %s", yup[0].Branch)
 	}
 }

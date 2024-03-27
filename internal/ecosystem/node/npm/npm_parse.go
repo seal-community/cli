@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
+
+	"golang.org/x/exp/slices"
 )
 
 type NpmPackage struct {
@@ -18,13 +21,42 @@ type NpmPackage struct {
 	Dependencies map[string]*NpmPackage `json:"dependencies"`
 	Extraenous   bool                   `json:"extraneous"` // npm specifc,
 	IntenralId   string                 `json:"_id"`        // npm specifc, exists in npm 6.14.18, 10.2.0; sanity
+	Workspaces   []string               `json:"workspaces"` // npm specifc, exists in npm 6.14.18, 10.2.0; sanity
 }
 
 type dependencyParser struct {
 	config *config.Config // in the future we might want to only pass the npm specific config object
 }
 
-func (parser *dependencyParser) shouldSkip(p *NpmPackage) bool {
+func (parser *dependencyParser) isWorkspace(root *NpmPackage, p *NpmPackage) bool {
+	// Currently we use a simple heuristic to determine if we're in a workspace
+	// if we are inspecting a symlink dependency, we extract the relative path compared to the root package
+	// if the relative path is in the workspaces array, we're in a workspace
+	// The complete way to do this would be to go over each workspace, resolve the module name, and compare it to the current module
+	rootSymLinkDest, err := filepath.EvalSymlinks(root.Path)
+	if err != nil {
+		slog.Warn("failed resolving symlink", "path", root.Path, "err", err)
+		return false
+	}
+	
+	packageSymLinkDest, err := filepath.EvalSymlinks(p.Path)
+	if err != nil {
+		slog.Warn("failed resolving symlink", "path", p.Path, "err", err)
+		return false
+	}
+	relPath, err := filepath.Rel(rootSymLinkDest, packageSymLinkDest)
+	if err != nil {
+		slog.Warn("failed getting relative path", "path", p.Path, "err", err)
+		return false
+	}
+	if !slices.Contains(root.Workspaces, relPath) {
+		slog.Debug("not in workspace", "path", p.Path, "rel_path", relPath)
+		return false
+	}
+	return true
+}
+
+func (parser *dependencyParser) shouldSkip(root *NpmPackage, p *NpmPackage) bool {
 	if p.Name == "" || p.Version == "" {
 		slog.Debug("empty dependency")
 		return true
@@ -47,7 +79,10 @@ func (parser *dependencyParser) shouldSkip(p *NpmPackage) bool {
 		mode := fi.Mode()
 		if mode&os.ModeSymlink != 0 {
 			slog.Debug("symlink dependency")
-			return true
+			if !parser.isWorkspace(root, p) {
+				slog.Debug("skipping symlink dependency", "name", p.Name, "version", p.Version, "path", p.Path)
+				return true
+			}
 		}
 	} else {
 		// currently warn if this fails, needs to be mocked in all tests once this is implemented
@@ -57,7 +92,7 @@ func (parser *dependencyParser) shouldSkip(p *NpmPackage) bool {
 	return false
 }
 
-func (parser *dependencyParser) parseDependencyNode(node *NpmPackage, deps common.DependencyMap, depth int, parent *common.Dependency, branch string) error {
+func (parser *dependencyParser) parseDependencyNode(root *NpmPackage, node *NpmPackage, deps common.DependencyMap, depth int, parent *common.Dependency, branch string) error {
 	if parent != nil {
 		if branch == "" {
 			// direct dep
@@ -68,13 +103,13 @@ func (parser *dependencyParser) parseDependencyNode(node *NpmPackage, deps commo
 	}
 
 	for keyName, p := range node.Dependencies {
-		if parser.shouldSkip(p) {
+		if parser.shouldSkip(root, p) {
 			slog.Warn("skipping dep", "name", p.Name, "version", p.Version, "depth", depth, "parentId", node.IntenralId)
 			continue
 		}
 
 		current := addDepInstance(deps, p, keyName, parent, branch)
-		err := parser.parseDependencyNode(p, deps, depth+1, current, branch)
+		err := parser.parseDependencyNode(root, p, deps, depth+1, current, branch)
 		if err != nil {
 			return err
 		}
@@ -128,7 +163,7 @@ func (parser *dependencyParser) Parse(lsOutput string, projectDir string) (commo
 
 	slog.Info("root package", "direct_deps", len(root.Dependencies))
 	// currently dependencies can hold dupes, extranious, invalid, etc
-	err = parser.parseDependencyNode(&root, deps, 1, nil, "")
+	err = parser.parseDependencyNode(&root, &root, deps, 1, nil, "")
 	if err != nil {
 		return nil, err
 	}
