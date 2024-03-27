@@ -4,6 +4,7 @@ import (
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/dotnet"
 	"cli/internal/ecosystem/node"
 	"cli/internal/ecosystem/python"
 	"cli/internal/ecosystem/shared"
@@ -27,34 +28,37 @@ type basePhase struct {
 func findPackageManager(configDir *config.Config, projectDir string) (shared.PackageManager, error) {
 	nodeManager, nodeErr := node.GetPackageManager(configDir, projectDir)
 	pythonManager, pythonErr := python.GetPackageManager(configDir, projectDir)
+	dotnetManager, dotnetErr := dotnet.GetPackageManager(configDir, projectDir)
 
-	errs := []error{nodeErr, pythonErr}
-	nilErrors := 0
-	for _, e := range errs {
-		if e == nil {
-			nilErrors++
+	availableManagers := []struct {
+		manager shared.PackageManager
+		err     error
+	}{
+		{nodeManager, nodeErr},
+		{pythonManager, pythonErr},
+		{dotnetManager, dotnetErr},
+	}
+
+	manager := shared.PackageManager(nil)
+	
+	for _, m := range availableManagers {
+		if m.err == nil {
+			if manager != nil {
+				slog.Warn("multiple package managers found, defaulting to", "manager", manager.Name())
+				return manager, nil
+			}
+			manager = m.manager
 		}
 	}
 
-	if nilErrors == 0 {
-		slog.Error("no package manager found in the project directory", "errs", errs)
-		return nil, common.NewPrintableError("failed to find a supported package manager in the project directory")
-	}
-	if nilErrors == 2 {
-		// Default to node, to not break previous setups
-		slog.Info("multiple package managers found, defaulting to node")
-		return nodeManager, nil
+	if manager != nil {
+		slog.Info("found package manager", "manager", manager.Name())
+		return manager, nil
 	}
 
-	var manager shared.PackageManager
-	if nodeErr == nil {
-		manager = nodeManager
-	} else if pythonErr == nil {
-		manager = pythonManager
-	}
 
-	slog.Info("found package manager", "manager", manager.Name())
-	return manager, nil
+	slog.Error("no package manager found in the project directory", "errs", []error{nodeErr, pythonErr, dotnetErr})
+	return nil, common.NewPrintableError("failed to find a supported package manager in the project directory")
 }
 
 func (p *basePhase) init(path string, showProgress bool) error {

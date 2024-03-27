@@ -3,6 +3,8 @@ package common
 import (
 	"log/slog"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 var CliCWD string // the working directory the cli started running from
@@ -62,6 +64,34 @@ func PathExists(path string) (bool, error) {
 	}
 
 	return false, err
+}
+
+func FindFileWithSuffix(path string, suffix string) (string, error) {
+	suffix = strings.ToLower(suffix)
+	var found string
+	err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			slog.Error("walk failed", "err", err)
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(strings.ToLower(info.Name()), suffix) {
+			found = p
+			return filepath.SkipDir
+		}
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if found == "" {
+		return "", NewPrintableError("no file found with suffix %s in %s", suffix, path)
+	}
+
+	return found, nil
 }
 
 func DirExists(path string) (bool, error) {

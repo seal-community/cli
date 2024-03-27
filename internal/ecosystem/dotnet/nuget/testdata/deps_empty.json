@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "parameters": "--include-transitive",
+  "projects": [
+    {
+      "path": "/Users/seal/SealProject/SealProject.csproj",
+      "frameworks": [
+        {
+          "framework": "net8.0"
+        }
+      ]
+    }
+  ]
+}

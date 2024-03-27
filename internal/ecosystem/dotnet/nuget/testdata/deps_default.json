@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "parameters": "--include-transitive",
+  "projects": [
+    {
+      "path": "/Users/seal/SealProject/SealProject.csproj",
+      "frameworks": [
+        {
+          "framework": "net8.0",
+          "topLevelPackages": [
+            {
+              "id": "DotNet.ReproducibleBuilds",
+              "requestedVersion": "1.1.1",
+              "resolvedVersion": "1.1.1"
+            },
+            {
+              "id": "Snappier",
+              "requestedVersion": "1.1.0",
+              "resolvedVersion": "1.1.0"
+            }
+          ],
+          "transitivePackages": [
+            {
+              "id": "Microsoft.Build.Tasks.Git",
+              "resolvedVersion": "1.1.1"
+            },
+            {
+              "id": "Microsoft.SourceLink.AzureRepos.Git",
+              "resolvedVersion": "1.1.1"
+            },
+            {
+              "id": "Microsoft.SourceLink.Bitbucket.Git",
+              "resolvedVersion": "1.1.1"
+            },
+            {
+              "id": "Microsoft.SourceLink.Common",
+              "resolvedVersion": "1.1.1"
+            },
+            {
+              "id": "Microsoft.SourceLink.GitHub",
+              "resolvedVersion": "1.1.1"
+            },
+            {
+              "id": "Microsoft.SourceLink.GitLab",
+              "resolvedVersion": "1.1.1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

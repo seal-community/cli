@@ -9,6 +9,7 @@ func TestEcosystemConversion(t *testing.T) {
 	maps := [][]string{
 		{NpmManager, "node"},
 		{PythonManager, "python"},
+		{NugetManager, ".NET"},
 		{"asdasdasda", ""},
 	}
 
@@ -28,6 +29,7 @@ func TestManagerToEcosystemConversion(t *testing.T) {
 	maps := [][]string{
 		{NodeEcosystem, "NPM"},
 		{PythonEcosystem, "PyPI"},
+		{DotnetEcosystem, "NuGet"},
 		{"asdasdasda", ""},
 	}
 

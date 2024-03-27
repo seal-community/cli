@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "parameters": "--include-transitive",
+  "problems": [
+    {
+      "project": "/Users/seal/SealProject/SealProject.csproj",
+      "level": "error",
+      "text": "No assets file was found for `/Users/seal/SealProject/SealProject.csproj`. Please run restore before running this command."
+    }
+  ],
+  "projects": [
+    {
+      "path": "/Users/seal/SealProject/SealProject.csproj"
+    }
+  ]
+}

@@ -9,11 +9,13 @@ import (
 const (
 	NpmManager    = "NPM"
 	PythonManager = "PyPI"
+	NugetManager  = "NuGet"
 )
 
 const (
 	NodeEcosystem   = "node"
 	PythonEcosystem = "python"
+	DotnetEcosystem = ".NET"
 )
 
 func BackendManagerToEcosystem(bem string) string {
@@ -22,6 +24,8 @@ func BackendManagerToEcosystem(bem string) string {
 		return NodeEcosystem
 	case PythonManager:
 		return PythonEcosystem
+	case NugetManager:
+		return DotnetEcosystem
 	default:
 		slog.Warn("unsupported manager", "manager", bem)
 		return ""
@@ -34,6 +38,8 @@ func EcosystemToBackendManager(es string) string {
 		return NpmManager
 	case PythonEcosystem:
 		return PythonManager
+	case DotnetEcosystem:
+		return NugetManager
 	default:
 		slog.Warn("unsupported ecosystem", "value", es)
 		return ""

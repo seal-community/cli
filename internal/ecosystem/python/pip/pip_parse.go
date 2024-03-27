@@ -58,7 +58,7 @@ func addDepInstance(deps common.DependencyMap, p *PythonPackage, sitePackages st
 func (parser *dependencyParser) Parse(pipOutput string, projectDir string) (common.DependencyMap, error) {
 	deps := make(common.DependencyMap)
 
-	dependendyList := make([]PythonPackage, 0)
+	dependencyList := make([]PythonPackage, 0)
 
 	pipResult := strings.Split(pipOutput, pipResultSeparator)
 	if len(pipResult) != 2 {
@@ -75,13 +75,13 @@ func (parser *dependencyParser) Parse(pipOutput string, projectDir string) (comm
 	}
 	slog.Info("site packages", "path", sitePackages)
 
-	err = json.Unmarshal([]byte(listOutput), &dependendyList)
+	err = json.Unmarshal([]byte(listOutput), &dependencyList)
 	if err != nil {
 		slog.Error("failed unmarshal list output", "err", err)
 		return nil, fmt.Errorf("failed unmarshal list output")
 	}
 
-	for i, p := range dependendyList {
+	for i, p := range dependencyList {
 		if parser.shouldSkip(&p) {
 			slog.Warn("skipping dep", "name", p.Name, "version", p.Version, "index", i)
 			continue
@@ -89,7 +89,7 @@ func (parser *dependencyParser) Parse(pipOutput string, projectDir string) (comm
 		_ = addDepInstance(deps, &p, sitePackages)
 	}
 
-	slog.Info("root package", "direct_deps", len(dependendyList))
+	slog.Info("root package", "direct_deps", len(dependencyList))
 
 	return deps, nil
 }
