@@ -87,13 +87,14 @@ func (m *NugetPackageManager) GetFixer(projectDir string, workdir string) shared
 
 func GetNugetIndicatorFile(path string) (string, error) {
 	for _, suffixIndicator := range nugetSuffixIndicators {
-		file, err := common.FindFileWithSuffix(path, suffixIndicator)
+		suffix := strings.ToLower(suffixIndicator)
+		file, err := common.FindFileWithSuffix(path, suffix)
 		if err == nil {
-			slog.Info("found python indicator file", "file", file, "indicator", suffixIndicator)
+			slog.Info("found nuget indicator file", "file", file, "indicator", suffixIndicator)
 			return file, nil
 		}
 	}
-	slog.Debug("no file found with dotnet endings", "path", path)
+	slog.Debug("no file found with dotnet suffix", "path", path)
 	return "", nil
 }
 
@@ -117,9 +118,30 @@ func (m *NugetPackageManager) GetScanTargets() []string {
 }
 
 func (m *NugetPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
-	return []byte{}, nil // We don't need to download packages for nuget
+	return DownloadNugetPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
 }
 
 func (m *NugetPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
-	return common.NewPrintableError("We don't support fixing nuget packages yet.")
+	return handleFixes(projectDir, fixes)
+}
+
+func handleFixes(projectDir string, fixes shared.FixMap) error {
+	slog.Info("updating project.assets.file with fixes", "count", len(fixes))
+	assets := loadProjectAssetsfile(projectDir)
+	if assets == nil {
+		slog.Error("failed loading project.assets.json in", "dir", projectDir)
+		return common.NewPrintableError("Failed loading project assets, please run 'dotnet restore --force' to regenerate it")
+	}
+
+	if err := UpdateProjectAssetsfile(assets, fixes); err != nil {
+		slog.Error("failed updating project.assets.json", "err", err)
+		return common.FallbackPrintableMsg(err, "failed updating project.assets.json")
+	}
+
+	if err := saveProjectAssetsfile(assets, projectDir); err != nil {
+		slog.Error("failed saving updated project.assets.json", "err", err)
+		return common.FallbackPrintableMsg(err, "failed saving new project.assets.json")
+	}
+
+	return nil
 }

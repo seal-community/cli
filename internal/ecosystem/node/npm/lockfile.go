@@ -4,11 +4,8 @@ import (
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -20,49 +17,11 @@ const npmLockFileName = "package-lock.json"
 var UnsupportedLockfileVersion = common.NewPrintableError("unsupported package-lock.json version")
 
 func loadLockfile(dir string) *orderedmap.OrderedMap {
-	lock := orderedmap.New()
-	lock.SetEscapeHTML(false) // required to be set before decoding, so that all nested ordered maps have it set as well
-
-	p := filepath.Join(dir, npmLockFileName)
-
-	data, err := os.ReadFile(p)
-	if err != nil {
-		slog.Error("failed opening package-lock.json file", "err", err, "path", p)
-		return nil
-	}
-
-	if err := json.Unmarshal(data, &lock); err != nil {
-		slog.Error("failed loading json", "err", err, "path", p)
-		return nil
-	}
-
-	return lock
-}
-
-func dumpLockfile(lock *orderedmap.OrderedMap, w io.Writer) error {
-	e := json.NewEncoder(w)
-	e.SetIndent("", "  ")  // 2 spaces
-	e.SetEscapeHTML(false) // also required for output, otherwise '<=' would get escaped; setting it on the OrderedMap struct did not work
-
-	if err := e.Encode(lock); err != nil {
-		slog.Error("failed saving json", "err", err)
-		return err
-	}
-
-	return nil
+	return common.JsonLoad(filepath.Join(dir, npmLockFileName))
 }
 
 func saveLockfile(lock *orderedmap.OrderedMap, dir string) error {
-
-	p := filepath.Join(dir, npmLockFileName)
-	w, err := common.CreateFile(p)
-	if err != nil {
-		slog.Error("failed opening package lock file", "err", err, "path", p)
-		return err
-	}
-	defer w.Close()
-
-	return dumpLockfile(lock, w)
+	return common.JsonSave(lock, filepath.Join(dir, npmLockFileName))
 }
 
 type lockfileVersion int
@@ -244,7 +203,7 @@ func updateV2(node *orderedmap.OrderedMap, fixes map[string]*api.PackageVersion,
 	}
 
 	// pefform bfs on leafs to not modify during iteration
-	keysToUpdate := orderedmap.New() // using sorted so that that iteration over this later results in the same order (especially for tests)
+	keysToUpdate := orderedmap.New() // using sorted so that iteration over this later, results in the same order (especially for tests)
 	for _, packagePath := range deps.Keys() {
 		obj, _ := deps.Get(packagePath)
 		diskPath := filepath.Join(root, packagePath)

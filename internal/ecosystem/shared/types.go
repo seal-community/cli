@@ -5,8 +5,13 @@ import (
 	"cli/internal/common"
 )
 
+type PackageDownload struct {
+	PackageVersion *api.PackageVersion
+	Data           []byte
+}
+
 type DependencyFixer interface {
-	Fix(dep *common.Dependency, payload []byte) (bool, error)
+	Fix(dep *common.Dependency, packageDownload PackageDownload) (bool, error)
 	Rollback() bool
 	Cleanup() bool
 }

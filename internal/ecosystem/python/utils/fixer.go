@@ -26,46 +26,6 @@ type fixer struct {
 	workdir        string
 }
 
-func unzipFile(file *zip.File, sitePackages string) error {
-	if file.FileInfo().IsDir() {
-		if err := os.MkdirAll(file.Name, os.ModePerm); err != nil {
-			slog.Error("failed creating dir for dir zip record", "err", err, "target", file.Name)
-			return err
-		}
-
-		return nil
-	}
-
-	target := filepath.Join(sitePackages, file.Name)
-	if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {
-		slog.Error("failed creating target dir while extracting", "err", err, "target", target)
-		return err
-	}
-
-	targetFile, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
-	if err != nil {
-		slog.Error("failed creating file", "err", err, "file", target)
-		return err
-	}
-	defer targetFile.Close()
-
-	rc, err := file.Open()
-	if err != nil {
-		slog.Error("failed opening file", "err", err, "file", file.Name)
-		return err
-	}
-	defer rc.Close()
-
-	if _, err := io.Copy(targetFile, rc); err != nil {
-		slog.Error("failed writing file", "err", err, "file", target)
-		return err
-	}
-
-	slog.Debug("extracted file", "file", target)
-
-	return nil
-}
-
 // Extracts the payload to the site-packages directory
 // Returns the path to the .dist-info directory in site-packages
 //
@@ -88,7 +48,7 @@ func (f *fixer) extractPackage(sitePackagesPath string, payload []byte, dotdotPa
 	for _, file := range r.File {
 		slog.Debug("extracting file", "file", file.Name)
 
-		err = unzipFile(file, sitePackagesPath)
+		err = common.UnzipFile(file, sitePackagesPath)
 		if err != nil {
 			return "", err
 		}
@@ -218,7 +178,7 @@ func splitDotdotPaths(paths []string) ([]string, []string) {
 }
 
 // Will fix the dependency, assuming payload is a .whl file
-func (f *fixer) Fix(dep *common.Dependency, payload []byte) (bool, error) {
+func (f *fixer) Fix(dep *common.Dependency, packageDownload shared.PackageDownload) (bool, error) {
 	recordPaths, err := readRecordFile(dep.DiskPath)
 	if err != nil {
 		return false, fmt.Errorf("failed reading RECORD file for package %s", dep.PrintableName())
@@ -242,9 +202,9 @@ func (f *fixer) Fix(dep *common.Dependency, payload []byte) (bool, error) {
 
 	f.rollback[dep.DiskPath] = tmpName
 
-	distInfoPath, err := f.extractPackage(sitePackages, payload, dotdotPaths)
+	distInfoPath, err := f.extractPackage(sitePackages, packageDownload.Data, dotdotPaths)
 	if err != nil {
-		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(payload))
+		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(packageDownload.Data))
 		return false, fmt.Errorf("failed applying fix for package %s", dep.PrintableName())
 	}
 

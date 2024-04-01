@@ -72,7 +72,7 @@ func createDepRollbackDir(target string, dep *common.Dependency) error {
 
 	return nil
 }
-func (f *fixer) Fix(dep *common.Dependency, payload []byte) (bool, error) {
+func (f *fixer) Fix(dep *common.Dependency, packageDownload shared.PackageDownload) (bool, error) {
 
 	if _, ok := f.rollback[dep.DiskPath]; ok {
 		// will have issue in future with N branches that have been dedup'd so that they both point to the same
@@ -109,9 +109,9 @@ func (f *fixer) Fix(dep *common.Dependency, payload []byte) (bool, error) {
 		return false, common.NewPrintableError("failed creating package folder for %s", dep.PrintableName())
 	}
 
-	err = UntarNpmPackage(bytes.NewReader(payload), dep.DiskPath)
+	err = UntarNpmPackage(bytes.NewReader(packageDownload.Data), dep.DiskPath)
 	if err != nil {
-		slog.Error("failed untaring package", "err", err, "target", dep.DiskPath, "payloadLen", len(payload))
+		slog.Error("failed untaring package", "err", err, "target", dep.DiskPath, "payloadLen", len(packageDownload.Data))
 		return false, common.NewPrintableError("failed applying fix for package %s", dep.PrintableName())
 	}
 

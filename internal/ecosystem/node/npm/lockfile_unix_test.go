@@ -5,6 +5,7 @@ package npm
 import (
 	"bytes"
 	"cli/internal/api"
+	"cli/internal/common"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"path/filepath"
@@ -55,7 +56,7 @@ func TestLockfileUpdateV1Formatting(t *testing.T) {
 	}
 
 	w := bytes.NewBufferString("")
-	if err := dumpLockfile(lock, w); err != nil {
+	if err := common.JsonDump(lock, w); err != nil {
 		t.Fatalf("failed dumping: %v", err)
 	}
 
@@ -106,7 +107,7 @@ func TestLockfileUpdateV2Formatting(t *testing.T) {
 	}
 
 	w := bytes.NewBufferString("")
-	if err := dumpLockfile(lock, w); err != nil {
+	if err := common.JsonDump(lock, w); err != nil {
 		t.Fatalf("failed dumping: %v", err)
 	}
 
@@ -178,7 +179,7 @@ func TestLockfileUpdateV3Formatting(t *testing.T) {
 	}
 
 	w := bytes.NewBufferString("")
-	if err := dumpLockfile(lock, w); err != nil {
+	if err := common.JsonDump(lock, w); err != nil {
 		t.Fatalf("failed dumping: %v", err)
 	}
 

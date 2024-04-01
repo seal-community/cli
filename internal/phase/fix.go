@@ -40,16 +40,11 @@ func NewFixPhase(projectDir string, showProgress bool) (*fixPhase, error) {
 	return fp, nil
 }
 
-type PackageDownload struct {
-	packageVersion *api.PackageVersion
-	data           []byte
-}
-
 type FixReporter interface {
 	Report(shared.FixMap)
 }
 
-func packageDownloadWorker(ctx context.Context, server api.Server, manager shared.PackageManager, downloadJobsChannel chan api.PackageVersion, downloadResultsChannel chan PackageDownload) (err error) {
+func packageDownloadWorker(ctx context.Context, server api.Server, manager shared.PackageManager, downloadJobsChannel chan api.PackageVersion, downloadResultsChannel chan shared.PackageDownload) (err error) {
 	defer func() {
 		if panicObj := recover(); panicObj != nil {
 			slog.Error("panic caught", "err", panicObj, "trace", string(debug.Stack()))
@@ -75,7 +70,7 @@ func packageDownloadWorker(ctx context.Context, server api.Server, manager share
 				return common.NewPrintableError("failed downloading package %s", toDownload.RecommendedDescriptor())
 			}
 
-			downloadResultsChannel <- PackageDownload{packageVersion: &toDownload, data: data}
+			downloadResultsChannel <- shared.PackageDownload{PackageVersion: &toDownload, Data: data}
 		}
 	}
 }
@@ -137,23 +132,23 @@ func shouldSkipPackage(p api.PackageVersion, allDeps common.DependencyMap) bool 
 	return false
 }
 
-func (fp *fixPhase) fixPackage(summary shared.FixMap, downloadedPackage PackageDownload, allDeps common.DependencyMap, fixer shared.DependencyFixer) error {
+func (fp *fixPhase) fixPackage(summary shared.FixMap, downloadedPackage shared.PackageDownload, allDeps common.DependencyMap, fixer shared.DependencyFixer) error {
 	var err error
-	packageId := downloadedPackage.packageVersion.Id()
-	packageDesc := downloadedPackage.packageVersion.Descriptor()
+	packageId := downloadedPackage.PackageVersion.Id()
+	packageDesc := downloadedPackage.PackageVersion.Descriptor()
 	fp.advanceStep(fmt.Sprintf("Fixing %s", packageDesc))
 
 	for _, depInstance := range allDeps[packageId] {
 		slog.Debug("fixing dependency instance", "id", packageId, "path", depInstance.DiskPath)
 
 		var done bool
-		if done, err = fixer.Fix(depInstance, downloadedPackage.data); err != nil {
+		if done, err = fixer.Fix(depInstance, downloadedPackage); err != nil {
 			return common.FallbackPrintableMsg(err, "failed applying fix to %s", packageDesc)
 		}
 
 		if done {
 			// mapping between downloaded-fixed to dependencies works now since they have the same Id, if we have a 'new' name for the fixed version this needs to be updated
-			addFixToMap(summary, downloadedPackage.packageVersion, depInstance.DiskPath)
+			addFixToMap(summary, downloadedPackage.PackageVersion, depInstance.DiskPath)
 			slog.Info("finished fixing instance", "id", packageId, "path", depInstance.DiskPath)
 		}
 	}
@@ -170,7 +165,7 @@ func (fp *fixPhase) Fix(scanResult *ScanResult) (_ shared.FixMap, err error) {
 	vulnerablePackages := scanResult.Vulnerable
 	allDeps := scanResult.AllDependencies
 
-	downloadResultsChannel := make(chan PackageDownload, len(vulnerablePackages))
+	downloadResultsChannel := make(chan shared.PackageDownload, len(vulnerablePackages))
 	downloadJobsChannel := make(chan api.PackageVersion, len(vulnerablePackages))
 	g, ctx := errgroup.WithContext(context.Background())
 
