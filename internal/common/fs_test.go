@@ -21,8 +21,8 @@ func getTestFile(name string) string {
 	return string(data)
 }
 
-func TestFindFileWithSuffix(t *testing.T) {
-	target, err := os.MkdirTemp("", "test_seal_dir_*")
+func TestFindPathsWithSuffix(t *testing.T) {
+	target, err := os.MkdirTemp("", "test_seal_cli_*")
 	if err != nil {
 		panic(err)
 	}
@@ -32,34 +32,40 @@ func TestFindFileWithSuffix(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	defer os.Remove(inner_target)
 
-	for _, suffixIndicator := range []string{"lock", "txt", "toml"} {
-		currentFilename := "testfile." + suffixIndicator
-		p := filepath.Join(inner_target, currentFilename)
+	// create files in target with suffixes
+	suffixes := []string{".txt", ".json", ".xml"}
+	for _, suffix := range suffixes {
+		p := filepath.Join(target, "file"+suffix)
 		f, err := os.Create(p)
 		if err != nil {
 			panic(err)
 		}
 		f.Close()
 
-		found, err := FindFileWithSuffix(target, suffixIndicator)
+		p = filepath.Join(inner_target, "file"+suffix)
+		f, err = os.Create(p)
+		if err != nil {
+			panic(err)
+		}
+		f.Close()
+	}
+
+	for _, suffix := range suffixes {
+		paths, err := FindPathsWithSuffix(target, suffix)
 		if err != nil {
 			t.Fatalf("had error %v", err)
 		}
 
-		if filepath.Base(found) != currentFilename {
-			t.Fatalf("did not detect file %v, found %v", currentFilename, found)
+		if len(paths) != 2 {
+			t.Fatalf("expected 2 paths, got %v", len(paths))
 		}
-	}
 
-	_, err = FindFileWithSuffix(target, "notfound")
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-
-	if !strings.Contains(err.Error(), "no file found with suffix") {
-		t.Fatalf("expected error")
+		for _, path := range paths {
+			if !strings.HasSuffix(strings.ToLower(path), strings.ToLower(suffix)) {
+				t.Fatalf("expected %v to have suffix %v", path, suffix)
+			}
+		}
 	}
 }
 

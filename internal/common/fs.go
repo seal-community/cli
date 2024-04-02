@@ -68,31 +68,23 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-func FindFileWithSuffix(path string, suffix string) (string, error) {
-	var found string
+func FindPathsWithSuffix(path string, suffix string) ([]string, error) {
+	paths := []string{}
 	err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			slog.Error("walk failed", "err", err)
 			return err
 		}
-		if info.IsDir() {
-			return nil
-		}
-		if strings.HasSuffix(strings.ToLower(info.Name()), suffix) {
-			found = p
-			return filepath.SkipDir
+		if strings.HasSuffix(strings.ToLower(info.Name()), strings.ToLower(suffix)) {
+			paths = append(paths, p)
 		}
 		return nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if found == "" {
-		return "", NewPrintableError("no file found with suffix %s in %s", suffix, path)
-	}
-
-	return found, nil
+	return paths, nil
 }
 
 func DirExists(path string) (bool, error) {

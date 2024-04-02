@@ -1,29 +1,13 @@
 package nuget
 
 import (
-	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"log/slog"
-	"path/filepath"
 	"strings"
 
 	"github.com/iancoleman/orderedmap"
 )
-
-const projectAssetsFileName = "project.assets.json"
-
-func getProjectAssetsPath(projectDir string) string {
-	return filepath.Join(projectDir, "obj", projectAssetsFileName)
-}
-
-func loadProjectAssetsfile(dir string) *orderedmap.OrderedMap {
-	return common.JsonLoad(getProjectAssetsPath(dir))
-}
-
-func saveProjectAssetsfile(projectAssets *orderedmap.OrderedMap, dir string) error {
-	return common.JsonSave(projectAssets, getProjectAssetsPath(dir))
-}
 
 func UpdateProjectAssetsfile(assets *orderedmap.OrderedMap, fixes shared.FixMap) error {
 	for _, fix := range fixes {
@@ -66,7 +50,6 @@ func fixTargets(assets *orderedmap.OrderedMap, fromKey, toKey string) {
 
 		value, exists := framework.Get(fromKey)
 		if exists {
-			slog.Info("updating dependency", "fromKey", fromKey, "toKey", toKey, "value", value)
 			framework.Set(toKey, value)
 			framework.Delete(fromKey)
 		}

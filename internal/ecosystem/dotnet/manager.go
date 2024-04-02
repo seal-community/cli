@@ -8,8 +8,8 @@ import (
 )
 
 func GetPackageManager(config *config.Config, targetDir string) (shared.PackageManager, error) {
-	nugetFile, err := nuget.GetNugetIndicatorFile(targetDir)
-	if err != nil || nugetFile == "" {
+	found, err := nuget.FindNugetIndicatorFile(targetDir)
+	if err != nil || !found {
 		return nil, fmt.Errorf("failed detecting nuget directory %w", err)
 	}
 

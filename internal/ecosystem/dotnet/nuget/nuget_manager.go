@@ -15,6 +15,10 @@ const dotnetExeName = "dotnet"
 
 const NugetManagerName = "nuget"
 
+const ProjectAssetsFileName = "project.assets.json"
+
+const DotnetRestoreError = "Failed loading project assets, please run 'dotnet restore --force' to regenerate it"
+
 // Ordered by priority
 var nugetSuffixIndicators = []string{".csproj", ".sln"}
 
@@ -85,17 +89,16 @@ func (m *NugetPackageManager) GetFixer(projectDir string, workdir string) shared
 	return utils.NewFixer(projectDir, workdir)
 }
 
-func GetNugetIndicatorFile(path string) (string, error) {
+func FindNugetIndicatorFile(path string) (bool, error) {
 	for _, suffixIndicator := range nugetSuffixIndicators {
-		suffix := strings.ToLower(suffixIndicator)
-		file, err := common.FindFileWithSuffix(path, suffix)
-		if err == nil {
-			slog.Info("found nuget indicator file", "file", file, "indicator", suffixIndicator)
-			return file, nil
+		files, err := common.FindPathsWithSuffix(path, suffixIndicator)
+		if err == nil && len(files) > 0 {
+			slog.Info("found nuget indicator files", "files", files, "indicator", suffixIndicator)
+			return true, nil
 		}
 	}
 	slog.Debug("no file found with dotnet suffix", "path", path)
-	return "", nil
+	return false, nil
 }
 
 // runs: dotnet list package --include-transitive --format json
@@ -126,21 +129,28 @@ func (m *NugetPackageManager) HandleFixes(projectDir string, fixes shared.FixMap
 }
 
 func handleFixes(projectDir string, fixes shared.FixMap) error {
-	slog.Info("updating project.assets.file with fixes", "count", len(fixes))
-	assets := loadProjectAssetsfile(projectDir)
-	if assets == nil {
-		slog.Error("failed loading project.assets.json in", "dir", projectDir)
-		return common.NewPrintableError("Failed loading project assets, please run 'dotnet restore --force' to regenerate it")
-	}
+	slog.Info("updating project.assets.json with fixes", "count", len(fixes))
+	assetsPaths, err := common.FindPathsWithSuffix(projectDir, ProjectAssetsFileName)
+	for _, assetsPath := range assetsPaths {
+		if err != nil {
+			slog.Error("failed getting project.assets.json path", "err", err)
+			return common.NewPrintableError(DotnetRestoreError)
+		}
+		assets := common.JsonLoad(assetsPath)
+		if assets == nil {
+			slog.Error("failed loading project.assets.json in", "dir", assetsPath)
+			return common.NewPrintableError(DotnetRestoreError)
+		}
 
-	if err := UpdateProjectAssetsfile(assets, fixes); err != nil {
-		slog.Error("failed updating project.assets.json", "err", err)
-		return common.FallbackPrintableMsg(err, "failed updating project.assets.json")
-	}
+		if err := UpdateProjectAssetsfile(assets, fixes); err != nil {
+			slog.Error("failed updating project.assets.json", "err", err)
+			return common.FallbackPrintableMsg(err, "failed updating project.assets.json")
+		}
 
-	if err := saveProjectAssetsfile(assets, projectDir); err != nil {
-		slog.Error("failed saving updated project.assets.json", "err", err)
-		return common.FallbackPrintableMsg(err, "failed saving new project.assets.json")
+		if err := common.JsonSave(assets, assetsPath); err != nil {
+			slog.Error("failed saving updated project.assets.json", "err", err, "path", assetsPath)
+			return common.FallbackPrintableMsg(err, "failed saving new project.assets.json")
+		}
 	}
 
 	return nil

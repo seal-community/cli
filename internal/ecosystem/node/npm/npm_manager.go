@@ -17,6 +17,8 @@ const npmExeName = "npm"
 
 const NpmManagerName = "npm"
 
+const npmLockFileName = "package-lock.json"
+
 type NpmPackageManager struct {
 	Config  *config.Config
 	version string
@@ -143,7 +145,7 @@ func (m *NpmPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) 
 	}
 
 	slog.Info("updating npm package lock file with fixes", "count", len(fixes))
-	lock := loadLockfile(projectDir)
+	lock := common.JsonLoad(filepath.Join(projectDir, npmLockFileName))
 	if lock == nil {
 		slog.Error("failed loading lockfile in", "dir", projectDir)
 		return common.NewPrintableError("failed loading package-lock.json")
@@ -154,7 +156,7 @@ func (m *NpmPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) 
 		return common.FallbackPrintableMsg(err, "failed updating package-lock.json")
 	}
 
-	if err := saveLockfile(lock, projectDir); err != nil {
+	if err := common.JsonSave(lock, filepath.Join(projectDir, npmLockFileName)); err != nil {
 		slog.Error("failed saving updated lockfile", "err", err)
 		return common.FallbackPrintableMsg(err, "failed saving new package-lock.json")
 	}

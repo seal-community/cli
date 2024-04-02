@@ -12,17 +12,9 @@ import (
 	"github.com/iancoleman/orderedmap"
 )
 
-const npmLockFileName = "package-lock.json"
+
 
 var UnsupportedLockfileVersion = common.NewPrintableError("unsupported package-lock.json version")
-
-func loadLockfile(dir string) *orderedmap.OrderedMap {
-	return common.JsonLoad(filepath.Join(dir, npmLockFileName))
-}
-
-func saveLockfile(lock *orderedmap.OrderedMap, dir string) error {
-	return common.JsonSave(lock, filepath.Join(dir, npmLockFileName))
-}
 
 type lockfileVersion int
 
