@@ -3,7 +3,6 @@ package output
 import (
 	"cli/internal/api"
 	"cli/internal/common"
-	"cli/internal/ecosystem/mappings"
 	"cli/internal/snyk"
 	"log/slog"
 )
@@ -53,11 +52,6 @@ func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, 
 		linkedVulnPackage, exist := recommendedToVulnerable[fixedPackage.Id()]
 		if !exist {
 			slog.Warn("fixed version not found in vulnerable", "id", fixedPackage.Id())
-			continue
-		}
-
-		if fixedPackage.Library.PackageManager == mappings.PythonManager {
-			slog.Info("skipping python package", "package", fixedPackage.Library.Name)
 			continue
 		}
 

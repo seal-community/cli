@@ -60,7 +60,7 @@ func TestEmpty(t *testing.T) {
 
 func TestSanity(t *testing.T) {
 	dependency := common.Dependency{
-		Name:           "ejs",
+		Name:           "ejs-escaped",
 		Version:        "2.7.4",
 		PackageManager: "NPM",
 	}
@@ -77,6 +77,7 @@ func TestSanity(t *testing.T) {
                 "library": {
                     "id": "33af4a95-4249-4d3b-9fa5-424184fa4b76",
                     "name": "ejs",
+                    "escaped_name": "ejs-escaped",
                     "package_manager": "NPM",
                     "source_link": "https://github.com/mde/ejs"
                 },
@@ -167,6 +168,7 @@ func TestMalicious(t *testing.T) {
                 "library": {
                     "id": "33af4a95-4249-4d3b-9fa5-424184fa4b76",
                     "name": "ejs",
+                    "escaped_name": "ejs",
                     "package_manager": "NPM",
                     "source_link": "https://github.com/mde/ejs"
                 },

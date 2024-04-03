@@ -38,7 +38,7 @@ func (VulnerabilityObject Vulnerability) PreferredId() string {
 }
 
 type Package struct {
-	Name           string `json:"name"`
+	Name           string `json:"escaped_name"` // using escaped name to correctly match packages that resolve to the same value (e.g. for pip)
 	PackageManager string `json:"package_manager"`
 }
 
