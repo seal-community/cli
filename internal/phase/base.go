@@ -16,6 +16,7 @@ import (
 
 type basePhase struct {
 	ProjectDir string
+	TargetFile string // optional as part of the commandline input
 	Workdir    string
 	Server     api.Server
 	Config     *config.Config
@@ -25,10 +26,10 @@ type basePhase struct {
 	Fixer      shared.DependencyFixer
 }
 
-func findPackageManager(configDir *config.Config, projectDir string) (shared.PackageManager, error) {
-	nodeManager, nodeErr := node.GetPackageManager(configDir, projectDir)
-	pythonManager, pythonErr := python.GetPackageManager(configDir, projectDir)
-	dotnetManager, dotnetErr := dotnet.GetPackageManager(configDir, projectDir)
+func findPackageManager(configDir *config.Config, projectDir string, target string) (shared.PackageManager, error) {
+	nodeManager, nodeErr := node.GetPackageManager(configDir, projectDir, target)
+	pythonManager, pythonErr := python.GetPackageManager(configDir, projectDir, target)
+	dotnetManager, dotnetErr := dotnet.GetPackageManager(configDir, projectDir, target)
 
 	availableManagers := []struct {
 		manager shared.PackageManager
@@ -40,7 +41,7 @@ func findPackageManager(configDir *config.Config, projectDir string) (shared.Pac
 	}
 
 	manager := shared.PackageManager(nil)
-	
+
 	for _, m := range availableManagers {
 		if m.err == nil {
 			if manager != nil {
@@ -56,7 +57,6 @@ func findPackageManager(configDir *config.Config, projectDir string) (shared.Pac
 		return manager, nil
 	}
 
-
 	slog.Error("no package manager found in the project directory", "errs", []error{nodeErr, pythonErr, dotnetErr})
 	return nil, common.NewPrintableError("failed to find a supported package manager in the project directory")
 }
@@ -64,6 +64,9 @@ func findPackageManager(configDir *config.Config, projectDir string) (shared.Pac
 func (p *basePhase) init(path string, showProgress bool) error {
 	var err error
 	p.ProjectDir = getProjectDir(path)
+	p.TargetFile = getTargetFile(path) // will be empty if a directory was provided
+
+	slog.Debug("initialized project paths", "dir", p.ProjectDir, "target", p.TargetFile, "provided", path)
 	if p.ProjectDir == "" {
 		return common.NewPrintableError("bad project directory path: %s", path)
 	}
@@ -75,7 +78,7 @@ func (p *basePhase) init(path string, showProgress bool) error {
 		return err
 	}
 
-	p.Manager, err = findPackageManager(p.Config, p.ProjectDir)
+	p.Manager, err = findPackageManager(p.Config, p.ProjectDir, p.TargetFile)
 	if err != nil {
 		return err
 	}

@@ -23,6 +23,7 @@ type ResultHandler interface {
 const csvFlag = "csv"
 const actionFlag = "generate-local-config"
 const snykPolicyFlag = "generate-snyk-policy"
+const manifestFile = "manifest"
 
 func initResultHandler(cmd *cobra.Command) (ResultHandler, error) {
 	csvFilePath := getArgString(cmd, csvFlag)
@@ -203,10 +204,16 @@ func scanCommand() *cobra.Command {
 				return common.NewPrintableError("failed initializing output")
 			}
 
-			targetDir := extractTargetDir(args)
+			target := extractTarget(args)
+			targetDir := common.GetAbsDirPath(target)
+			if targetDir == "" {
+				slog.Error("bad target input", "target", target)
+				return common.NewPrintableError("target not found `%s`", target)
+			}
+
 			verbosity := getArgCount(cmd, verboseFlagKey)
 			genActionsFile := getArgBool(cmd, actionFlag)
-			scanPhase, err := phase.NewScanPhase(targetDir, verbosity == 0)
+			scanPhase, err := phase.NewScanPhase(target, verbosity == 0)
 			if err != nil {
 				slog.Error("failed initializing scan", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing scan phase")
@@ -262,7 +269,7 @@ func scanCommand() *cobra.Command {
 					}
 				}
 
-				if !snykUpdated {
+				if genSnykPolicy && !snykUpdated {
 					slog.Info("no available fixes, skipping snyk")
 					fmt.Println(common.Colorize("Nothing to add to .snyk file", common.AnsiDarkGrey)) // Print to screen
 				}

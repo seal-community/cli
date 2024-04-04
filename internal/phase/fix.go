@@ -19,8 +19,8 @@ type fixPhase struct {
 	*scanPhase
 }
 
-func NewFixPhase(projectDir string, showProgress bool) (*fixPhase, error) {
-	sp, err := NewScanPhase(projectDir, showProgress)
+func NewFixPhase(target string, showProgress bool) (*fixPhase, error) {
+	sp, err := NewScanPhase(target, showProgress)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func NewFixPhase(projectDir string, showProgress bool) (*fixPhase, error) {
 	// this phase requires authentication - must have valid project name
 	proj := fp.Config.Project
 	if reason := validateProjectName(proj); reason != "" {
-		slog.Error("invalid projcet name", "name", proj, "project-dir", projectDir)
+		slog.Error("invalid projcet name", "name", proj, "project-dir", fp.ProjectDir)
 		return nil, common.NewPrintableError("invalid project name `%s` - %s", proj, reason)
 	}
 

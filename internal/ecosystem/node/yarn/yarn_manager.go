@@ -36,6 +36,10 @@ func IsYarnProjectDir(path string) bool {
 	return false
 }
 
+func IsYarnIndicatorFile(path string) bool {
+	return strings.HasSuffix(path, yarnLockFileName)
+}
+
 func NewYarnManager(config *config.Config) *YarnPackageManager {
 	y := &YarnPackageManager{Config: config, npmManager: npm.NpmPackageManager{Config: config}}
 	return y

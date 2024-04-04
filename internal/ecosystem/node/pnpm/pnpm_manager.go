@@ -52,6 +52,10 @@ func (m *PnpmPackageManager) GetFixer(projectDir string, workdir string) shared.
 	return utils.NewFixer(projectDir, workdir)
 }
 
+func IsPnpmIndicatorFile(path string) bool {
+	return strings.HasSuffix(path, pnpmLockFileName)
+}
+
 func IsPnpmProjectDir(path string) bool {
 	// initial check to see if the target path has pnpm files
 	// could additionally check .pnpm folder in node modules among others

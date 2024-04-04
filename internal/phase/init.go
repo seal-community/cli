@@ -13,18 +13,29 @@ import (
 
 const SealInternalFolderName = ".seal"
 
-func getProjectDir(dir string) string {
-	targetDir := common.CliCWD
-	if dir != "" {
-		targetDir, _ = filepath.Abs(dir) // ignoring err, propagated from internal call to os.Cwd
+func getProjectDir(p string) string {
+	if p == "" {
+		return common.CliCWD
 	}
 
-	if f, err := os.Stat(targetDir); err != nil || !f.IsDir() {
-		slog.Error("bad target dir", "err", err, "path", targetDir)
+	return common.GetAbsDirPath(p)
+}
+
+func getTargetFile(p string) string {
+	if p == "" {
 		return ""
 	}
 
-	return targetDir
+	abs, _ := filepath.Abs(p) // ignoring err, propagated from internal call to os.Cwd
+
+	f, err := os.Stat(abs)
+	if err != nil || f.IsDir() {
+		slog.Debug("bad target path", "err", err, "path", abs) // ignoring error case here, same logic
+		return ""
+	}
+
+	// strip input from file component
+	return abs
 }
 
 func validateProjectName(name string) string {

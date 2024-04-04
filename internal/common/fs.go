@@ -1,8 +1,6 @@
 package common
 
 import (
-	"archive/zip"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -100,43 +98,20 @@ func DirExists(path string) (bool, error) {
 	return false, err
 }
 
-func UnzipFile(file *zip.File, location string) error {
-	slog.Debug("extracting file", "file", file.Name, "location", location, "location+file", filepath.Join(location, file.Name))
-	target := filepath.Join(location, file.Name)
-	if file.FileInfo().IsDir() {
-		if err := os.MkdirAll(target, os.ModePerm); err != nil {
-			slog.Error("failed creating dir for dir zip record", "err", err, "target", file.Name)
-			return err
-		}
+// returns the absolute path for input's directory, if file will strip the file element
+func GetAbsDirPath(p string) string {
+	targetDir, _ := filepath.Abs(p) // ignoring err, propagated from internal call to os.Cwd
 
-		return nil
-	}
-
-	if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {
-		slog.Error("failed creating target dir while extracting", "err", err, "target", target)
-		return err
-	}
-
-	targetFile, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+	f, err := os.Stat(targetDir)
 	if err != nil {
-		slog.Error("failed creating file", "err", err, "file", target)
-		return err
-	}
-	defer targetFile.Close()
-
-	rc, err := file.Open()
-	if err != nil {
-		slog.Error("failed opening file", "err", err, "file", file.Name)
-		return err
-	}
-	defer rc.Close()
-
-	if _, err := io.Copy(targetFile, rc); err != nil {
-		slog.Error("failed writing file", "err", err, "file", target)
-		return err
+		slog.Error("bad target dir", "err", err, "path", targetDir)
+		return ""
 	}
 
-	slog.Debug("extracted file", "file", target)
+	if f.IsDir() {
+		return targetDir
+	}
 
-	return nil
+	// strip input from file component
+	return filepath.Dir(targetDir)
 }

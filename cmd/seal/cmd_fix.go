@@ -22,7 +22,7 @@ type fixMode string
 
 const (
 	localMode fixMode = "local"
-	allMode fixMode = "all"
+	allMode   fixMode = "all"
 )
 
 func fixModeFromString(s string) fixMode {
@@ -168,7 +168,13 @@ func fixCommand() *cobra.Command {
 				}
 			}()
 
-			targetDir := extractTargetDir(args)
+			target := extractTarget(args)
+			targetDir := common.GetAbsDirPath(target)
+			if targetDir == "" {
+				slog.Error("bad target input", "target", target)
+				return common.NewPrintableError("target not found `%s`", target)
+			}
+
 			verbosity := getArgCount(cmd, verboseFlagKey)
 			summaryPath := getArgString(cmd, summaryFlag)
 			fm := getArgString(cmd, modeFlag)
@@ -180,7 +186,7 @@ func fixCommand() *cobra.Command {
 			slog.Info("Fix mode", "mode", fixModeUsed)
 
 			// IMPORTANT - after this point printing directly to console would mess up the progress bar, msg should be used instead
-			fixPhase, err := phase.NewFixPhase(targetDir, verbosity == 0)
+			fixPhase, err := phase.NewFixPhase(target, verbosity == 0)
 			if err != nil {
 				slog.Error("failed initializing fix", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing fix phase")
@@ -228,7 +234,7 @@ func fixCommand() *cobra.Command {
 
 			if len(result.Vulnerable) == 0 {
 				fixPhase.HideProgress() // make sure before printing
-				slog.Info("no vulnerable package found", "target", fixPhase.ProjectDir)
+				slog.Info("no vulnerable package found", "target", target)
 				err = dumpSummary(output.NewSummary(fixPhase.ProjectDir, nil), summaryPath) // output summary even if no fixes are relvant, so could be processed by 3rd-party
 				if err != nil {
 					return err

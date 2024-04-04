@@ -20,7 +20,7 @@ const ProjectAssetsFileName = "project.assets.json"
 const DotnetRestoreError = "Failed loading project assets, please run 'dotnet restore --force' to regenerate it"
 
 // Ordered by priority
-var nugetSuffixIndicators = []string{".csproj", ".sln"}
+var nugetSuffixIndicators = []string{".csproj"}
 
 const versionFlag = "--version"
 
@@ -89,6 +89,16 @@ func (m *NugetPackageManager) GetFixer(projectDir string, workdir string) shared
 	return utils.NewFixer(projectDir, workdir)
 }
 
+func IsNugetIndicatorFile(path string) bool {
+	for _, suffixIndicator := range nugetSuffixIndicators {
+		if strings.HasSuffix(path, suffixIndicator) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func FindNugetIndicatorFile(path string) (bool, error) {
 	for _, suffixIndicator := range nugetSuffixIndicators {
 		files, err := common.FindPathsWithSuffix(path, suffixIndicator)
@@ -113,7 +123,7 @@ func listPackages(targetDir string) (*common.ProcessResult, bool) {
 }
 
 func (m *NugetPackageManager) GetEcosystem() string {
-	return mappings.NugetManager
+	return mappings.DotnetEcosystem
 }
 
 func (m *NugetPackageManager) GetScanTargets() []string {

@@ -102,9 +102,10 @@ func addCommand() *cobra.Command {
 				}
 			}()
 
-			targetDir := common.CliCWD
 			verbosity := getArgCount(cmd, verboseFlagKey)
 			outputSnykPolicy := getArgBool(cmd, snykPolicyFlag)
+			target := getArgString(cmd, manifestFile)
+			targetDir := common.GetAbsDirPath(target)
 
 			addPhase, err := phase.NewAddPhase(targetDir, verbosity == 0)
 			if err != nil {
@@ -186,5 +187,6 @@ func addCommand() *cobra.Command {
 	}
 
 	cmd.Flags().Bool(snykPolicyFlag, false, "generate or update the .snyk file")
+	cmd.Flags().String(manifestFile, "", "path to the manifest file to use")
 	return cmd
 }

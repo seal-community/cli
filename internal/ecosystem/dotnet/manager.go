@@ -7,7 +7,15 @@ import (
 	"fmt"
 )
 
-func GetPackageManager(config *config.Config, targetDir string) (shared.PackageManager, error) {
+func GetPackageManager(config *config.Config, targetDir string, targetFile string) (shared.PackageManager, error) {
+	if targetFile != "" {
+		if nuget.IsNugetIndicatorFile(targetFile) {
+			return nuget.NewNugetManager(config, targetDir), nil
+		}
+
+		return nil, fmt.Errorf("not a nuget file indicator: %s", targetFile)
+	}
+
 	found, err := nuget.FindNugetIndicatorFile(targetDir)
 	if err != nil || !found {
 		return nil, fmt.Errorf("failed detecting nuget directory %w", err)

@@ -72,6 +72,10 @@ func IsNpmProjectDir(path string) (bool, error) {
 	return true, nil
 }
 
+func IsNpmIndicatorFile(path string) bool {
+	return strings.HasSuffix(path, npmLockFileName)
+}
+
 func getNpmVersion(targetDir string) (string, bool) {
 	result, err := common.RunCmdWithArgs(targetDir, npmExeName, "-v")
 	if err != nil {

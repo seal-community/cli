@@ -1,7 +1,9 @@
 package phase
 
 import (
+	"cli/internal/common"
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -43,5 +45,32 @@ func TestProjectNameInvalid(t *testing.T) {
 				t.Fatalf("project name should be invalid `%s` : `%s`", projName, msg)
 			}
 		})
+	}
+}
+
+func TestGetProjectDir(t *testing.T) {
+	d := t.TempDir()
+	if projDir := getProjectDir(d); projDir != d {
+		t.Fatalf("got %s instead of %s", projDir, d)
+	}
+}
+
+func TestGetProjectDirFromFile(t *testing.T) {
+	d := t.TempDir()
+	f, err := os.CreateTemp(d, "test_*")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	defer f.Close()
+
+	fpath := f.Name()
+	if projDir := getProjectDir(fpath); projDir != d {
+		t.Fatalf("got %s instead of %s for file %s", projDir, d, fpath)
+	}
+}
+
+func TestGetProjectDirEmpty(t *testing.T) {
+	if projDir := getProjectDir(""); projDir != common.CliCWD {
+		t.Fatalf("got %s instead of %s for file %s", projDir, "", common.CliCWD)
 	}
 }

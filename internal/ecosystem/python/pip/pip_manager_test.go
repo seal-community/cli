@@ -1,6 +1,7 @@
 package pip
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -81,6 +82,18 @@ Install-Paths-To: wheel/_paths.json
 			result := parseWheelTags(test.name)
 			if !reflect.DeepEqual(result, test.expected) {
 				t.Fatalf("wrong result, expected: `%s` got: `%s`", test.expected, result)
+			}
+		})
+	}
+}
+
+func TestIndicatorMatches(t *testing.T) {
+	ps := []string{"/b/poetry.lock", "/b/pipfile.lock", "/b/requirements.txt", "/b/pyproject.toml", "/b/pipfile"}
+
+	for i, p := range ps {
+		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
+			if !IsPythonIndicatorFile(p) {
+				t.Fatalf("failed to detect indicator path `%s`", p)
 			}
 		})
 	}

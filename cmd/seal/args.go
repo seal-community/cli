@@ -38,7 +38,7 @@ func getArgCount(cmd *cobra.Command, key string) int {
 	return val
 }
 
-func extractTargetDir(args []string) string {
+func extractTarget(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}

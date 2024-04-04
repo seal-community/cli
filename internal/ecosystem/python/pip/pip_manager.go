@@ -103,6 +103,16 @@ func (m *PipPackageManager) GetFixer(projectDir string, workdir string) shared.D
 	return utils.NewFixer(projectDir, workdir)
 }
 
+func IsPythonIndicatorFile(path string) bool {
+	for _, f := range pythonIndicators {
+		if strings.HasSuffix(path, f) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func GetPythonIndicatorFile(path string) (string, error) {
 	// Assumes pythonIndicators are ordered by priority
 	for _, file := range pythonIndicators {

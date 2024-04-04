@@ -3,6 +3,7 @@ package nuget
 import (
 	"cli/internal/api"
 	"cli/internal/ecosystem/shared"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -110,5 +111,43 @@ func TestHandleFixes(t *testing.T) {
 	count := strings.Count(string(assetsData), "1.1.0-sp1")
 	if count != 6 {
 		t.Fatalf("did not find 1.1.0-sp1 6 times in the file, found only %v", count)
+	}
+}
+
+func TestIndicatorMatches(t *testing.T) {
+	ps := []string{
+		`/b/t.csproj`,
+		`C:\t.csproj`,
+		`../t.csproj`,
+		`..\t.csproj`,
+		`./abc/../t.csproj`,
+		`.\abc\..\t.csproj`,
+	}
+
+	for i, p := range ps {
+		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
+			if !IsNugetIndicatorFile(p) {
+				t.Fatalf("failed to detect indicator path `%s`", p)
+			}
+		})
+	}
+}
+
+func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
+	// as it is intended to be handled by dir
+	ps := []string{
+		`/b/t.sln`,
+		`C:\t.sln`,
+		`../t.sln`,
+		`..\t.sln`,
+		`./abc/../t.sln`,
+		`.\abc\..\t.sln`,
+	}
+	for i, p := range ps {
+		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
+			if IsNugetIndicatorFile(p) {
+				t.Fatalf("failed to detect indicator path `%s`", p)
+			}
+		})
 	}
 }
