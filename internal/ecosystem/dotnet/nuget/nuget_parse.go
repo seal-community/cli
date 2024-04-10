@@ -69,6 +69,7 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 				slog.Debug("no assets file found", "project", problem.Project)
 				return nil, common.NewPrintableError(problem.Text)
 			}
+
 			slog.Warn("problem with project", "project", problem.Project, "level", problem.Level, "text", problem.Text)
 		}
 	}
@@ -79,12 +80,15 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 				if parser.shouldSkip(&pkg) {
 					continue
 				}
+
 				addDepInstance(deps, &pkg, projectDir)
 			}
+
 			for _, pkg := range framework.TransitivePackages {
 				if parser.shouldSkip(&pkg) {
 					continue
 				}
+				
 				addDepInstance(deps, &pkg, projectDir)
 			}
 		}

@@ -44,6 +44,7 @@ func DependencyId(manager string, library string, version string) string {
 	if manager == "" || library == "" || version == "" {
 		panic(fmt.Errorf("failed: cant generate id for library:%s version:%s", library, version))
 	}
+	
 	return fmt.Sprintf("%s|%s@%s", manager, library, version)
 }
 

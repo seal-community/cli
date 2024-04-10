@@ -30,6 +30,7 @@ func RunCmdWithArgs(targetDir string, exe string, args ...string) (*ProcessResul
 			slog.Error("command failed", "err", err, "args", args, "stderr", result.Stderr)
 			return nil, err
 		}
+		
 		result.Code = exitError.ExitCode()
 	}
 

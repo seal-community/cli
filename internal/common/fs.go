@@ -24,6 +24,7 @@ func CreateFile(p string) (*os.File, error) {
 			slog.Error("path is a directory", "path", p)
 			return nil, NewPrintableError("file path is a directory %s", p)
 		}
+
 		slog.Warn("existing file will be overwritten", "path", p)
 	} else if !os.IsNotExist(err) {
 		slog.Error("stat failed", "err", err)
@@ -45,6 +46,7 @@ func OpenFile(p string) (*os.File, error) {
 			slog.Info("failed opening file", "err", err, "path", p)
 			return nil, NewPrintableError("could not open file in %s", p)
 		}
+
 		slog.Info("actions file not found", "path", p)
 		return nil, nil
 
@@ -73,9 +75,11 @@ func FindPathsWithSuffix(path string, suffix string) ([]string, error) {
 			slog.Error("walk failed", "err", err)
 			return err
 		}
+
 		if strings.HasSuffix(strings.ToLower(info.Name()), strings.ToLower(suffix)) {
 			paths = append(paths, p)
 		}
+		
 		return nil
 	})
 	if err != nil {

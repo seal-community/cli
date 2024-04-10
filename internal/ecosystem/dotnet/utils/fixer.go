@@ -50,6 +50,7 @@ func savePackageFiles(location, packageName string, nupkgData []byte) error {
 		slog.Error("failed extracting nuget package", "err", err, "path", libraryPath)
 		return err
 	}
+
 	if err := os.WriteFile(strings.ToLower(libraryPath+".sha512"), []byte(hashData(nupkgData)), 0644); err != nil {
 		slog.Error("failed writing sha512 file", "err", err, "path", libraryPath)
 		return err
@@ -60,6 +61,7 @@ func savePackageFiles(location, packageName string, nupkgData []byte) error {
 		slog.Error("failed reading directory", "err", err, "location", location)
 		return err
 	}
+	
 	for _, file := range files {
 		for _, suffix := range []string{".nupkg", ".nuspec"} {
 			if strings.HasSuffix(file.Name(), suffix) {

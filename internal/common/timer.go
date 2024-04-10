@@ -30,6 +30,7 @@ func ExecutionTimer() Timer {
 	if !ok {
 		panic("not ok runtime caller")
 	}
+	
 	function := runtime.FuncForPC(pc)
 
 	return Timer{start: time.Now(), file: file, no: no, funcName: function.Name()}

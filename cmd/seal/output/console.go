@@ -84,7 +84,6 @@ func (p ConsolePrinter) Handle(vulnerablePackages []api.PackageVersion, allDeps 
 		var hasSealed string
 		if vulnPackage.CanBeFixed() {
 			hasSealed = common.Colorize(trueCanSealValue, common.AnsiBrightGreen)
-
 		} else {
 			hasSealed = common.Colorize(falseCanSealValue, common.AnsiNiceRed)
 		}
@@ -114,6 +113,7 @@ func (p ConsolePrinter) Handle(vulnerablePackages []api.PackageVersion, allDeps 
 				"",
 			})
 		}
+		
 		t.AppendSeparator()
 	}
 

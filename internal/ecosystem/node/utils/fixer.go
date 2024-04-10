@@ -63,6 +63,7 @@ func createDepRollbackDir(target string, dep *common.Dependency) error {
 		slog.Error("tmp name already exists or failed checking for it", "err", err)
 		return err
 	}
+	
 	slog.Debug("got new temp path for dep", "path", dep.DiskPath, "id", dep.Id(), "tmp-path", target)
 
 	if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {

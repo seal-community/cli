@@ -91,6 +91,7 @@ func TestParseSameDependencyMultipleVersions(t *testing.T) {
 	if lodashDepsA[0].Name != "lodash" {
 		t.Fatalf("expected first dep to be lodash, got %s", lodashDepsA[0].Name)
 	}
+
 	if lodashDepsA[0].Version != "4.17.11" {
 		t.Fatalf("wrong version for first lodash; got '%s'", lodashDepsA[0].Version)
 	}
@@ -108,6 +109,7 @@ func TestParseSameDependencyMultipleVersions(t *testing.T) {
 	if lodashDepsB[0].Name != "lodash" {
 		t.Fatalf("expected first dep to be lodash, got %s", lodashDepsB[0].Name)
 	}
+
 	if lodashDepsB[0].Version != "4.17.11" {
 		t.Fatalf("wrong version for first lodash; got '%s'", lodashDepsB[0].Version)
 	}
@@ -124,6 +126,7 @@ func TestParseSingleDependencyNamespace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse failed ")
 	}
+
 	if len(dependencies) != 1 {
 		t.Fatalf("got more than 1 dependency: %v", len(dependencies))
 	}
@@ -133,9 +136,11 @@ func TestParseSingleDependencyNamespace(t *testing.T) {
 	if dep.PackageManager != mappings.NpmManager {
 		t.Fatalf("wrong package manager %v", dep.PackageManager)
 	}
+
 	if dep.Name != "@fastify/multipart" {
 		t.Fatalf("wrong package %v", dep.Name)
 	}
+
 	if dep.Version != "8.0.0" {
 		t.Fatalf("wrong version %v", dep.Version)
 	}
@@ -162,6 +167,7 @@ func TestSymlinkSkipped(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(target)
 
 	// create a temp dir then delete it to generate a safe name for symlink
@@ -177,6 +183,7 @@ func TestSymlinkSkipped(t *testing.T) {
 	if err := os.Symlink(target, linkPath); err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(linkPath) // removes the link
 
 	// test
@@ -186,6 +193,7 @@ func TestSymlinkSkipped(t *testing.T) {
 		Name:       "name",
 		Path:       linkPath,
 	}
+
 	if !parser.shouldSkip(root, root) {
 		t.Fatalf("did not detect symlink for %s", linkPath)
 	}
@@ -200,17 +208,21 @@ func TestWorkspaceIsNotSkipped(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(target)
 	
 	if err := os.MkdirAll(filepath.Join(target, "workspace1"), 0755) ; err != nil {
 		panic(err)
 	}
+
 	if err := os.MkdirAll(filepath.Join(target, "workspace2"), 0755) ; err != nil {
 		panic(err)
 	}
+
 	if err := os.MkdirAll(filepath.Join(target, "node_modules", "@babel", "cli"), 0755) ; err != nil {
 		panic(err)
 	}
+
 	if err := os.MkdirAll(filepath.Join(target, "node_modules", "yup"), 0755) ; err != nil {
 		panic(err)
 	}
@@ -233,23 +245,29 @@ func TestWorkspaceIsNotSkipped(t *testing.T) {
 	if len(workspace1) != 2 {
 		t.Fatalf("did not detect workspace1")
 	}
+
 	if workspace1[0].DiskPath != filepath.Join(target, "node_modules", "workspace1") {
 		t.Fatalf("wrong path for workspace1 %s %s", workspace1[0].DiskPath, filepath.Join(target, "node_modules", "workspace1"))
 	}
+
 	if workspace1[1].DiskPath != filepath.Join(target, "node_modules", "workspace1") {
 		t.Fatalf("wrong path for workspace1 %s %s", workspace1[1].DiskPath, filepath.Join(target, "node_modules", "workspace1"))
 	}
+
 	if ! ((workspace1[0].Branch == "" && workspace1[1].Branch == "workspace2@1.8.0") || 
 		(workspace1[0].Branch == "workspace2@1.8.0" && workspace1[1].Branch == "")) {
 		t.Fatalf("wrong branch for workspace1 %s %s", workspace1[0].Branch, workspace1[1].Branch)
 	}
+
 	workspace2 := dependencies[common.DependencyId("NPM", "workspace2-package", "1.8.0")]
 	if len(workspace2) != 1 {
 		t.Fatalf("did not detect workspace2")
 	}
+
 	if workspace2[0].DiskPath != filepath.Join(target, "node_modules", "workspace2") {
 		t.Fatalf("wrong path for workspace2 %s", workspace2[0].DiskPath)
 	}
+
 	if workspace2[0].Branch != "" {
 		t.Fatalf("wrong branch for workspace0 %s", workspace2[0].Branch)
 	}
@@ -257,19 +275,24 @@ func TestWorkspaceIsNotSkipped(t *testing.T) {
 	if len(babelCli) != 1 {
 		t.Fatalf("did not detect @babel/cli")
 	}
+
 	if babelCli[0].DiskPath != filepath.Join(target, "node_modules", "@babel", "cli") {
 		t.Fatalf("wrong path for @babel/cli %s", babelCli[0].DiskPath)
 	}
+	
 	if babelCli[0].Branch != "workspace1@1.0.0" {
 		t.Fatalf("wrong branch for @babel/cli %s", babelCli[0].Branch)
 	}
+
 	yup := dependencies[common.DependencyId("NPM", "yup", "1.3.3")]
 	if len(yup) != 1 {
 		t.Fatalf("did not detect yup")
 	}
+
 	if yup[0].DiskPath != filepath.Join(target, "node_modules", "yup") {
 		t.Fatalf("wrong path for yup %s", yup[0].DiskPath)
 	}
+	
 	if yup[0].Branch != "workspace2@1.8.0" {
 		t.Fatalf("wrong branch for yup %s", yup[0].Branch)
 	}

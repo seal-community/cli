@@ -164,6 +164,7 @@ func getMergedOverride(allDeps common.DependencyMap, remotePackages []api.Packag
 			} else {
 				slog.Debug("remote is vulnerable with no recommended, keeping as is", "id", override.Id())
 			}
+
 			combined = append(combined, override)
 			delete(overrideIds, override.Id())
 		} else {
@@ -194,6 +195,7 @@ func scanCommand() *cobra.Command {
 					} else {
 						slog.Warn("non printable error", "err", err)
 					}
+					
 					// overwrite so we could distinguish between usage error and more internal ones
 					err = SubCommandError
 				}

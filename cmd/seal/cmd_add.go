@@ -112,6 +112,7 @@ func addCommand() *cobra.Command {
 				slog.Error("failed initializing scan", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing scan phase")
 			}
+
 			defer addPhase.HideProgress() // should be gone when this is over, hide just in case
 
 			rule, err := parseRule(args)
@@ -126,6 +127,7 @@ func addCommand() *cobra.Command {
 				slog.Error("failed resolving rule", "err", err, "from", rule.From.Library, "version", rule.From.Version)
 				return common.FallbackPrintableMsg(err, "failed resolving version")
 			}
+			
 			addPhase.HideProgress() // explicitly stop the progress bar here, allow printing
 
 			existingOverrides, err := getExistingConfigOverrides(targetDir)

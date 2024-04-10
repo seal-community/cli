@@ -23,12 +23,14 @@ func TestSaveFiles(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(target)
 
 	inner_target, err := os.MkdirTemp(target, "test_seal_inner_dir_*")
 	if err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(inner_target)
 
 	// create a file inside the inner directory
@@ -38,6 +40,7 @@ func TestSaveFiles(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	
 	f.Close()
 
 	packageName := "Snappier.1.1.0-sp1.nupkg"

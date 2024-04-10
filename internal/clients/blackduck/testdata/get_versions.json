@@ -1,0 +1,308 @@
+{
+  "totalCount": 3,
+  "items": [
+    {
+      "versionName": "versionName1",
+      "phase": "DEVELOPMENT",
+      "distribution": "EXTERNAL",
+      "license": {
+        "type": "DISJUNCTIVE",
+        "licenses": [
+          {
+            "license": "https://test.com/api/licenses/licenses-id",
+            "licenses": [
+              
+            ],
+            "name": "Unknown License",
+            "ownership": "UNKNOWN",
+            "licenseDisplay": "Unknown License",
+            "codeSharing": "UNKNOWN"
+          }
+        ],
+        "licenseDisplay": "Unknown License"
+      },
+      "protectedFromDeletion": false,
+      "createdAt": "2024-03-21T14:41:23.657Z",
+      "createdBy": "SecurityScan",
+      "createdByUser": "https://test.com/api/users/users-id",
+      "settingUpdatedAt": "2024-03-21T14:41:23.657Z",
+      "settingUpdatedBy": "SecurityScan",
+      "settingUpdatedByUser": "https://test.com/api/users/users-id",
+      "source": "CUSTOM",
+      "_meta": {
+        "allow": [
+          "DELETE",
+          "GET",
+          "PUT"
+        ],
+        "href": "https://test.com/api/projects/projects-id/versions/versions-id",
+        "links": [
+          {
+            "rel": "versionReport",
+            "href": "https://test.com/api/versions/versions-id/reports"
+          },
+          {
+            "rel": "licenseReports",
+            "href": "https://test.com/api/versions/versions-id/license-reports"
+          },
+          {
+            "rel": "riskProfile",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/risk-profile"
+          },
+          {
+            "rel": "components",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/components"
+          },
+          {
+            "rel": "vulnerable-components",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components"
+          },
+          {
+            "rel": "comparison",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/comparison"
+          },
+          {
+            "rel": "bom-status",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/bom-status"
+          },
+          {
+            "rel": "project",
+            "href": "https://test.com/api/projects/projects-id"
+          },
+          {
+            "rel": "custom-fields",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/custom-fields"
+          },
+          {
+            "rel": "policy-status",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/policy-status"
+          },
+          {
+            "rel": "codelocations",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/codelocations"
+          },
+          {
+            "rel": "issues",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/issues"
+          },
+          {
+            "rel": "bom-events",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/bom-events"
+          }
+        ]
+      }
+    },
+    {
+      "versionName": "versionName2",
+      "phase": "DEVELOPMENT",
+      "distribution": "EXTERNAL",
+      "license": {
+        "type": "DISJUNCTIVE",
+        "licenses": [
+          {
+            "license": "https://test.com/api/licenses/licenses-id",
+            "licenses": [
+              
+            ],
+            "name": "Unknown License",
+            "ownership": "UNKNOWN",
+            "licenseDisplay": "Unknown License",
+            "codeSharing": "UNKNOWN"
+          }
+        ],
+        "licenseDisplay": "Unknown License"
+      },
+      "protectedFromDeletion": false,
+      "createdAt": "2024-03-21T14:41:23.657Z",
+      "createdBy": "SecurityScan",
+      "createdByUser": "https://test.com/api/users/users-id",
+      "settingUpdatedAt": "2024-03-21T14:41:23.657Z",
+      "settingUpdatedBy": "SecurityScan",
+      "settingUpdatedByUser": "https://test.com/api/users/users-id",
+      "source": "CUSTOM",
+      "_meta": {
+        "allow": [
+          "DELETE",
+          "GET",
+          "PUT"
+        ],
+        "href": "https://test.com/api/projects/projects-id/versions/versions-id",
+        "links": [
+          {
+            "rel": "versionReport",
+            "href": "https://test.com/api/versions/versions-id/reports"
+          },
+          {
+            "rel": "licenseReports",
+            "href": "https://test.com/api/versions/versions-id/license-reports"
+          },
+          {
+            "rel": "riskProfile",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/risk-profile"
+          },
+          {
+            "rel": "components",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/components"
+          },
+          {
+            "rel": "vulnerable-components",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components"
+          },
+          {
+            "rel": "comparison",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/comparison"
+          },
+          {
+            "rel": "bom-status",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/bom-status"
+          },
+          {
+            "rel": "project",
+            "href": "https://test.com/api/projects/projects-id"
+          },
+          {
+            "rel": "custom-fields",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/custom-fields"
+          },
+          {
+            "rel": "policy-status",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/policy-status"
+          },
+          {
+            "rel": "codelocations",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/codelocations"
+          },
+          {
+            "rel": "issues",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/issues"
+          },
+          {
+            "rel": "bom-events",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/bom-events"
+          }
+        ]
+      }
+    },
+    {
+      "versionName": "versionName3",
+      "phase": "DEVELOPMENT",
+      "distribution": "EXTERNAL",
+      "license": {
+        "type": "DISJUNCTIVE",
+        "licenses": [
+          {
+            "license": "https://test.com/api/licenses/licenses-id",
+            "licenses": [
+              
+            ],
+            "name": "Unknown License",
+            "ownership": "UNKNOWN",
+            "licenseDisplay": "Unknown License",
+            "codeSharing": "UNKNOWN"
+          }
+        ],
+        "licenseDisplay": "Unknown License"
+      },
+      "protectedFromDeletion": false,
+      "createdAt": "2024-03-21T14:41:23.657Z",
+      "createdBy": "SecurityScan",
+      "createdByUser": "https://test.com/api/users/users-id",
+      "settingUpdatedAt": "2024-03-21T14:41:23.657Z",
+      "settingUpdatedBy": "SecurityScan",
+      "settingUpdatedByUser": "https://test.com/api/users/users-id",
+      "source": "CUSTOM",
+      "_meta": {
+        "allow": [
+          "DELETE",
+          "GET",
+          "PUT"
+        ],
+        "href": "https://test.com/api/projects/projects-id/versions/versions-id",
+        "links": [
+          {
+            "rel": "versionReport",
+            "href": "https://test.com/api/versions/versions-id/reports"
+          },
+          {
+            "rel": "licenseReports",
+            "href": "https://test.com/api/versions/versions-id/license-reports"
+          },
+          {
+            "rel": "riskProfile",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/risk-profile"
+          },
+          {
+            "rel": "components",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/components"
+          },
+          {
+            "rel": "vulnerable-components",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components"
+          },
+          {
+            "rel": "comparison",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/comparison"
+          },
+          {
+            "rel": "bom-status",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/bom-status"
+          },
+          {
+            "rel": "project",
+            "href": "https://test.com/api/projects/projects-id"
+          },
+          {
+            "rel": "custom-fields",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/custom-fields"
+          },
+          {
+            "rel": "policy-status",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/policy-status"
+          },
+          {
+            "rel": "codelocations",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/codelocations"
+          },
+          {
+            "rel": "issues",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/issues"
+          },
+          {
+            "rel": "bom-events",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/bom-events"
+          }
+        ]
+      }
+    }
+  ],
+  "appliedFilters": [
+    
+  ],
+  "_meta": {
+    "allow": [
+      "POST",
+      "GET"
+    ],
+    "href": "https://test.com/api/projects/projects-id/versions",
+    "links": [
+      {
+        "rel": "static-filter",
+        "href": "https://test.com/api/projects/projects-id/versions-filters?filterKey=distribution",
+        "name": "distribution",
+        "label": "Distribution"
+      },
+      {
+        "rel": "dynamic-filter",
+        "href": "https://test.com/api/projects/projects-id/versions-filters?filterKey=license",
+        "name": "license",
+        "label": "License"
+      },
+      {
+        "rel": "static-filter",
+        "href": "https://test.com/api/projects/projects-id/versions-filters?filterKey=phase",
+        "name": "phase",
+        "label": "Release Phase"
+      }
+    ]
+  }
+}

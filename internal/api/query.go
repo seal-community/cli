@@ -48,7 +48,7 @@ func (s Server) sendBulkRequest(request *BulkCheckRequest, queryType PackageQuer
 		common.Trace("sending auth header in bulk request")
 	}
 
-	data, statusCode, err := sendApiRequest[BulkCheckRequest, Page[PackageVersion]](
+	data, statusCode, err := sendSealApiRequest[BulkCheckRequest, Page[PackageVersion]](
 		s.Client,
 		"POST",
 		"/unauthenticated/artifact-management/v1/library_versions/bulk",

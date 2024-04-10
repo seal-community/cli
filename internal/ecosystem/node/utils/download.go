@@ -22,7 +22,7 @@ func DownloadNPMPackage(s api.Server, name string, version string) ([]byte, erro
 	defer common.ExecutionTimer().Log()
 
 	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
-	libraryInfo, statusCode, err := api.SendRequestJson[any, npmLibraryInfo](
+	libraryInfo, statusCode, err := api.SendSealRequestJson[any, npmLibraryInfo](
 		s.Client,
 		"GET",
 		fmt.Sprintf("https://npm.sealsecurity.io/%s/", name),
@@ -53,13 +53,13 @@ func DownloadNPMPackage(s api.Server, name string, version string) ([]byte, erro
 	}
 
 	url := versionInfo.Distribution.Tarball
-	libraryData, statusCode, err := api.SendRequest[any](
+	libraryData, statusCode, err := api.SendSealRequest[any](
 		s.Client,
 		"GET",
 		url,
 		nil,
 		[]api.StringPair{authHeader},
-		[]api.StringPair{},
+		nil,
 	)
 
 	if err != nil {

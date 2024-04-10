@@ -14,6 +14,7 @@ func TestPackageFolderRemoved(t *testing.T) {
 		{`a\b\`, outputDir + `a\b`},
 		{`a\b`, outputDir + `a\b`},
 	}
+
 	for i, p := range paths {
 		t.Run(fmt.Sprintf("path_%d", i), func(t *testing.T) {
 			given := p[0]
@@ -34,6 +35,7 @@ func TestIllegalPaths(t *testing.T) {
 		`./abc/../x.txt`,
 		`.\abc\..\x.txt`,
 	}
+	
 	for i, p := range badPaths {
 		t.Run(fmt.Sprintf("bad_path_%d", i), func(t *testing.T) {
 			if !isIllegalPath(p) {

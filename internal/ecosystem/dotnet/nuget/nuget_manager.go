@@ -53,6 +53,7 @@ func getNugetMetadata(targetDir string) *NugetMetadata {
 		slog.Error("failed running nuget version", "err", err)
 		return nil
 	}
+	
 	if result.Code != 0 {
 		slog.Error("running nuget version returned non-zero", "result", result)
 		return nil
@@ -107,6 +108,7 @@ func FindNugetIndicatorFile(path string) (bool, error) {
 			return true, nil
 		}
 	}
+
 	slog.Debug("no file found with dotnet suffix", "path", path)
 	return false, nil
 }
@@ -146,6 +148,7 @@ func handleFixes(projectDir string, fixes shared.FixMap) error {
 			slog.Error("failed getting project.assets.json path", "err", err)
 			return common.NewPrintableError(DotnetRestoreError)
 		}
+
 		assets := common.JsonLoad(assetsPath)
 		if assets == nil {
 			slog.Error("failed loading project.assets.json in", "dir", assetsPath)

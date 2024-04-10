@@ -4,65 +4,17 @@ import (
 	"bytes"
 	"cli/internal/common"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 )
-
-const BaseURL = "https://api.sealsecurity.io"
 
 type StringPair struct {
 	Name  string
 	Value string
 }
 
-var BadServerResponseCode = common.NewPrintableError("remote server issue")
-
-const SealVersionHeader = "X-Seal-Version"
-const SealSessionIdHeader = "X-Seal-CLI-Session-ID"
-
-func formatUserAgent() string {
-	return fmt.Sprintf("seal-cli/%s", common.CliVersion)
-}
-
-func sendApiRequest[RequestType any, ResponseType any](client http.Client, method string, path string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
-	reqUrl, err := url.JoinPath(BaseURL, path)
-
-	if err != nil {
-		slog.Error("failed joining url path", "err", err)
-		return nil, 0, err
-	}
-
-	return SendRequestJson[RequestType, ResponseType](client, method, reqUrl, body, headers, params)
-}
-
-func SendRequestJson[RequestType any, ResponseType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
-	var responseObject ResponseType
-
-	responseData, statusCode, err := SendRequest[RequestType](client, method, url, body, headers, params)
-
-	if err != nil {
-		return nil, statusCode, err
-	}
-
-	if len(responseData) == 0 {
-		return nil, statusCode, nil
-	}
-
-	err = json.Unmarshal(responseData, &responseObject)
-	if err != nil {
-		slog.Error("failed unmarshal response body", "body", string(responseData))
-		return nil, 0, err
-	}
-
-	common.Trace("received json response", "data", string(responseData), "status", statusCode)
-	return &responseObject, statusCode, nil
-
-}
-
-func SendRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
+func BaseSendRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
 	var err error
 	encodedBody := []byte{}
 	if body != nil {
@@ -78,12 +30,6 @@ func SendRequest[RequestType any](client http.Client, method string, url string,
 		slog.Error("failed creating new request", "err", err)
 		return nil, 0, err
 	}
-
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add(SealVersionHeader, common.CliVersion)
-	req.Header.Add(SealSessionIdHeader, common.SessionId)
-	req.Header.Add("User-Agent", formatUserAgent())
 
 	for _, header := range headers {
 		if req.Header.Get(header.Name) != "" {
@@ -106,6 +52,7 @@ func SendRequest[RequestType any](client http.Client, method string, url string,
 	if len(encodedBody) > 0 {
 		common.Trace("sending body data", "body", string(encodedBody))
 	}
+
 	res, err := client.Do(req)
 	if err != nil {
 		slog.Error("failed performing request", "err", err)
@@ -119,6 +66,7 @@ func SendRequest[RequestType any](client http.Client, method string, url string,
 		slog.Error("failed reading body", "err", err)
 		return nil, 0, err
 	}
+	
 	defer res.Body.Close()
 
 	if len(responseData) == 0 {

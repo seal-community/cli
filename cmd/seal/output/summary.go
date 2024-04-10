@@ -53,8 +53,10 @@ func NewSummary(projectDir string, fixes shared.FixMap) *Summary {
 					slog.Error("failed converting to relative path", "err", err, "path", origPath)
 					return nil
 				}
+				
 				common.Trace("converted path to relaive", "rel", path, "original", origPath)
 			}
+
 			relativePaths = append(relativePaths, path)
 		}
 

@@ -30,6 +30,7 @@ func UnzipFile(file *zip.File, location string) error {
 		slog.Error("failed creating file", "err", err, "file", target)
 		return err
 	}
+
 	defer targetFile.Close()
 
 	rc, err := file.Open()
@@ -37,6 +38,7 @@ func UnzipFile(file *zip.File, location string) error {
 		slog.Error("failed opening file", "err", err, "file", file.Name)
 		return err
 	}
+	
 	defer rc.Close()
 
 	if _, err := io.Copy(targetFile, rc); err != nil {

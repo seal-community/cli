@@ -15,6 +15,7 @@ func TestNugetManagerDetectionNoNugetFile(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(target)
 
 	found, err := FindNugetIndicatorFile(target)
@@ -32,6 +33,7 @@ func TestNugetManagerDetectionNugetFile(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(target)
 
 	for _, suffixIndicator := range nugetSuffixIndicators {
@@ -40,6 +42,7 @@ func TestNugetManagerDetectionNugetFile(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
+
 		f.Close()
 
 		found, err := FindNugetIndicatorFile(target)
@@ -58,6 +61,7 @@ func TestHandleFixes(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(target)
 
 	objDir := filepath.Join(target, "obj")
@@ -77,6 +81,7 @@ func TestHandleFixes(t *testing.T) {
 	} else if n != len(data) {
 		panic("failed to write all data")
 	}
+
 	f.Close()
 
 	packageVersion := api.PackageVersion{
@@ -143,6 +148,7 @@ func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
 		`./abc/../t.sln`,
 		`.\abc\..\t.sln`,
 	}
+	
 	for i, p := range ps {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
 			if IsNugetIndicatorFile(p) {

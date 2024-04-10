@@ -49,6 +49,7 @@ func TestDownloadNpm(t *testing.T) {
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
+	
 	if string(data) != fakePackageContent {
 		t.Fatalf("got %s, expected %s", string(data), fakePackageContent)
 	}

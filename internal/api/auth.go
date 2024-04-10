@@ -12,13 +12,13 @@ func BuildBasicAuthHeader(token string) StringPair {
 
 func (s Server) CheckAuthenticationValid() error {
 	defer common.ExecutionTimer().Log()
-	_, statusCode, err := SendRequest[any](
+	_, statusCode, err := SendSealRequest[any](
 		s.Client,
 		"GET",
 		"https://authorization.sealsecurity.io/",
 		nil,
 		[]StringPair{BuildBasicAuthHeader(s.AuthToken)},
-		[]StringPair{},
+		nil,
 	)
 
 	if err != nil {

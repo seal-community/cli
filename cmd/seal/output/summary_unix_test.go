@@ -22,6 +22,7 @@ func TestSummarySanity(t *testing.T) {
 			"/Users/fuwawa/proj/node_modules/other/node_modules/lodash": true,
 			"/Users/fuwawa/zzz/lodash":                                  true, // using zzz so it will be last one in sorted slice
 		}}
+		
 	fixes := shared.FixMap{shared.FormatFixKey(f1.Package): &f1}
 
 	s := NewSummary(projDir, fixes)

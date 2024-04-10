@@ -14,6 +14,7 @@ func TestIndicatorMatches(t *testing.T) {
 		`./abc/../package-lock.json`,
 		`.\abc\..\package-lock.json`,
 	}
+
 	for i, p := range ps {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
 			if !IsNpmIndicatorFile(p) {
@@ -33,6 +34,7 @@ func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
 		`./abc/../package.json`,
 		`.\abc\..\package.json`,
 	}
+	
 	for i, p := range ps {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
 			if IsNpmIndicatorFile(p) {

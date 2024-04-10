@@ -23,6 +23,7 @@ func TestLockfileUpdateV1Formatting(t *testing.T) {
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "0.0.8-sp1",
 	}
+
 	minimist2 := api.PackageVersion{
 		Version:                         "1.2.0",
 		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
@@ -76,6 +77,7 @@ func TestLockfileUpdateV2Formatting(t *testing.T) {
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.1-sp1",
 	}
+
 	minimist := api.PackageVersion{
 		Version:                         "1.2.0",
 		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
@@ -102,6 +104,7 @@ func TestLockfileUpdateV2Formatting(t *testing.T) {
 			filepath.Join(projectDir, "node_modules/lodash"): true,
 		}},
 	}
+
 	if err := UpdateLockfile(lock, fixmap, projectDir); err != nil {
 		t.Fatalf("failed updating: %v", err)
 	}
@@ -127,12 +130,14 @@ func TestLockfileUpdateV3Formatting(t *testing.T) {
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.1-sp1",
 	}
+
 	minimist := api.PackageVersion{
 		Version:                         "1.2.0",
 		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.0-sp1",
 	}
+	
 	minimist2 := api.PackageVersion{
 		Version:                         "0.0.8",
 		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},

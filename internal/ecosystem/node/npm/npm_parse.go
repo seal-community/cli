@@ -44,15 +44,18 @@ func (parser *dependencyParser) isWorkspace(root *NpmPackage, p *NpmPackage) boo
 		slog.Warn("failed resolving symlink", "path", p.Path, "err", err)
 		return false
 	}
+
 	relPath, err := filepath.Rel(rootSymLinkDest, packageSymLinkDest)
 	if err != nil {
 		slog.Warn("failed getting relative path", "path", p.Path, "err", err)
 		return false
 	}
+
 	if !slices.Contains(root.Workspaces, relPath) {
 		slog.Debug("not in workspace", "path", p.Path, "rel_path", relPath)
 		return false
 	}
+	
 	return true
 }
 

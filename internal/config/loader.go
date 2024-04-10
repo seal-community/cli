@@ -28,11 +28,19 @@ type PnpmConfig struct {
 	ProdOnlyDeps bool `yaml:"prod-only"         env:"PROD_ONLY"` // same as npm
 }
 
+type BlackDuckConfig struct {
+	Url     string `yaml:"blackduck-url"           env:"URL"`
+	Token   string `yaml:"blackduck-token"         env:"TOKEN"`
+	Project string `yaml:"blackduck-project-name"  env:"PROJECT"`
+}
+
 type Config struct {
 	Token   string     `yaml:"token"            env:"TOKEN"`
 	Project string     `yaml:"project"          env:"PROJECT"`
 	Npm     NpmConfig  `yaml:"npm"              envPrefix:"NPM_"`
 	Pnpm    PnpmConfig `yaml:"pnpm"             envPrefix:"PNPM_"`
+
+	BlackDuck BlackDuckConfig `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
 }
 
 var FailedParsingConfYaml = common.NewPrintableError("could not parse configuration")

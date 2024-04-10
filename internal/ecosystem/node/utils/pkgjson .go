@@ -16,11 +16,13 @@ func GetProjectName(dir string) string {
 		slog.Warn("name not found in package json", "dir", dir)
 		return ""
 	}
+
 	sVal, ok := val.(string)
 	if !ok {
 		slog.Warn("name value is bad type", "dir", dir)
 		return ""
 	}
+
 	return sVal
 }
 
@@ -31,11 +33,13 @@ func GetVersion(dir string) string {
 		slog.Warn("version not found in package json", "dir", dir)
 		return ""
 	}
+
 	sVal, ok := val.(string)
 	if !ok {
 		slog.Warn("version value is bad type", "dir", dir)
 		return ""
 	}
+
 	return sVal
 }
 
@@ -47,9 +51,11 @@ func loadPackageJson(dir string) map[string]any {
 		slog.Error("failed opening package json file", "err", err, "path", p)
 		return nil
 	}
+
 	if err := json.Unmarshal(data, &pkg); err != nil {
 		slog.Error("failed loading json", "err", err, "path", p)
 		return nil
 	}
+	
 	return pkg
 }

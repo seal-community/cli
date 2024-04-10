@@ -40,7 +40,7 @@ func TestEmpty(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := SendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := SendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -119,7 +119,7 @@ func TestSanity(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := SendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := SendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -196,7 +196,7 @@ func TestMalicious(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := SendRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := SendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -246,7 +246,7 @@ func TestCustomHeaderCliVersion(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = SendSealRequestJson[any, any](client, method, url, nil, nil, nil)
 }
 
 func TestSessionIdHeaderAdded(t *testing.T) {
@@ -276,8 +276,8 @@ func TestSessionIdHeaderAdded(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil)
-	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil) // check twice is using the same one
+	_, _, _ = SendSealRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = SendSealRequestJson[any, any](client, method, url, nil, nil, nil) // check twice is using the same one
 }
 
 func TestHeaderUserAgent(t *testing.T) {
@@ -295,7 +295,7 @@ func TestHeaderUserAgent(t *testing.T) {
 			t.Fatalf("empty user-agent header value")
 		}
 
-		expected := formatUserAgent()
+		expected := FormatUserAgent()
 		if userAgent != expected {
 			t.Fatalf("wrong user-agent header value - got `%s` expected `%s`", userAgent, expected)
 		}
@@ -306,7 +306,7 @@ func TestHeaderUserAgent(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = SendSealRequestJson[any, any](client, method, url, nil, nil, nil)
 }
 
 func TestExtraHeaderAdded(t *testing.T) {
@@ -332,7 +332,7 @@ func TestExtraHeaderAdded(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendRequestJson[any, any](client,
+	_, _, _ = SendSealRequestJson[any, any](client,
 		method,
 		url,
 		nil,
@@ -360,7 +360,7 @@ func TestQueryParamsAdded(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendRequestJson[any, any](client,
+	_, _, _ = SendSealRequestJson[any, any](client,
 		method,
 		url,
 		nil,

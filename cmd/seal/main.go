@@ -41,6 +41,7 @@ func completionCommand() *cobra.Command {
 		Short:  "Generate the autocompletion script for the specified shell",
 		Hidden: true,
 	}
+	
 	return cmd
 }
 

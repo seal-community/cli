@@ -89,6 +89,7 @@ func fixLibraries(assets *orderedmap.OrderedMap, fromKey, toKey, fromVersion, to
 				filesArr[i] = strings.ReplaceAll(file.(string), fromVersion, toVersion)
 			}
 		}
+
 		library.Set("files", filesArr)
 	}
 
@@ -121,6 +122,7 @@ func fixProjectFileDependencyGroups(assets *orderedmap.OrderedMap, fromVersion, 
 				newDependencies = append(newDependencies, dep.(string))
 			}
 		}
+
 		projectFileDependencyGroups.Set(key, newDependencies)
 	}
 }
@@ -175,14 +177,17 @@ func fixProject(assets *orderedmap.OrderedMap, name, fromVersion, toVersion stri
 				if !ok {
 					continue
 				}
+				
 				versionObj, exists := depMap.Get("version")
 				if !exists {
 					continue
 				}
+
 				version, ok := versionObj.(string)
 				if !ok {
 					continue
 				}
+
 				depMap.Set("version", strings.ReplaceAll(version, fromVersion, toVersion))
 				dependencies.Set(name, depMap)
 			}

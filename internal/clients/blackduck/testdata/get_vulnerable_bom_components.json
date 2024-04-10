@@ -1,0 +1,219 @@
+{
+  "totalCount": 3,
+  "items": [
+    {
+      "componentVersion": "https://test.com/api/components/components-id/versions/versions-id",
+      "componentName": "Django",
+      "componentVersionName": "3.2.17",
+      "componentVersionOriginName": "pypi",
+      "componentVersionOriginId": "Django/3.2.17",
+      "ignored": false,
+      "license": {
+        "type": "DISJUNCTIVE",
+        "licenses": [
+          {
+            "license": "https://test.com/api/licenses/licenses-id",
+            "licenses": [
+              
+            ],
+            "name": "BSD 3-clause 'New' or 'Revised' License",
+            "ownership": "OPEN_SOURCE",
+            "licenseDisplay": "BSD 3-clause 'New' or 'Revised' License",
+            "licenseFamilySummary": {
+              "name": "Permissive",
+              "href": "https://test.com/api/license-families/1"
+            }
+          }
+        ],
+        "licenseDisplay": "BSD 3-clause 'New' or 'Revised' License"
+      },
+      "vulnerabilityWithRemediation": {
+        "vulnerabilityName": "CVE-2023-41164",
+        "description": "In Django 3.2 before 3.2.21, 4.1 before 4.1.11, and 4.2 before 4.2.5, django.utils.encoding.uri_to_iri() is subject to a potential DoS (denial of service) attack via certain inputs with a very large number of Unicode characters.",
+        "vulnerabilityPublishedDate": "2023-11-03T05:15:29.447Z",
+        "vulnerabilityUpdatedDate": "2023-12-14T10:15:07.630Z",
+        "baseScore": 7.5,
+        "overallScore": 7.5,
+        "exploitabilitySubscore": 3.9,
+        "impactSubscore": 3.6,
+        "source": "NVD",
+        "severity": "HIGH",
+        "remediationStatus": "New",
+        "cweId": "CWE-1284",
+        "remediationCreatedAt": "2024-03-21T14:41:37.294Z",
+        "remediationUpdatedAt": "2024-04-03T10:49:03.285Z",
+        "remediationCreatedBy": "SecurityScan",
+        "remediationUpdatedBy": "SecurityScan",
+        "bdsaTags": [
+          
+        ]
+      },
+      "packageUrl": "pkg:pypi/django@3.2.17",
+      "_meta": {
+        "allow": [
+          "GET",
+          "PUT"
+        ],
+        "href": "https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origin-id/vulnerabilities/CVE-2023-41164/remediation",
+        "links": [
+          {
+            "rel": "matched-files",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origin-id/matched-files"
+          },
+          {
+            "rel": "vulnerabilities",
+            "href": "https://test.com/api/components/components-id/versions/versions-id/origin/origin-id/vulnerabilities"
+          }
+        ]
+      }
+    },
+    {
+    "componentVersion": "https://test.com/api/components/components-id/versions/versions-id",
+    "componentName": "grpcio",
+    "componentVersionName": "1.52.0",
+    "componentVersionOriginName": "pypi",
+    "componentVersionOriginId": "grpcio/1.52.0",
+    "ignored": false,
+    "license": {
+        "type": "DISJUNCTIVE",
+        "licenses": [
+        {
+            "license": "https://test.com/api/licenses/licenses-id",
+            "licenses": [
+            
+            ],
+            "name": "Apache License 2.0",
+            "ownership": "OPEN_SOURCE",
+            "licenseDisplay": "Apache License 2.0",
+            "licenseFamilySummary": {
+            "name": "Permissive",
+            "href": "https://test.com/api/license-families/1"
+            }
+        }
+        ],
+        "licenseDisplay": "Apache License 2.0"
+    },
+    "vulnerabilityWithRemediation": {
+        "vulnerabilityName": "CVE-2023-1428",
+        "description": "There exists an vulnerability causing an abort() to be called in gRPC.The following headers cause gRPCs C++ implementation to abort() when called via http2:\n\nte: x (x != trailers)\n\n:scheme: x (x != http, https)\n\ngrpclb_client_stats: x (x == anything)\n\nOn top of sending one of those headers, a later header must be sent that gets the total header size past 8KB. We recommend upgrading past git commita02485fa94bd8a723e5c977d55a3ce10b301b437f8 or v1.53 and above.\n\n",
+        "vulnerabilityPublishedDate": "2023-06-09T11:15:09.200Z",
+        "vulnerabilityUpdatedDate": "2023-06-15T22:17:53.033Z",
+        "baseScore": 7.5,
+        "overallScore": 7.5,
+        "exploitabilitySubscore": 3.9,
+        "impactSubscore": 3.6,
+        "source": "NVD",
+        "severity": "HIGH",
+        "remediationStatus": "New",
+        "cweId": "CWE-617",
+        "remediationCreatedAt": "2024-03-21T14:41:37.294Z",
+        "remediationUpdatedAt": "2024-03-21T14:41:37.294Z",
+        "remediationCreatedBy": "SecurityScan",
+        "remediationUpdatedBy": "SecurityScan",
+        "bdsaTags": [
+        
+        ]
+    },
+    "packageUrl": "pkg:pypi/grpcio@1.52.0",
+    "_meta": {
+        "allow": [
+        "GET",
+        "PUT"
+        ],
+        "href": "https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origin-id/vulnerabilities/CVE-2023-1428/remediation",
+        "links": [
+        {
+            "rel": "matched-files",
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origin-id/matched-files"
+        },
+        {
+            "rel": "vulnerabilities",
+            "href": "https://test.com/api/components/components-id/versions/versions-id/origin/origin-id/vulnerabilities"
+        }
+        ]
+    }
+    },
+    {
+        "componentVersion": "https://test.com/api/components/components-id/versions/versions-id",
+        "componentName": "grpcio",
+        "componentVersionName": "1.52.0",
+        "componentVersionOriginName": "pypi",
+        "componentVersionOriginId": "grpcio/1.52.0",
+        "ignored": false,
+        "license": {
+            "type": "DISJUNCTIVE",
+            "licenses": [
+            {
+                "license": "https://test.com/api/licenses/licenses-id",
+                "licenses": [
+                
+                ],
+                "name": "Apache License 2.0",
+                "ownership": "OPEN_SOURCE",
+                "licenseDisplay": "Apache License 2.0",
+                "licenseFamilySummary": {
+                "name": "Permissive",
+                "href": "https://test.com/api/license-families/1"
+                }
+            }
+            ],
+            "licenseDisplay": "Apache License 2.0"
+        },
+        "vulnerabilityWithRemediation": {
+            "vulnerabilityName": "CVE-2023-32731",
+            "description": "When gRPC HTTP2 stack raised a header size exceeded error, it skipped parsing the rest of the HPACK frame. This caused any HPACK table mutations to also be skipped, resulting in a desynchronization of HPACK tables between sender and receiver. If leveraged, say, between a proxy and a backend, this could lead to requests from the proxy being interpreted as containing headers from different proxy clients - leading to an information leak that can be used for privilege escalation or data exfiltration. We recommend upgrading beyond the commit contained ina0 https://github.com/grpc/grpc/pull/33005 https://github.com/grpc/grpc/pull/33005 \n",
+            "vulnerabilityPublishedDate": "2023-06-09T11:15:09.303Z",
+            "vulnerabilityUpdatedDate": "2023-06-15T22:18:49.193Z",
+            "baseScore": 7.5,
+            "overallScore": 7.5,
+            "exploitabilitySubscore": 3.9,
+            "impactSubscore": 3.6,
+            "source": "NVD",
+            "severity": "HIGH",
+            "remediationStatus": "New",
+            "remediationCreatedAt": "2024-03-21T14:41:37.294Z",
+            "remediationUpdatedAt": "2024-03-21T14:41:37.294Z",
+            "remediationCreatedBy": "SecurityScan",
+            "remediationUpdatedBy": "SecurityScan",
+            "bdsaTags": [
+            
+            ]
+        },
+        "packageUrl": "pkg:pypi/grpcio@1.52.0",
+        "_meta": {
+            "allow": [
+            "GET",
+            "PUT"
+            ],
+            "href": "https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origin-id/vulnerabilities/CVE-2023-32731/remediation",
+            "links": [
+            {
+                "rel": "matched-files",
+                "href": "https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origin-id/matched-files"
+            },
+            {
+                "rel": "vulnerabilities",
+                "href": "https://test.com/api/components/components-id/versions/versions-id/origin/origin-id/vulnerabilities"
+            }
+            ]
+        }
+    }
+  ],
+  "appliedFilters": [
+    
+  ],
+  "_meta": {
+    "allow": [
+      "GET"
+    ],
+    "href": "https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components",
+    "links": [
+      {
+        "rel": "static-filter",
+        "href": "https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components-filters?filterKey=ignored",
+        "name": "ignored",
+        "label": "Ignore"
+      }
+    ]
+  }
+}

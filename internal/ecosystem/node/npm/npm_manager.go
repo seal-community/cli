@@ -65,10 +65,12 @@ func IsNpmProjectDir(path string) (bool, error) {
 		slog.Error("failed checking package.json exists", "err", err)
 		return false, err
 	}
+
 	if !exists {
 		slog.Info("package.json does not exist", "path", packageFile)
 		return false, nil
 	}
+	
 	return true, nil
 }
 

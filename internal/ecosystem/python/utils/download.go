@@ -59,13 +59,13 @@ func DownloadPythonPackage(s api.Server, name string, version string, compatible
 	defer common.ExecutionTimer().Log()
 
 	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
-	libraryInfo, statusCode, err := api.SendRequest[any](
+	libraryInfo, statusCode, err := api.SendSealRequest[any](
 		s.Client,
 		"GET",
 		fmt.Sprintf("https://pypi.sealsecurity.io/simple/%s/", name),
 		nil,
 		[]api.StringPair{authHeader},
-		[]api.StringPair{},
+		nil,
 	)
 
 	if err != nil {
@@ -90,13 +90,13 @@ func DownloadPythonPackage(s api.Server, name string, version string, compatible
 	}
 	slog.Info("found version url", "url", versionDownloadUrl.String())
 
-	libraryData, statusCode, err := api.SendRequest[any](
+	libraryData, statusCode, err := api.SendSealRequest[any](
 		s.Client,
 		"GET",
 		versionDownloadUrl.String(),
 		nil,
 		[]api.StringPair{authHeader},
-		[]api.StringPair{},
+		nil,
 	)
 
 	if err != nil {

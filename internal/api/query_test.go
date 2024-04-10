@@ -17,6 +17,7 @@ func TestBulkQuerySingleChunk(t *testing.T) {
 			chunksRequested += 1
 			m.Unlock()
 		}}
+		
 	client := http.Client{Transport: fakeRoundTripper}
 	s := Server{Client: client}
 	_, err := s.CheckVulnerablePackages([]common.Dependency{

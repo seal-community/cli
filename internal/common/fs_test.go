@@ -26,6 +26,7 @@ func TestFindPathsWithSuffix(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	
 	defer os.Remove(target)
 
 	inner_target, err := os.MkdirTemp(target, "test_seal_inner_dir_*")
@@ -41,6 +42,7 @@ func TestFindPathsWithSuffix(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
+
 		f.Close()
 
 		p = filepath.Join(inner_target, "file"+suffix)
@@ -48,6 +50,7 @@ func TestFindPathsWithSuffix(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
+
 		f.Close()
 	}
 
@@ -74,6 +77,7 @@ func TestUnzipFiles(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	defer os.Remove(target)
 
 	// unzip 'testdata/test.zip' to target using UnzipFile
@@ -100,6 +104,7 @@ func TestUnzipFiles(t *testing.T) {
 		filepath.Join("i", "fileC.txt"),
 		filepath.Join("a", "k", "fileA.txt"),
 	}
+
 	for _, expectedPath := range expectedPaths {
 		p := filepath.Join(target, expectedPath)
 		_, err := os.Stat(p)

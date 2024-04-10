@@ -19,6 +19,12 @@ type fixPhase struct {
 	*scanPhase
 }
 
+type PostFixRunner interface {
+	HandleAppliedFixes(projectDir string, fixes shared.FixMap) error
+	ShouldSkip() bool
+	GetStepDescription() string
+}
+
 func NewFixPhase(target string, showProgress bool) (*fixPhase, error) {
 	sp, err := NewScanPhase(target, showProgress)
 	if err != nil {
@@ -156,6 +162,22 @@ func (fp *fixPhase) fixPackage(summary shared.FixMap, downloadedPackage shared.P
 	return nil
 }
 
+func (fp *fixPhase) HandleCallbacks(callbacks []PostFixRunner, fixes shared.FixMap) {
+	fp.addToMax(len(callbacks)) // increase max to accomodate fix logic in progress bar
+	for _, callback := range callbacks {
+		fp.advanceStep(callback.GetStepDescription())
+		if callback.ShouldSkip() {
+			slog.Debug("Skipping callback")
+			continue
+		}
+		slog.Debug("Running callback")
+		if err := callback.HandleAppliedFixes(fp.ProjectDir, fixes); err != nil {
+			slog.Warn("callback failed", "err", err) // Failings here should show a warning, and not stop the process
+		}
+	}
+	fp.advanceStep("") // must mirror the minimum steps count for this command
+}
+
 func (fp *fixPhase) Fix(scanResult *ScanResult) (_ shared.FixMap, err error) {
 	// currently will only work for node, and assumes running from the directory of the project
 	// 		relies on dependencies being installed beforehand (e.g. `npm install`)
@@ -219,6 +241,5 @@ func (fp *fixPhase) Fix(scanResult *ScanResult) (_ shared.FixMap, err error) {
 		return nil, common.FallbackPrintableMsg(err, "failed downloading packages")
 	}
 
-	fp.advanceStep("") // must mirror the minimum steps count for this command
 	return summary, nil
 }

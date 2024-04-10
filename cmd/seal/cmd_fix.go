@@ -4,6 +4,7 @@ import (
 	"cli/cmd/seal/output"
 	"cli/internal/actions"
 	"cli/internal/api"
+	"cli/internal/clients/blackduck"
 	"cli/internal/common"
 	"cli/internal/phase"
 	"fmt"
@@ -38,14 +39,12 @@ func fixModeFromString(s string) fixMode {
 const modeFlag = "mode"
 
 func dumpSummary(summary *output.Summary, summaryPath string) error {
-
 	if summaryPath != "" {
 		slog.Info("creating fix summary", "path", summaryPath)
 
 		summaryFile, err := common.CreateFile(summaryPath)
 		if err != nil {
 			return common.NewPrintableError("failed creating summary file")
-
 		}
 
 		if err = summary.Save(summaryFile); err != nil {
@@ -84,6 +83,7 @@ func loadActionsFile(targetDir string) (*actions.ActionsFile, error) {
 			slog.Info("failed opening conf file", "err", err, "path", actionsFilePath)
 			return nil, common.NewPrintableError("could not open local config file in %s", actionsFilePath)
 		}
+
 		slog.Info("actions file not found", "path", actions.FailedParsingActionYamlInvalid)
 		return nil, nil
 
@@ -163,6 +163,7 @@ func fixCommand() *cobra.Command {
 					} else {
 						slog.Warn("non printable error", "err", err)
 					}
+
 					// overwrite so we could distinguish between usage error and more internal ones
 					err = SubCommandError
 				}
@@ -183,6 +184,7 @@ func fixCommand() *cobra.Command {
 				slog.Error("fix mode is unsupported", "mode", fm)
 				return common.NewPrintableError("fix mode is unsupported")
 			}
+
 			slog.Info("Fix mode", "mode", fixModeUsed)
 
 			// IMPORTANT - after this point printing directly to console would mess up the progress bar, msg should be used instead
@@ -248,6 +250,12 @@ func fixCommand() *cobra.Command {
 			if err != nil {
 				return common.FallbackPrintableMsg(err, "failed performing fix")
 			}
+
+			callbacks := []phase.PostFixRunner{
+				&blackduck.BlackDuckCallback{Config: fixPhase.Config},
+			}
+
+			fixPhase.HandleCallbacks(callbacks, fixes)
 
 			fixPhase.HideProgress() // should be gone here, but before handling summary make sure it gone
 			summary := output.NewSummary(fixPhase.ProjectDir, fixes)

@@ -12,13 +12,13 @@ func DownloadNugetPackage(s api.Server, name string, version string) ([]byte, er
 
 	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
 	packageName := fmt.Sprintf("%s.%s.nupkg", name, version)
-	libraryData, statusCode, err := api.SendRequest[any](
+	libraryData, statusCode, err := api.SendSealRequest[any](
 		s.Client,
 		"GET",
 		fmt.Sprintf("https://nuget.sealsecurity.io/v3-flatcontainer/%s/%s/%s", name, version, packageName),
 		nil,
 		[]api.StringPair{authHeader},
-		[]api.StringPair{},
+		nil,
 	)
 
 	if err != nil {

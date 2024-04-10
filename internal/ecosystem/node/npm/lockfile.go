@@ -34,6 +34,7 @@ func formatUpdatedPackageName(originalName string) string {
 	if idx == -1 {
 		return fmt.Sprintf("seal-%s", originalName)
 	}
+	
 	// either nested path in node modules, or namespaces @owner/pkg
 	return fmt.Sprintf("%sseal-%s", originalName[:idx+1], originalName[idx+1:])
 }

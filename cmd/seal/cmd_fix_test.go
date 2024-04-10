@@ -25,6 +25,7 @@ func TestOverrideFilterSanity(t *testing.T) {
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-12312", UnifiedScore: 9.8}},
 		},
 	}
+
 	overriddenVersion := "1.2.3-myoverride"
 	overrides := actions.LibraryOverrideMap{"lodash": actions.VersionOverrideMap{"1.2.3": actions.Override{Version: overriddenVersion}}}
 	proj := actions.ProjectSection{Manager: actions.ProjectManagerSection{
@@ -77,6 +78,7 @@ func TestOverrideFilterNoMatchLibrary(t *testing.T) {
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
 		},
 	}
+
 	overriddenVersion := "1.2.3-myoverride"
 	overrides := actions.LibraryOverrideMap{"semver-regex": actions.VersionOverrideMap{"1.0.0": actions.Override{Version: overriddenVersion}}}
 	proj := actions.ProjectSection{Manager: actions.ProjectManagerSection{
@@ -100,6 +102,7 @@ func TestOverrideFilterNoMatchVersion(t *testing.T) {
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
 		},
 	}
+
 	overriddenVersion := "1.2.3-myoverride"
 	overrides := actions.LibraryOverrideMap{"lodash": actions.VersionOverrideMap{"4.5.15": actions.Override{Version: overriddenVersion}}}
 	proj := actions.ProjectSection{Manager: actions.ProjectManagerSection{
@@ -123,6 +126,7 @@ func TestOverrideFilterDoesNotAllowOverrideNonSealable(t *testing.T) {
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
 		},
 	}
+
 	overriddenVersion := "1.2.3-myoverride"
 	overrides := actions.LibraryOverrideMap{"lodash": actions.VersionOverrideMap{"1.2.3": actions.Override{Version: overriddenVersion}}}
 	proj := actions.ProjectSection{Manager: actions.ProjectManagerSection{
@@ -145,6 +149,7 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
 		},
 	}
+	
 	overrides := actions.LibraryOverrideMap{}
 	proj := actions.ProjectSection{
 		Manager: actions.ProjectManagerSection{

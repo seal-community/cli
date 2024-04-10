@@ -50,6 +50,7 @@ func TestCanBeFixed(t *testing.T) {
 	packageVersion := PackageVersion{
 		RecommendedLibraryVersionId: "123",
 	}
+
 	if !packageVersion.CanBeFixed() {
 		t.Fatalf("expected can be fixed")
 	}
@@ -69,6 +70,7 @@ func TestPreferredIdMalicious(t *testing.T) {
 		GitHubAdvisoryID: "GHSA-123",
 		SnykID:           "SNYK-123",
 	}
+
 	if vulnerability.PreferredId() != "MAL-2022-7421" {
 		t.Fatalf("expected MAL-2022-7421")
 	}
@@ -80,6 +82,7 @@ func TestPreferredIdCVE(t *testing.T) {
 		GitHubAdvisoryID: "GHSA-123",
 		SnykID:           "SNYK-123",
 	}
+
 	if vulnerability.PreferredId() != "CVE-123" {
 		t.Fatalf("expected CVE-123")
 	}
@@ -90,6 +93,7 @@ func TestPreferredIdGitHub(t *testing.T) {
 		GitHubAdvisoryID: "GHSA-123",
 		SnykID:           "SNYK-123",
 	}
+
 	if vulnerability.PreferredId() != "GHSA-123" {
 		t.Fatalf("expected GHSA-123")
 	}
@@ -99,6 +103,7 @@ func TestPreferredIdSnyk(t *testing.T) {
 	vulnerability := Vulnerability{
 		SnykID: "SNYK-123",
 	}
+	
 	if vulnerability.PreferredId() != "SNYK-123" {
 		t.Fatalf("expected SNYK-123")
 	}

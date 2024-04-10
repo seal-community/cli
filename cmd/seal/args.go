@@ -14,6 +14,7 @@ func getArgBool(cmd *cobra.Command, key string) bool {
 		slog.Error("failed getting flag", "err", err, "key", key)
 		panic(fmt.Sprintf("failed getting bool key %s", key))
 	}
+
 	return v
 }
 
@@ -24,6 +25,7 @@ func getArgString(cmd *cobra.Command, key string) string {
 		slog.Error("failed getting flag", "err", err, "key", key)
 		panic(fmt.Sprintf("failed getting string key %s", key))
 	}
+	
 	return summaryPath
 }
 
