@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	headerVersion4 = "application/vnd.blackducksoftware.user-4+json"
-	headerVersion5 = "application/vnd.blackducksoftware.project-detail-5+json"
-	headerVersion6 = "application/vnd.blackducksoftware.bill-of-materials-6+json"
+	contentTypeUserV4 = "application/vnd.blackducksoftware.user-4+json"
+	contentTypeProjectDetailsV5 = "application/vnd.blackducksoftware.project-detail-5+json"
+	contentTypeProjectDetailsV6 = "application/vnd.blackducksoftware.project-detail-6+json"
+	contentTypeSBOMV6 = "application/vnd.blackducksoftware.bill-of-materials-6+json"
 )
 
 const limit = 100
@@ -42,7 +43,7 @@ func (c *BlackDuckClient) authenticate() error {
 	url := fmt.Sprintf("%s/%s", c.Url, "api/tokens/authenticate")
 	headers := []api.StringPair{
 		{Name: "Authorization", Value: fmt.Sprintf("token %s", c.Token)},
-		{Name: "Accept", Value: headerVersion4},
+		{Name: "Accept", Value: contentTypeUserV4},
 	}
 	res, statusCode, err := api.BaseSendRequest[any](
 		c.Client,
@@ -86,7 +87,7 @@ func (c *BlackDuckClient) getBearerAuth() (string, error) {
 	return c.BearerToken, nil
 }
 
-func (c *BlackDuckClient) getHeaders(api_version string, overrideContentType bool) ([]api.StringPair, error) {
+func (c *BlackDuckClient) getHeaders(content_type string, overrideContentType bool) ([]api.StringPair, error) {
 	bearerAuth, err := c.getBearerAuth()
 	if err != nil {
 		return nil, err
@@ -94,12 +95,12 @@ func (c *BlackDuckClient) getHeaders(api_version string, overrideContentType boo
 
 	baseHeaders := []api.StringPair{
 		{Name: "Authorization", Value: fmt.Sprintf("Bearer %s", bearerAuth)},
-		{Name: "Accept", Value: api_version},
+		{Name: "Accept", Value: content_type},
 	}
 
 	if overrideContentType {
 		return append(baseHeaders, api.StringPair{
-			Name: "Content-Type", Value: api_version,
+			Name: "Content-Type", Value: content_type,
 		}), nil
 	}
 
@@ -129,7 +130,7 @@ func (c *BlackDuckClient) executeGet(url string, params []api.StringPair, header
 
 func (c *BlackDuckClient) getProjects(params []api.StringPair) (*bdProjects, error) {
 	url := fmt.Sprintf("%s/%s", c.Url, "api/projects")
-	headers, err := c.getHeaders(headerVersion6, true)
+	headers, err := c.getHeaders(contentTypeProjectDetailsV6, true)
 	if err != nil {
 		slog.Error("failed getting headers", "err", err)
 		return nil, err
@@ -187,7 +188,7 @@ func (c *BlackDuckClient) getProjectVersions(project *bdProject, _limit, offset 
 		{Name: "offset", Value: fmt.Sprintf("%d", offset)},
 	}
 
-	headers, err := c.getHeaders(headerVersion5, true)
+	headers, err := c.getHeaders(contentTypeProjectDetailsV5, true)
 	if err != nil {
 		slog.Error("failed getting headers", "err", err)
 		return nil, err
@@ -231,7 +232,7 @@ func (c *BlackDuckClient) getVulnerableComponents(url string, _limit, offset int
 		{Name: "offset", Value: fmt.Sprintf("%d", offset)},
 	}
 
-	headers, err := c.getHeaders(headerVersion6, true)
+	headers, err := c.getHeaders(contentTypeSBOMV6, true)
 	if err != nil {
 		slog.Error("failed getting headers", "err", err)
 		return nil, err
@@ -276,7 +277,7 @@ func (c *BlackDuckClient) updateVuln(url string, update bdUpdateBOMComponentVuln
 		return err
 	}
 
-	headers, err := c.getHeaders(headerVersion6, false)
+	headers, err := c.getHeaders(contentTypeSBOMV6, false)
 	if err != nil {
 		slog.Error("failed getting headers", "err", err)
 		return err
