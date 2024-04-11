@@ -3,10 +3,12 @@ package blackduck
 import (
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/config"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 const (
@@ -16,36 +18,94 @@ const (
 )
 
 const limit = 100
+const expireMinutesThreshold = 5
 
 type BlackDuckClient struct {
-	Client http.Client
-	Url    string
-	Token  string
+	Client          http.Client
+	Url             string
+	Token           string
+	VersionToFilter string
+	ValidUntil      time.Time
+	BearerToken     string
 }
 
-func NewClient(url, token string) *BlackDuckClient {
+func NewClient(bdConfig config.BlackDuckConfig) *BlackDuckClient {
 	return &BlackDuckClient{
-		Client: http.Client{},
-		Url:    url,
-		Token:  token,
+		Client:          http.Client{},
+		Url:             bdConfig.Url,
+		Token:           bdConfig.Token,
+		VersionToFilter: bdConfig.VersionName,
 	}
 }
 
-func (c *BlackDuckClient) getHeaders(api_version string, overrideContentType bool) []api.StringPair {
+func (c *BlackDuckClient) authenticate() error {
+	url := fmt.Sprintf("%s/%s", c.Url, "api/tokens/authenticate")
+	headers := []api.StringPair{
+		{Name: "Authorization", Value: fmt.Sprintf("token %s", c.Token)},
+		{Name: "Accept", Value: headerVersion4},
+	}
+	res, statusCode, err := api.BaseSendRequest[any](
+		c.Client,
+		"POST",
+		url,
+		nil,
+		headers,
+		nil,
+	)
+	if err != nil || statusCode != 200 {
+		slog.Debug("failed to authenticate", "err", err, "status", statusCode, "url", url)
+		return err
+	}
+
+	var t bdAPITokenResponse
+	if err := json.Unmarshal(res, &t); err != nil {
+		slog.Error("failed unmarshalling token", "err", err)
+		return err
+	}
+
+	c.BearerToken = t.BearerToken
+	c.ValidUntil = time.Now().Add(time.Duration(t.ExpiresInMilliseconds) * time.Millisecond)
+
+	return nil
+}
+
+func (c *BlackDuckClient) getBearerAuth() (string, error) {
+	// Valid until 5 more minutes:
+	if !c.ValidUntil.Before(time.Now().Add(expireMinutesThreshold * time.Minute)) {
+		slog.Debug("Bearer token is still valid, reusing")
+		return c.BearerToken, nil
+	}
+
+	slog.Debug("Connecting to BlackDuck")
+	if err := c.authenticate(); err != nil {
+		slog.Error("failed authenticating with BlackDuck", "err", err)
+		return "", common.NewPrintableError("failed authenticating to BlackDuck")
+	}
+
+	slog.Debug("Bearer token updated", "token", c.BearerToken)
+	return c.BearerToken, nil
+}
+
+func (c *BlackDuckClient) getHeaders(api_version string, overrideContentType bool) ([]api.StringPair, error) {
+	bearerAuth, err := c.getBearerAuth()
+	if err != nil {
+		return nil, err
+	}
+
 	baseHeaders := []api.StringPair{
-		{Name: "Authorization", Value: fmt.Sprintf("Bearer %s", c.Token)},
+		{Name: "Authorization", Value: fmt.Sprintf("Bearer %s", bearerAuth)},
 		{Name: "Accept", Value: api_version},
 	}
 
 	if overrideContentType {
 		return append(baseHeaders, api.StringPair{
 			Name: "Content-Type", Value: api_version,
-		})
+		}), nil
 	}
 
 	return append(baseHeaders, api.StringPair{
 		Name: "Content-Type", Value: "application/json",
-	})
+	}), nil
 }
 
 func (c *BlackDuckClient) executeGet(url string, params []api.StringPair, headers []api.StringPair) ([]byte, error) {
@@ -57,6 +117,7 @@ func (c *BlackDuckClient) executeGet(url string, params []api.StringPair, header
 		headers,
 		params,
 	)
+
 	if err != nil || statusCode != 200 {
 		slog.Debug("failed sending request", "err", err, "status", statusCode, "url", url)
 		return nil, err
@@ -68,7 +129,13 @@ func (c *BlackDuckClient) executeGet(url string, params []api.StringPair, header
 
 func (c *BlackDuckClient) getProjects(params []api.StringPair) (*bdProjects, error) {
 	url := fmt.Sprintf("%s/%s", c.Url, "api/projects")
-	projects, err := c.executeGet(url, params, c.getHeaders(headerVersion6, true))
+	headers, err := c.getHeaders(headerVersion6, true)
+	if err != nil {
+		slog.Error("failed getting headers", "err", err)
+		return nil, err
+	}
+
+	projects, err := c.executeGet(url, params, headers)
 	if err != nil {
 		slog.Debug("failed getting projects", "err", err, "url", url)
 		return nil, err
@@ -113,17 +180,23 @@ func (c *BlackDuckClient) getProjectByName(name string) (*bdProject, error) {
 }
 
 func (c *BlackDuckClient) getProjectVersions(project *bdProject, _limit, offset int) (*bdVersions, error) {
-	url := project.Meta.Href
+	url := fmt.Sprintf("%s/%s", project.Meta.Href, "versions")
 
 	params := []api.StringPair{
 		{Name: "limit", Value: fmt.Sprintf("%d", _limit)},
 		{Name: "offset", Value: fmt.Sprintf("%d", offset)},
 	}
 
+	headers, err := c.getHeaders(headerVersion5, true)
+	if err != nil {
+		slog.Error("failed getting headers", "err", err)
+		return nil, err
+	}
+
 	versions, err := c.executeGet(
-		fmt.Sprintf("%s/%s", url, "versions"),
+		url,
 		params,
-		c.getHeaders(headerVersion5, true),
+		headers,
 	)
 
 	if err != nil {
@@ -158,7 +231,13 @@ func (c *BlackDuckClient) getVulnerableComponents(url string, _limit, offset int
 		{Name: "offset", Value: fmt.Sprintf("%d", offset)},
 	}
 
-	vulnerableComponents, err := c.executeGet(url, params, c.getHeaders(headerVersion6, true))
+	headers, err := c.getHeaders(headerVersion6, true)
+	if err != nil {
+		slog.Error("failed getting headers", "err", err)
+		return nil, err
+	}
+
+	vulnerableComponents, err := c.executeGet(url, params, headers)
 	if err != nil {
 		slog.Debug("failed getting vulnerable components", "err", err, "url", url)
 		return nil, err
@@ -197,7 +276,13 @@ func (c *BlackDuckClient) updateVuln(url string, update bdUpdateBOMComponentVuln
 		return err
 	}
 
-	res, err := c.executePut(url, body, nil, c.getHeaders(headerVersion6, false))
+	headers, err := c.getHeaders(headerVersion6, false)
+	if err != nil {
+		slog.Error("failed getting headers", "err", err)
+		return err
+	}
+
+	res, err := c.executePut(url, body, nil, headers)
 	slog.Debug("UpdateVulnerability response", "data", string(res))
 	return err
 }
@@ -250,6 +335,11 @@ func (c *BlackDuckClient) getAllVulnsInProject(project *bdProject, vulnsChannel 
 		}
 
 		for _, v := range versions.Items {
+			// VersionToFilter is the project's branch version
+			if v.VersionName != c.VersionToFilter {
+				slog.Debug("skipping version", "version", v.VersionName)
+				continue
+			}
 			c.getAllVulnsInVersion(v, vulnsChannel)
 		}
 

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 type requestValidatorCallback func(*http.Request)
@@ -63,6 +64,59 @@ func getTestFile(name string) []byte {
 	return data
 }
 
+func TestAuthenticate(t *testing.T) {
+	authRes := bdAPITokenResponse{
+		BearerToken:           "my-token",
+		ExpiresInMilliseconds: 10000,
+	}
+
+	jsonContent, err := json.Marshal(authRes)
+	if err != nil {
+		t.Fatalf("failed to marshal json: %v", err)
+	}
+
+	fakeRoundTripper := fakeRoundTripper{
+		statusCode: 200,
+		jsonContent: map[string]string{
+			"https://test.com/api/tokens/authenticate": string(jsonContent),
+		},
+	}
+	client := http.Client{Transport: fakeRoundTripper}
+	c := BlackDuckClient{
+		Client: client,
+		Url:    "https://test.com",
+		Token:  "token",
+	}
+
+	bearer, err := c.getBearerAuth()
+	if err != nil {
+		t.Fatalf("failed to get bearer token: %v", err)
+	}
+
+	if bearer != "my-token" {
+		t.Fatalf("expected my-token, got %s", bearer)
+	}
+
+	if c.ValidUntil.IsZero() {
+		t.Fatalf("expected non-zero time, got zero")
+	}
+
+	if c.BearerToken != "my-token" {
+		t.Fatalf("expected my-token, got %s", c.BearerToken)
+	}
+
+	// check if the token is cached
+	c.BearerToken = "new-token"
+	bearer, err = c.getBearerAuth()
+	if err != nil {
+		t.Fatalf("failed to get bearer token: %v", err)
+	}
+
+	if bearer != "my-token" {
+		t.Fatalf("expected my-token, got %s", bearer)
+	}
+}
+
 func TestGetProjects(t *testing.T) {
 	// the example file (get_projects.json) is using v4 API while the code is using v6 API
 	// When i will get a v6 API response, i will update the test file and the test
@@ -105,9 +159,11 @@ func TestGetProjects(t *testing.T) {
 	}
 	client := http.Client{Transport: fakeRoundTripper}
 	c := BlackDuckClient{
-		Client: client,
-		Url:    "https://test.com",
-		Token:  "token",
+		Client:      client,
+		Url:         "https://test.com",
+		Token:       "token",
+		BearerToken: "bearer-token",
+		ValidUntil:  time.Now().Add(time.Hour),
 	}
 
 	projects, err := c.getProjects(nil)
@@ -190,9 +246,11 @@ func TestGetProjectByName(t *testing.T) {
 	}
 	client := http.Client{Transport: fakeRoundTripper}
 	c := BlackDuckClient{
-		Client: client,
-		Url:    "https://test.com",
-		Token:  "token",
+		Client:      client,
+		Url:         "https://test.com",
+		Token:       "token",
+		BearerToken: "bearer-token",
+		ValidUntil:  time.Now().Add(time.Hour),
 	}
 
 	project, err := c.getProjectByName("project2")
@@ -236,9 +294,11 @@ func TestGetProjectVersions(t *testing.T) {
 	}
 	client := http.Client{Transport: fakeRoundTripper}
 	c := BlackDuckClient{
-		Client: client,
-		Url:    "https://test.com",
-		Token:  "token",
+		Client:      client,
+		Url:         "https://test.com",
+		Token:       "token",
+		BearerToken: "bearer-token",
+		ValidUntil:  time.Now().Add(time.Hour),
 	}
 
 	versions, err := c.getProjectVersions(&project, 10, 0)
@@ -269,7 +329,16 @@ func TestGetLink(t *testing.T) {
 		},
 	}
 
-	c := NewClient("https://test.com", "token")
+	fakeRoundTripper := fakeRoundTripper{
+		statusCode:  200,
+		jsonContent: map[string]string{},
+	}
+	client := http.Client{Transport: fakeRoundTripper}
+	c := BlackDuckClient{
+		Client: client,
+		Url:    "https://test.com",
+		Token:  "token",
+	}
 	link := c.getLink(version, "rel")
 	if link != "https://test.com/api/projects/projects-id" {
 		t.Fatalf("expected href, got %s", link)
@@ -291,9 +360,11 @@ func TestGetVulnerableComponents(t *testing.T) {
 	}
 	client := http.Client{Transport: fakeRoundTripper}
 	c := BlackDuckClient{
-		Client: client,
-		Url:    "https://test.com",
-		Token:  "token",
+		Client:      client,
+		Url:         "https://test.com",
+		Token:       "token",
+		BearerToken: "bearer-token",
+		ValidUntil:  time.Now().Add(time.Hour),
 	}
 
 	vulnerableComponents, err := c.getVulnerableComponents("https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components", 10, 0)
@@ -323,9 +394,11 @@ func TestUpdateVulnerability(t *testing.T) {
 	}
 	client := http.Client{Transport: fakeRoundTripper}
 	c := BlackDuckClient{
-		Client: client,
-		Url:    "https://test.com",
-		Token:  "token",
+		Client:      client,
+		Url:         "https://test.com",
+		Token:       "token",
+		BearerToken: "bearer-token",
+		ValidUntil:  time.Now().Add(time.Hour),
 	}
 
 	update := bdUpdateBOMComponentVulnerabilityRemediation{
@@ -357,9 +430,12 @@ func TestGetAllVunerabilitiesInProject(t *testing.T) {
 	}
 	client := http.Client{Transport: fakeRoundTripper}
 	c := BlackDuckClient{
-		Client: client,
-		Url:    "https://test.com",
-		Token:  "token",
+		Client:          client,
+		Url:             "https://test.com",
+		Token:           "token",
+		BearerToken:     "bearer-token",
+		ValidUntil:      time.Now().Add(time.Hour),
+		VersionToFilter: "versionName1",
 	}
 
 	vulnerabilitiesChannel := make(chan bdVulnerableBOMComponent, 10)
@@ -370,19 +446,19 @@ func TestGetAllVunerabilitiesInProject(t *testing.T) {
 
 	close(vulnerabilitiesChannel)
 
-	if len(vulnerabilitiesChannel) != 9 {
+	if len(vulnerabilitiesChannel) != 3 {
 		t.Fatalf("expected 3 vulnerabilities, got %d", len(vulnerabilitiesChannel))
 	}
 
 	counter := map[string]int{
-		"Django/3.2.17":  3,
-		"grpcio/1.52.0":  6,
-		"CVE-2023-41164": 3,
-		"CVE-2023-1428":  3,
-		"CVE-2023-32731": 3,
+		"Django/3.2.17":  1,
+		"grpcio/1.52.0":  2,
+		"CVE-2023-41164": 1,
+		"CVE-2023-1428":  1,
+		"CVE-2023-32731": 1,
 	}
 
-	for i := 0; i < 9; i++ {
+	for i := 0; i < 3; i++ {
 		v := <-vulnerabilitiesChannel
 		counter[v.ComponentVersionOriginId]--
 		counter[v.VulnerabilityWithRemediation.VulnerabilityName]--

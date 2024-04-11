@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func getFixMap() shared.FixMap {
@@ -33,13 +34,13 @@ func getFixMap() shared.FixMap {
 }
 
 func TestParseKey(t *testing.T) {
-    vals := []string{"a", "b", "c", "d"}
-    got := parseKey(vals)
-    want := "a|b|c|d"
+	vals := []string{"a", "b", "c", "d"}
+	got := parseKey(vals)
+	want := "a|b|c|d"
 
-    if got != want {
-        t.Errorf("parseKey() = %v, want %v", got, want)
-    }
+	if got != want {
+		t.Errorf("parseKey() = %v, want %v", got, want)
+	}
 }
 
 func TestBuildSealedVulnerabilitiesMapping(t *testing.T) {
@@ -90,9 +91,11 @@ func TestHandleAppliedFixes(t *testing.T) {
 
 	client := http.Client{Transport: fakeRoundTripper}
 	c := BlackDuckClient{
-		Client: client,
-		Url:    "https://test.com",
-		Token:  "token",
+		Client:      client,
+		Url:         "https://test.com",
+		Token:       "token",
+		BearerToken: "bearer-token",
+		ValidUntil:  time.Now().Add(time.Hour),
 	}
 
 	err = handleAppliedFixes(project.Name, &c, fixmap)

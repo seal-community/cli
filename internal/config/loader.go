@@ -29,9 +29,10 @@ type PnpmConfig struct {
 }
 
 type BlackDuckConfig struct {
-	Url     string `yaml:"blackduck-url"           env:"URL"`
-	Token   string `yaml:"blackduck-token"         env:"TOKEN"`
-	Project string `yaml:"blackduck-project-name"  env:"PROJECT"`
+	Url         string `yaml:"blackduck-url"                       env:"URL"`
+	Token       string `yaml:"blackduck-token"                     env:"TOKEN"`
+	Project     string `yaml:"blackduck-project-name"              env:"PROJECT"`
+	VersionName string `yaml:"blackduck-project-version-name"      env:"PROJECT_VERSION_NAME"`
 }
 
 type Config struct {

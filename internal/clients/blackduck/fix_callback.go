@@ -138,7 +138,7 @@ func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes shared.FixMa
 
 func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes shared.FixMap) error {
 	bdConfg := b.Config.BlackDuck
-	c := NewClient(bdConfg.Url, bdConfg.Token)
+	c := NewClient(bdConfg)
 	return handleAppliedFixes(bdConfg.Project, c, fixes)
 }
 
@@ -157,6 +157,11 @@ func (b *BlackDuckCallback) ShouldSkip() bool {
 
 	if bdConfg.Project == "" {
 		slog.Debug("BlackDuck project is not set in the configuration file")
+		return true
+	}
+
+	if bdConfg.VersionName == "" {
+		slog.Debug("BlackDuck version is not set in the configuration file")
 		return true
 	}
 
