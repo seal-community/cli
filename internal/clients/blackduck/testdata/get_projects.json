@@ -1,12 +1,11 @@
 {
-  "totalCount": 3,
+  "totalCount": 1,
   "items": [
     {
-      "name": "name1",
+      "name": "projectName1",
       "projectLevelAdjustments": true,
       "cloneCategories": [
         "COMPONENT_DATA",
-        "DEEP_LICENSE",
         "CUSTOM_FIELD_DATA",
         "VERSION_SETTINGS",
         "LICENSE_TERM_FULFILLMENT",
@@ -18,12 +17,12 @@
       "snippetAdjustmentApplied": false,
       "licenseConflictsEnabled": false,
       "projectGroup": "https://test.com/api/project-groups/project-groups-id",
-      "createdAt": "2023-12-26T12:30:03.535Z",
+      "createdAt": "2023-03-17T13:49:05.323Z",
       "createdBy": "SecurityScan",
-      "createdByUser": "https://test.com/api/users/user-id",
-      "updatedAt": "2023-12-26T12:30:08.527Z",
+      "createdByUser": "https://test.com/api/users/users-id",
+      "updatedAt": "2023-03-17T13:49:09.096Z",
       "updatedBy": "SecurityScan",
-      "updatedByUser": "https://test.com/api/users/user-id",
+      "updatedByUser": "https://test.com/api/users/users-id",
       "source": "CUSTOM",
       "_meta": {
         "allow": [
@@ -78,209 +77,19 @@
             "href": "https://test.com/api/projects/projects-id/hierarchy"
           },
           {
-            "rel": "project-hierarchy",
-            "href": "https://test.com/api/projects/projects-id/hierarchy"
-          },
-          {
             "rel": "sbom-fields",
             "href": "https://test.com/api/projects/projects-id/sbom-fields"
           },
           {
             "rel": "notification-subscription",
-            "href": "https://test.com/api/users/user-id/notification-subscriptions/notification-subscriptions-id",
-            "label": "subscription"
-          }
-        ]
-      }
-    },
-    {
-      "name": "name2",
-      "projectLevelAdjustments": true,
-      "cloneCategories": [
-        "COMPONENT_DATA",
-        "DEEP_LICENSE",
-        "CUSTOM_FIELD_DATA",
-        "VERSION_SETTINGS",
-        "LICENSE_TERM_FULFILLMENT",
-        "VULN_DATA"
-      ],
-      "customSignatureEnabled": false,
-      "customSignatureDepth": "5",
-      "deepLicenseDataEnabled": false,
-      "snippetAdjustmentApplied": false,
-      "licenseConflictsEnabled": false,
-      "projectGroup": "https://test.com/api/project-groups/project-groups-id",
-      "createdAt": "2023-12-26T12:30:03.535Z",
-      "createdBy": "SecurityScan",
-      "createdByUser": "https://test.com/api/users/user-id",
-      "updatedAt": "2023-12-26T12:30:08.527Z",
-      "updatedBy": "SecurityScan",
-      "updatedByUser": "https://test.com/api/users/user-id",
-      "source": "CUSTOM",
-      "_meta": {
-        "allow": [
-          "DELETE",
-          "GET",
-          "PUT"
-        ],
-        "href": "https://test.com/api/projects/projects-id",
-        "links": [
-          {
-            "rel": "versions",
-            "href": "https://test.com/api/projects/projects-id/versions"
-          },
-          {
-            "rel": "canonicalVersion",
-            "href": "https://test.com/api/projects/projects-id/versions/versions-id"
-          },
-          {
-            "rel": "assignable-users",
-            "href": "https://test.com/api/projects/projects-id/assignable-users"
-          },
-          {
-            "rel": "assignable-usergroups",
-            "href": "https://test.com/api/projects/projects-id/assignable-usergroups"
-          },
-          {
-            "rel": "users",
-            "href": "https://test.com/api/projects/projects-id/users"
-          },
-          {
-            "rel": "usergroups",
-            "href": "https://test.com/api/projects/projects-id/usergroups"
-          },
-          {
-            "rel": "tags",
-            "href": "https://test.com/api/projects/projects-id/tags"
-          },
-          {
-            "rel": "project-mappings",
-            "href": "https://test.com/api/projects/projects-id/project-mappings"
-          },
-          {
-            "rel": "project-journal",
-            "href": "https://test.com/api/journal/projects/projects-id"
-          },
-          {
-            "rel": "custom-fields",
-            "href": "https://test.com/api/projects/projects-id/custom-fields"
-          },
-          {
-            "rel": "project-hierarchy",
-            "href": "https://test.com/api/projects/projects-id/hierarchy"
-          },
-          {
-            "rel": "project-hierarchy",
-            "href": "https://test.com/api/projects/projects-id/hierarchy"
-          },
-          {
-            "rel": "sbom-fields",
-            "href": "https://test.com/api/projects/projects-id/sbom-fields"
-          },
-          {
-            "rel": "notification-subscription",
-            "href": "https://test.com/api/users/user-id/notification-subscriptions/notification-subscriptions-id",
-            "label": "subscription"
-          }
-        ]
-      }
-    },
-    {
-      "name": "name3",
-      "projectLevelAdjustments": true,
-      "cloneCategories": [
-        "COMPONENT_DATA",
-        "DEEP_LICENSE",
-        "CUSTOM_FIELD_DATA",
-        "VERSION_SETTINGS",
-        "LICENSE_TERM_FULFILLMENT",
-        "VULN_DATA"
-      ],
-      "customSignatureEnabled": false,
-      "customSignatureDepth": "5",
-      "deepLicenseDataEnabled": false,
-      "snippetAdjustmentApplied": false,
-      "licenseConflictsEnabled": false,
-      "projectGroup": "https://test.com/api/project-groups/project-groups-id",
-      "createdAt": "2023-12-26T12:30:03.535Z",
-      "createdBy": "SecurityScan",
-      "createdByUser": "https://test.com/api/users/user-id",
-      "updatedAt": "2023-12-26T12:30:08.527Z",
-      "updatedBy": "SecurityScan",
-      "updatedByUser": "https://test.com/api/users/user-id",
-      "source": "CUSTOM",
-      "_meta": {
-        "allow": [
-          "DELETE",
-          "GET",
-          "PUT"
-        ],
-        "href": "https://test.com/api/projects/projects-id",
-        "links": [
-          {
-            "rel": "versions",
-            "href": "https://test.com/api/projects/projects-id/versions"
-          },
-          {
-            "rel": "canonicalVersion",
-            "href": "https://test.com/api/projects/projects-id/versions/versions-id"
-          },
-          {
-            "rel": "assignable-users",
-            "href": "https://test.com/api/projects/projects-id/assignable-users"
-          },
-          {
-            "rel": "assignable-usergroups",
-            "href": "https://test.com/api/projects/projects-id/assignable-usergroups"
-          },
-          {
-            "rel": "users",
-            "href": "https://test.com/api/projects/projects-id/users"
-          },
-          {
-            "rel": "usergroups",
-            "href": "https://test.com/api/projects/projects-id/usergroups"
-          },
-          {
-            "rel": "tags",
-            "href": "https://test.com/api/projects/projects-id/tags"
-          },
-          {
-            "rel": "project-mappings",
-            "href": "https://test.com/api/projects/projects-id/project-mappings"
-          },
-          {
-            "rel": "project-journal",
-            "href": "https://test.com/api/journal/projects/projects-id"
-          },
-          {
-            "rel": "custom-fields",
-            "href": "https://test.com/api/projects/projects-id/custom-fields"
-          },
-          {
-            "rel": "project-hierarchy",
-            "href": "https://test.com/api/projects/projects-id/hierarchy"
-          },
-          {
-            "rel": "project-hierarchy",
-            "href": "https://test.com/api/projects/projects-id/hierarchy"
-          },
-          {
-            "rel": "sbom-fields",
-            "href": "https://test.com/api/projects/projects-id/sbom-fields"
-          },
-          {
-            "rel": "notification-subscription",
-            "href": "https://test.com/api/users/user-id/notification-subscriptions/notification-subscriptions-id",
+            "href": "https://test.com/api/users/users-id/notification-subscriptions/notification-subscriptions-id",
             "label": "subscription"
           }
         ]
       }
     }
   ],
-  "appliedFilters": [
-    
-  ],
+  "appliedFilters": [],
   "_meta": {
     "allow": [
       "POST",

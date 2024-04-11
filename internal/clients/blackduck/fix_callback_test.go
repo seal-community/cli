@@ -4,7 +4,6 @@ import (
 	"cli/internal/api"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
-	"encoding/json"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -59,32 +58,9 @@ func TestBuildSealedVulnerabilitiesMapping(t *testing.T) {
 func TestHandleAppliedFixes(t *testing.T) {
 	fixmap := getFixMap()
 
-	project := bdProject{
-		Name: "project-name",
-		Meta: bdMeta{
-			Href: "https://test.com/api/projects/projects-id",
-			Links: []bdLink{
-				{
-					Rel:  "rel",
-					Href: "https://test.com/api/projects/projects-id",
-				}},
-		},
-	}
-
-	projects := bdProjects{
-		Items:      []bdProject{project},
-		TotalCount: 1,
-	}
-
-	jsonContent, err := json.Marshal(projects)
-	if err != nil {
-		t.Fatalf("failed to marshal json: %v", err)
-	}
-
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: 200,
 		jsonContent: map[string]string{
-			"https://test.com/api/projects": string(jsonContent),
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origin-id/vulnerabilities/CVE-2023-41164/remediation": "{}",
 		},
 	}
@@ -98,7 +74,7 @@ func TestHandleAppliedFixes(t *testing.T) {
 		ValidUntil:  time.Now().Add(time.Hour),
 	}
 
-	err = handleAppliedFixes(project.Name, &c, fixmap)
+	err := handleAppliedFixes("projectName1", &c, fixmap)
 	if err != nil {
 		t.Errorf("HandleAppliedFixes() = %v, want nil", err)
 	}
