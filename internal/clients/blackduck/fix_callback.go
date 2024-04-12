@@ -18,7 +18,7 @@ const patchComment = "vulnerability patched by seal-security"
 type vulnerabilityMapping map[string]bool
 
 func parseKey(vals []string) string {
-	return strings.ToLower(strings.Join(vals, "|"))
+	return strings.ToLower(strings.Join(vals, "/")) // Has to be '/' because this is what BlackDuck using in the componentVersionOriginId field
 }
 
 func buildSealedVulnerabilitiesMapping(fixes shared.FixMap) vulnerabilityMapping {
@@ -35,17 +35,18 @@ func buildSealedVulnerabilitiesMapping(fixes shared.FixMap) vulnerabilityMapping
 		}
 	}
 
+	slog.Debug("built sealed vulnerabilities mapping", "mapping", mapping)
 	return mapping
 }
 
 func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, fixMapping vulnerabilityMapping) error {
 	pkgManager := bdVuln.ComponentVersionOriginName
-	pkgName := bdVuln.ComponentName
-	pkgVersion := bdVuln.ComponentVersionName
+	pkgName := bdVuln.ComponentVersionOriginId
 	vuln := bdVuln.VulnerabilityWithRemediation.VulnerabilityName
+	slog.Debug("processing vulnerability", "packageManager", pkgManager, "packageName", pkgName, "pkgName", vuln)
 
-	key := parseKey([]string{pkgName, pkgVersion, pkgManager, vuln})
-
+	key := parseKey([]string{pkgName, pkgManager, vuln})
+	slog.Debug("checking if vulnerability is sealed", "key", key)
 	if _, ok := fixMapping[key]; ok {
 		// Patch the vulnerability signed by seal
 		url := bdVuln.Meta.Href
@@ -54,7 +55,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 			Comment:           patchComment,
 		}
 
-		slog.Debug("patching vulnerability", "url", url, "update", update, "packageManager", pkgManager, "packageName", pkgName, "packageVersion", pkgVersion, "vulnerability", vuln)
+		slog.Debug("patching vulnerability", "url", url, "update", update, "pkgManager", pkgManager, "pkgName", pkgName, "vuln", vuln)
 		err := c.updateVuln(url, update)
 		if err != nil {
 			return common.NewPrintableError("failed to update BlackDuck that %s was sealed for %s", bdVuln.ComponentVersionOriginId, vuln)
@@ -63,6 +64,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 		return nil
 	}
 
+	slog.Debug("vulnerability is not sealed", "pkgManager", pkgManager, "pkgName", pkgName, "vuln", vuln)
 	if bdVuln.VulnerabilityWithRemediation.RemediationStatus == patchedStatus && bdVuln.VulnerabilityWithRemediation.Description == patchComment {
 		// If the vulnerability signed by seal is not found in the fixMapping, unpatch the vulnerability
 		url := bdVuln.Meta.Href
@@ -70,7 +72,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 			RemediationStatus: newStatus,
 			Comment:           "",
 		}
-		slog.Debug("unpatching vulnerability", "url", url, "update", update, "packageManager", pkgManager, "packageName", pkgName, "packageVersion", pkgVersion, "vulnerability", vuln)
+		slog.Debug("unpatching vulnerability", "url", url, "update", update, "pkgManager", pkgManager, "pkgName", pkgName, "vuln", vuln)
 		err := c.updateVuln(url, update)
 		if err != nil {
 			return common.NewPrintableError("failed to update BlackDuck that %s is not sealed for %s", bdVuln.ComponentVersionOriginId, vuln)
@@ -115,11 +117,9 @@ func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes shared.FixMa
 	fixMapping := buildSealedVulnerabilitiesMapping(fixes)
 	vulnerabilitiesChannel := make(chan bdVulnerableBOMComponent, 10)
 	g, ctx := errgroup.WithContext(context.Background())
-	for i := 0; i < 10; i++ {
-		g.Go(func() error {
-			return updateVulnerabilityWorker(ctx, c, vulnerabilitiesChannel, fixMapping)
-		})
-	}
+	g.Go(func() error {
+		return updateVulnerabilityWorker(ctx, c, vulnerabilitiesChannel, fixMapping)
+	})
 
 	err = c.getAllVulnsInProject(project, vulnerabilitiesChannel)
 	if err != nil {
@@ -133,6 +133,7 @@ func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes shared.FixMa
 		return common.NewPrintableError("failed to update BlackDuck")
 	}
 
+	slog.Info("successfully updated BlackDuck")
 	return nil
 }
 

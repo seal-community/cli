@@ -19,6 +19,7 @@ type fakeRoundTripper struct {
 	jsonContent map[string]string
 	statusCode  int
 	Validator   requestValidatorCallback
+	UrlCounter  map[string]int
 }
 
 var pathToJsonFile = map[string]string{
@@ -27,9 +28,31 @@ var pathToJsonFile = map[string]string{
 	"https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components": "get_vulnerable_bom_components.json",
 }
 
-func (f fakeRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (f *fakeRoundTripper) CheckUrlCounter(t *testing.T, expected map[string]int) {
+	for url := range expected {
+		f.UrlCounter[url]--
+	}
+
+	for url, calls := range f.UrlCounter {
+		if calls != 0 {
+			moreOrLess := "less"
+			if calls > 0 {
+				moreOrLess = "more"
+			}
+			t.Errorf("got %d to %s calls to %s", calls, moreOrLess, url)
+		}
+	}
+}
+
+func (f *fakeRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp := new(http.Response)
 	url := fmt.Sprintf("%s://%s%s", req.URL.Scheme, req.URL.Host, req.URL.Path)
+
+	if f.UrlCounter == nil {
+		f.UrlCounter = make(map[string]int)
+		f.UrlCounter[url] = 0
+	}
+	f.UrlCounter[url]++
 
 	content := ""
 	if f.jsonContent != nil {
@@ -84,7 +107,7 @@ func TestAuthenticate(t *testing.T) {
 			"https://test.com/api/tokens/authenticate": string(jsonContent),
 		},
 	}
-	client := http.Client{Transport: fakeRoundTripper}
+	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client: client,
 		Url:    "https://test.com",
@@ -126,7 +149,8 @@ func TestGetProjects(t *testing.T) {
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: 200,
 	}
-	client := http.Client{Transport: fakeRoundTripper}
+
+	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client:      client,
 		Url:         "https://test.com",
@@ -139,12 +163,21 @@ func TestGetProjects(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get projects: %v", err)
 	}
+
 	if len(projects.Items) != 1 {
 		t.Fatalf("expected 0 projects, got %d", len(projects.Items))
 	}
+
 	if projects.TotalCount != 1 {
 		t.Fatalf("expected 0 projects, got %d", projects.TotalCount)
 	}
+
+	fakeRoundTripper.CheckUrlCounter(
+		t,
+		map[string]int{
+			"https://test.com/api/projects": 1,
+		},
+	)
 }
 
 func TestGetProjectByName(t *testing.T) {
@@ -158,7 +191,8 @@ func TestGetProjectByName(t *testing.T) {
 			}
 		},
 	}
-	client := http.Client{Transport: fakeRoundTripper}
+
+	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client:      client,
 		Url:         "https://test.com",
@@ -171,12 +205,21 @@ func TestGetProjectByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get project: %v", err)
 	}
+
 	if project == nil {
 		t.Fatalf("expected project, got nil")
 	}
+
 	if project.Name != "projectName1" {
 		t.Fatalf("expected projectName1, got %s", project.Name)
 	}
+
+	fakeRoundTripper.CheckUrlCounter(
+		t,
+		map[string]int{
+			"https://test.com/api/projects": 1,
+		},
+	)
 }
 
 func TestGetProjectVersions(t *testing.T) {
@@ -205,7 +248,8 @@ func TestGetProjectVersions(t *testing.T) {
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: 200,
 	}
-	client := http.Client{Transport: fakeRoundTripper}
+
+	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client:      client,
 		Url:         "https://test.com",
@@ -218,12 +262,21 @@ func TestGetProjectVersions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get project versions: %v", err)
 	}
+
 	if len(versions.Items) != 3 {
 		t.Fatalf("expected 2 versions, got %d", len(versions.Items))
 	}
+
 	if versions.TotalCount != 3 {
 		t.Fatalf("expected 2 versions, got %d", versions.TotalCount)
 	}
+
+	fakeRoundTripper.CheckUrlCounter(
+		t,
+		map[string]int{
+			"https://test.com/api/projects/projects-id/versions": 1,
+		},
+	)
 }
 
 func TestGetLink(t *testing.T) {
@@ -245,12 +298,14 @@ func TestGetLink(t *testing.T) {
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: 200,
 	}
-	client := http.Client{Transport: fakeRoundTripper}
+
+	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client: client,
 		Url:    "https://test.com",
 		Token:  "token",
 	}
+
 	link := c.getLink(version, "rel")
 	if link != "https://test.com/api/projects/projects-id" {
 		t.Fatalf("expected href, got %s", link)
@@ -269,7 +324,7 @@ func TestGetVulnerableComponents(t *testing.T) {
 			}
 		},
 	}
-	client := http.Client{Transport: fakeRoundTripper}
+	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client:      client,
 		Url:         "https://test.com",
@@ -282,12 +337,21 @@ func TestGetVulnerableComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get vulnerable components: %v", err)
 	}
-	if len(vulnerableComponents.Items) != 3 {
-		t.Fatalf("expected 3 vulnerable component, got %d", len(vulnerableComponents.Items))
+
+	if len(vulnerableComponents.Items) != 4 {
+		t.Fatalf("expected 4 vulnerable component, got %d", len(vulnerableComponents.Items))
 	}
-	if vulnerableComponents.TotalCount != 3 {
-		t.Fatalf("expected 3 vulnerable component, got %d", vulnerableComponents.TotalCount)
+
+	if vulnerableComponents.TotalCount != 4 {
+		t.Fatalf("expected 4 vulnerable component, got %d", vulnerableComponents.TotalCount)
 	}
+
+	fakeRoundTripper.CheckUrlCounter(
+		t,
+		map[string]int{
+			"https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components": 1,
+		},
+	)
 }
 
 func TestUpdateVulnerability(t *testing.T) {
@@ -302,7 +366,7 @@ func TestUpdateVulnerability(t *testing.T) {
 			}
 		},
 	}
-	client := http.Client{Transport: fakeRoundTripper}
+	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client:      client,
 		Url:         "https://test.com",
@@ -315,10 +379,18 @@ func TestUpdateVulnerability(t *testing.T) {
 		RemediationStatus: "NEW",
 		Comment:           "I AM SEAL",
 	}
+
 	err := c.updateVuln("https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components", update)
 	if err != nil {
 		t.Fatalf("failed to update vulnerability: %v", err)
 	}
+
+	fakeRoundTripper.CheckUrlCounter(
+		t,
+		map[string]int{
+			"https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components": 1,
+		},
+	)
 }
 
 func TestGetAllVunerabilitiesInProject(t *testing.T) {
@@ -337,7 +409,7 @@ func TestGetAllVunerabilitiesInProject(t *testing.T) {
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: 200,
 	}
-	client := http.Client{Transport: fakeRoundTripper}
+	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client:          client,
 		Url:             "https://test.com",
@@ -355,26 +427,37 @@ func TestGetAllVunerabilitiesInProject(t *testing.T) {
 
 	close(vulnerabilitiesChannel)
 
-	if len(vulnerabilitiesChannel) != 3 {
-		t.Fatalf("expected 3 vulnerabilities, got %d", len(vulnerabilitiesChannel))
+	if len(vulnerabilitiesChannel) != 4 {
+		t.Fatalf("expected 4 vulnerabilities, got %d", len(vulnerabilitiesChannel))
 	}
 
 	counter := map[string]int{
-		"Django/3.2.17":  1,
-		"grpcio/1.52.0":  2,
-		"CVE-2023-41164": 1,
-		"CVE-2023-1428":  1,
-		"CVE-2023-32731": 1,
+		"Django/3.2.17":   1,
+		"grpcio/1.52.0":   2,
+		"requests/2.26.0": 1,
+		"CVE-2023-41164":  1,
+		"CVE-2023-1428":   1,
+		"CVE-2023-32731":  1,
+		"CVE-2023-32681":  1,
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 4; i++ {
 		v := <-vulnerabilitiesChannel
 		counter[v.ComponentVersionOriginId]--
 		counter[v.VulnerabilityWithRemediation.VulnerabilityName]--
 	}
+
 	for k, v := range counter {
 		if v != 0 {
 			t.Fatalf("expected 0 %s, got %d", k, v)
 		}
 	}
+
+	fakeRoundTripper.CheckUrlCounter(
+		t,
+		map[string]int{
+			"https://test.com/api/projects/projects-id/versions":                                       1,
+			"https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components": 1,
+		},
+	)
 }
