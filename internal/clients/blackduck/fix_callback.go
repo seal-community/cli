@@ -56,7 +56,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 		}
 
 		slog.Debug("patching vulnerability", "url", url, "update", update, "pkgManager", pkgManager, "pkgName", pkgName, "vuln", vuln)
-		err := c.updateVuln(url, update)
+		err := c.updateVuln(url, &update)
 		if err != nil {
 			return common.NewPrintableError("failed to update BlackDuck that %s was sealed for %s", bdVuln.ComponentVersionOriginId, vuln)
 		}
@@ -73,7 +73,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 			Comment:           "",
 		}
 		slog.Debug("unpatching vulnerability", "url", url, "update", update, "pkgManager", pkgManager, "pkgName", pkgName, "vuln", vuln)
-		err := c.updateVuln(url, update)
+		err := c.updateVuln(url, &update)
 		if err != nil {
 			return common.NewPrintableError("failed to update BlackDuck that %s is not sealed for %s", bdVuln.ComponentVersionOriginId, vuln)
 		}

@@ -263,42 +263,32 @@ func (c *BlackDuckClient) getVulnerableComponents(url string, _limit, offset int
 	return &v, nil
 }
 
-func (c *BlackDuckClient) executePut(url string, body []byte, params []api.StringPair, headers []api.StringPair) ([]byte, error) {
-	res, statusCode, err := api.BaseSendRequest(
-		c.Client,
-		"PUT",
-		url,
-		&body,
-		headers,
-		params,
-	)
-	if err != nil {
-		slog.Debug("failed sending request", "err", err, "status", statusCode, "url", url, "body", string(body))
-		return nil, err
-	}
-
-	if statusCode != 202 {
-		slog.Debug("failed updating vulnerability", "status", statusCode, "url", url, "body", string(body))
-		return nil, fmt.Errorf("failed sending request PUT to %s, status: %d", url, statusCode)
-	}
-
-	return res, nil
-}
-
-func (c *BlackDuckClient) updateVuln(url string, update bdUpdateBOMComponentVulnerabilityRemediation) error {
-	body, err := json.Marshal(update)
-	if err != nil {
-		slog.Error("failed marshalling update", "err", err)
-		return err
-	}
-
+func (c *BlackDuckClient) updateVuln(url string, update *bdUpdateBOMComponentVulnerabilityRemediation) error {
 	headers, err := c.getHeaders(contentTypeSBOMV6, false)
 	if err != nil {
 		slog.Error("failed getting headers", "err", err)
 		return err
 	}
 
-	res, err := c.executePut(url, body, nil, headers)
+	res, statusCode, err := api.BaseSendRequest(
+		c.Client,
+		"PUT",
+		url,
+		update,
+		headers,
+		nil,
+	)
+
+	if err != nil {
+		slog.Debug("failed sending request", "err", err, "status", statusCode, "url", url, "body", update)
+		return err
+	}
+
+	if statusCode != 202 {
+		slog.Debug("failed updating vulnerability", "status", statusCode, "url", url, "body", update)
+		return fmt.Errorf("failed sending request PUT to %s, status: %d", url, statusCode)
+	}
+
 	slog.Debug("UpdateVulnerability response", "data", string(res))
 	return err
 }

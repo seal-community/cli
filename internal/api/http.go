@@ -66,7 +66,7 @@ func BaseSendRequest[RequestType any](client http.Client, method string, url str
 		slog.Error("failed reading body", "err", err)
 		return nil, 0, err
 	}
-	
+
 	defer res.Body.Close()
 
 	if len(responseData) == 0 {

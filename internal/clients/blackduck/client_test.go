@@ -171,7 +171,7 @@ func TestAuthenticateFailed(t *testing.T) {
 	}
 }
 
-func TestExecutePutRequestFailed(t *testing.T) {
+func TestUpdateVulnRequestFailed(t *testing.T) {
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: map[string]int{
 			"https://test.com/": 500,
@@ -189,7 +189,12 @@ func TestExecutePutRequestFailed(t *testing.T) {
 		ValidUntil:  time.Now().Add(time.Hour),
 	}
 
-	_, err := c.executePut("https://test.com/", nil, nil, nil)
+	update := bdUpdateBOMComponentVulnerabilityRemediation{
+		RemediationStatus: "NEW",
+		Comment:           "I AM SEAL",
+	}
+
+	err := c.updateVuln("https://test.com/", &update)
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
@@ -431,11 +436,27 @@ func TestUpdateVulnerability(t *testing.T) {
 			if req.Header.Get("Content-Type") != "application/json" {
 				t.Fatalf("expected application/json, got %s", req.Header.Get("Content-Type"))
 			}
+
 			if req.Header.Get("Accept") != "application/vnd.blackducksoftware.bill-of-materials-6+json" {
 				t.Fatalf("expected application/vnd.blackducksoftware.bill-of-materials-6+json, got %s", req.Header.Get("Accept"))
 			}
+
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				t.Fatalf("failed to read body: %v", err)
+			}
+
+			expected := "{\"comment\":\"I AM SEAL\",\"remediationStatus\":\"TEST\"}"
+			if string(body) != expected {
+				t.Fatalf("expected %s, got %s", expected, string(body))
+			}
+
+			if req.ContentLength != int64(len(expected)) {
+				t.Fatalf("expected %d, got %d", len(body), req.ContentLength)
+			}
 		},
 	}
+
 	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client:      client,
@@ -446,11 +467,11 @@ func TestUpdateVulnerability(t *testing.T) {
 	}
 
 	update := bdUpdateBOMComponentVulnerabilityRemediation{
-		RemediationStatus: "NEW",
+		RemediationStatus: "TEST",
 		Comment:           "I AM SEAL",
 	}
 
-	err := c.updateVuln("https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components", update)
+	err := c.updateVuln("https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components", &update)
 	if err != nil {
 		t.Fatalf("failed to update vulnerability: %v", err)
 	}
