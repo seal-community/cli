@@ -66,7 +66,10 @@ func TestHandleAppliedFixes(t *testing.T) {
 	}
 
 	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
+		statusCode: map[string]int{
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 202,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": 202,
+		},
 		jsonContent: map[string]string{
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": "{}", // unsealed
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": "{}", // sealed
@@ -145,7 +148,12 @@ func TestHandleAppliedMultipleFixes(t *testing.T) {
 	}
 
 	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
+		statusCode: map[string]int{
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": 202,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-1428/remediation":  202,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 202,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32681/remediation": 202,
+		},
 		jsonContent: map[string]string{
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": "{}",
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-1428/remediation":  "{}",

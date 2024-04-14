@@ -43,7 +43,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 	pkgManager := bdVuln.ComponentVersionOriginName
 	pkgName := bdVuln.ComponentVersionOriginId
 	vuln := bdVuln.VulnerabilityWithRemediation.VulnerabilityName
-	slog.Debug("processing vulnerability", "packageManager", pkgManager, "packageName", pkgName, "pkgName", vuln)
+	slog.Debug("processing vulnerability", "packageManager", pkgManager, "packageName", pkgName, "vuln", vuln)
 
 	key := parseKey([]string{pkgName, pkgManager, vuln})
 	slog.Debug("checking if vulnerability is sealed", "key", key)

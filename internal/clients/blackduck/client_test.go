@@ -17,7 +17,7 @@ type requestValidatorCallback func(*http.Request)
 type fakeRoundTripper struct {
 	// data to return for request
 	jsonContent map[string]string
-	statusCode  int
+	statusCode  map[string]int
 	Validator   requestValidatorCallback
 	UrlCounter  map[string]int
 }
@@ -58,6 +58,11 @@ func (f *fakeRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	if f.jsonContent != nil {
 		content = f.jsonContent[url]
 	}
+
+	if content == "" && url == "https://test.com/api/tokens/authenticate" {
+		content = "{}"
+	}
+
 	if content == "" {
 		// fetch file from current package's testdata folder
 		fileName := pathToJsonFile[url]
@@ -67,8 +72,13 @@ func (f *fakeRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 		content = string(getTestFile(fileName))
 	}
 
+	statusCode := f.statusCode[url]
+	if statusCode == 0 {
+		statusCode = 200 // default status code
+	}
+
 	resp.Body = io.NopCloser(strings.NewReader(content))
-	resp.StatusCode = f.statusCode
+	resp.StatusCode = statusCode
 	resp.Request = req
 
 	if f.Validator != nil {
@@ -102,7 +112,6 @@ func TestAuthenticate(t *testing.T) {
 	}
 
 	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
 		jsonContent: map[string]string{
 			"https://test.com/api/tokens/authenticate": string(jsonContent),
 		},
@@ -143,12 +152,77 @@ func TestAuthenticate(t *testing.T) {
 	}
 }
 
+func TestAuthenticateFailed(t *testing.T) {
+	fakeRoundTripper := fakeRoundTripper{
+		statusCode: map[string]int{
+			"https://test.com/api/tokens/authenticate": 500,
+		},
+	}
+	client := http.Client{Transport: &fakeRoundTripper}
+	c := BlackDuckClient{
+		Client: client,
+		Url:    "https://test.com",
+		Token:  "token",
+	}
+
+	_, err := c.getBearerAuth()
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+}
+
+func TestExecutePutRequestFailed(t *testing.T) {
+	fakeRoundTripper := fakeRoundTripper{
+		statusCode: map[string]int{
+			"https://test.com/": 500,
+		},
+		jsonContent: map[string]string{
+			"https://test.com/": "{}",
+		},
+	}
+	client := http.Client{Transport: &fakeRoundTripper}
+	c := BlackDuckClient{
+		Client:      client,
+		Url:         "https://test.com",
+		Token:       "token",
+		BearerToken: "bearer-token",
+		ValidUntil:  time.Now().Add(time.Hour),
+	}
+
+	_, err := c.executePut("https://test.com/", nil, nil, nil)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+}
+
+func TestExecuteGetRequestFailed(t *testing.T) {
+	fakeRoundTripper := fakeRoundTripper{
+		statusCode: map[string]int{
+			"https://test.com/": 500,
+		},
+		jsonContent: map[string]string{
+			"https://test.com/": "{}",
+		},
+	}
+	client := http.Client{Transport: &fakeRoundTripper}
+	c := BlackDuckClient{
+		Client:      client,
+		Url:         "https://test.com",
+		Token:       "token",
+		BearerToken: "bearer-token",
+		ValidUntil:  time.Now().Add(time.Hour),
+	}
+
+	_, err := c.executeGet("https://test.com/", nil, nil)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+}
+
 func TestGetProjects(t *testing.T) {
 	// the example file (get_projects.json) is using v4 API while the code is using v6 API
 	// When i will get a v6 API response, i will update the test file and the test
-	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
-	}
+	fakeRoundTripper := fakeRoundTripper{}
 
 	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
@@ -184,7 +258,6 @@ func TestGetProjectByName(t *testing.T) {
 	// the example file (get_projects.json) is using v4 API while the code is using v6 API
 	// When i will get a v6 API response, i will update the test file and the test
 	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
 		Validator: func(req *http.Request) {
 			if req.URL.Query().Get("q") != "name:projectName1" {
 				t.Fatalf("expected name:projectName1, got %s", req.URL.Query().Get("q"))
@@ -245,9 +318,7 @@ func TestGetProjectVersions(t *testing.T) {
 		},
 	}
 
-	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
-	}
+	fakeRoundTripper := fakeRoundTripper{}
 
 	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
@@ -295,9 +366,7 @@ func TestGetLink(t *testing.T) {
 		},
 	}
 
-	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
-	}
+	fakeRoundTripper := fakeRoundTripper{}
 
 	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
@@ -314,7 +383,6 @@ func TestGetLink(t *testing.T) {
 
 func TestGetVulnerableComponents(t *testing.T) {
 	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
 		Validator: func(req *http.Request) {
 			if req.Header.Get("Accept") != "application/vnd.blackducksoftware.bill-of-materials-6+json" {
 				t.Fatalf("expected application/vnd.blackducksoftware.bill-of-materials-6+json, got %s", req.Header.Get("Accept"))
@@ -356,7 +424,9 @@ func TestGetVulnerableComponents(t *testing.T) {
 
 func TestUpdateVulnerability(t *testing.T) {
 	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
+		statusCode: map[string]int{
+			"https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components": 202,
+		},
 		Validator: func(req *http.Request) {
 			if req.Header.Get("Content-Type") != "application/json" {
 				t.Fatalf("expected application/json, got %s", req.Header.Get("Content-Type"))
@@ -406,9 +476,7 @@ func TestGetAllVunerabilitiesInProject(t *testing.T) {
 		},
 	}
 
-	fakeRoundTripper := fakeRoundTripper{
-		statusCode: 200,
-	}
+	fakeRoundTripper := fakeRoundTripper{}
 	client := http.Client{Transport: &fakeRoundTripper}
 	c := BlackDuckClient{
 		Client:          client,

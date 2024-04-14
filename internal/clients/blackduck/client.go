@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	contentTypeUserV4 = "application/vnd.blackducksoftware.user-4+json"
+	contentTypeUserV4           = "application/vnd.blackducksoftware.user-4+json"
 	contentTypeProjectDetailsV5 = "application/vnd.blackducksoftware.project-detail-5+json"
 	contentTypeProjectDetailsV6 = "application/vnd.blackducksoftware.project-detail-6+json"
-	contentTypeSBOMV6 = "application/vnd.blackducksoftware.bill-of-materials-6+json"
+	contentTypeSBOMV6           = "application/vnd.blackducksoftware.bill-of-materials-6+json"
 )
 
 const limit = 100
@@ -53,9 +53,14 @@ func (c *BlackDuckClient) authenticate() error {
 		headers,
 		nil,
 	)
-	if err != nil || statusCode != 200 {
+	if err != nil {
 		slog.Debug("failed to authenticate", "err", err, "status", statusCode, "url", url)
 		return err
+	}
+
+	if statusCode != 200 {
+		slog.Debug("failed to authenticate", "status", statusCode, "url", url)
+		return fmt.Errorf("failed sending request POST to %s, status: %d", url, statusCode)
 	}
 
 	var t bdAPITokenResponse
@@ -119,9 +124,14 @@ func (c *BlackDuckClient) executeGet(url string, params []api.StringPair, header
 		params,
 	)
 
-	if err != nil || statusCode != 200 {
+	if err != nil {
 		slog.Debug("failed sending request", "err", err, "status", statusCode, "url", url)
 		return nil, err
+	}
+
+	if statusCode != 200 {
+		slog.Debug("failed getting response", "status", statusCode, "url", url)
+		return nil, fmt.Errorf("failed sending request GET to %s, status: %d", url, statusCode)
 	}
 
 	slog.Debug("received response", "data", string(res))
@@ -262,9 +272,14 @@ func (c *BlackDuckClient) executePut(url string, body []byte, params []api.Strin
 		headers,
 		params,
 	)
-	if err != nil || statusCode != 202 {
+	if err != nil {
 		slog.Debug("failed sending request", "err", err, "status", statusCode, "url", url, "body", string(body))
 		return nil, err
+	}
+
+	if statusCode != 202 {
+		slog.Debug("failed updating vulnerability", "status", statusCode, "url", url, "body", string(body))
+		return nil, fmt.Errorf("failed sending request PUT to %s, status: %d", url, statusCode)
 	}
 
 	return res, nil
