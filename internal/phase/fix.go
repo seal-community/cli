@@ -20,7 +20,7 @@ type fixPhase struct {
 }
 
 type PostFixRunner interface {
-	HandleAppliedFixes(projectDir string, fixes shared.FixMap) error
+	HandleAppliedFixes(projectDir string, fixes shared.FixMap, fixResults []api.PackageVersion) error
 	ShouldSkip() bool
 	GetStepDescription() string
 }
@@ -162,7 +162,35 @@ func (fp *fixPhase) fixPackage(summary shared.FixMap, downloadedPackage shared.P
 	return nil
 }
 
+func (fp *fixPhase) getFixResultsForFixMap(fixes shared.FixMap) ([]api.PackageVersion, error) {
+	fixPkgs := make([]api.PackageVersion, 0, len(fixes))
+	for _, fix := range fixes {
+		fixPkgs = append(fixPkgs, *fix.Package)
+	}
+
+	fixResults, err := fp.QueryFixesForPackages(fixPkgs)
+	if err != nil {
+		slog.Error("failed querying fixes", "err", err)
+		return nil, err
+	}
+
+	return fixResults, nil
+}
+
 func (fp *fixPhase) HandleCallbacks(callbacks []PostFixRunner, fixes shared.FixMap) {
+	if len(callbacks) == 0 {
+		slog.Debug("no callbacks to run")
+		fp.advanceStep("") // must mirror the minimum steps count for this command
+		return
+	}
+
+	fixResults, err := fp.getFixResultsForFixMap(fixes)
+	if err != nil {
+		slog.Error("failed getting fix results", "err", err)
+		fp.advanceStep("") // must mirror the minimum steps count for this command
+		return
+	}
+
 	fp.addToMax(len(callbacks)) // increase max to accomodate fix logic in progress bar
 	for _, callback := range callbacks {
 		fp.advanceStep(callback.GetStepDescription())
@@ -171,7 +199,7 @@ func (fp *fixPhase) HandleCallbacks(callbacks []PostFixRunner, fixes shared.FixM
 			continue
 		}
 		slog.Debug("Running callback")
-		if err := callback.HandleAppliedFixes(fp.ProjectDir, fixes); err != nil {
+		if err := callback.HandleAppliedFixes(fp.ProjectDir, fixes, fixResults); err != nil {
 			slog.Warn("callback failed", "err", err) // Failings here should show a warning, and not stop the process
 		}
 	}

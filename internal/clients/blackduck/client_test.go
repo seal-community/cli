@@ -29,17 +29,15 @@ var pathToJsonFile = map[string]string{
 }
 
 func (f *fakeRoundTripper) CheckUrlCounter(t *testing.T, expected map[string]int) {
-	for url := range expected {
-		f.UrlCounter[url]--
+	for url, calls := range expected {
+		if f.UrlCounter[url] != calls {
+			t.Errorf("expected %d calls to %s, got %d", calls, url, f.UrlCounter[url])
+		}
 	}
 
 	for url, calls := range f.UrlCounter {
-		if calls != 0 {
-			moreOrLess := "less"
-			if calls > 0 {
-				moreOrLess = "more"
-			}
-			t.Errorf("got %d to %s calls to %s", calls, moreOrLess, url)
+		if _, ok := expected[url]; !ok {
+			t.Errorf("unexpected call to %s, should have been called %d times", url, calls)
 		}
 	}
 }

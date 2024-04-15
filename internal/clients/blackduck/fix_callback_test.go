@@ -21,26 +21,107 @@ func TestParseKey(t *testing.T) {
 	}
 }
 
-func TestBuildSealedVulnerabilitiesMapping(t *testing.T) {
-	django := api.PackageVersion{
-		Version:                         "3.2.17",
+func getFixAndScanResult() (shared.FixMap, []api.PackageVersion) {
+	scannedDjango := api.PackageVersion{
+		Version:                         "3.2.17+sp1",
 		Library:                         api.Package{Name: "Django", PackageManager: mappings.PythonManager},
 		RecommendedLibraryVersionId:     "111",
-		RecommendedLibraryVersionString: "3.2.17-sp1",
+		RecommendedLibraryVersionString: "3.2.17+sp2",
+		OpenVulnerabilities: []api.Vulnerability{
+			{CVE: "CVE-2024-27351"},
+			{CVE: "CVE-2023-46695"},
+			{CVE: "CVE-2023-43665"},
+		},
 		SealedVulnerabilities: []api.Vulnerability{
 			{CVE: "CVE-2023-41164"},
 		},
+		OriginVersion: "3.2.17",
+	}
+
+	scannedGrpcio := api.PackageVersion{
+		Version:                         "1.52.0",
+		Library:                         api.Package{Name: "grpcio", PackageManager: mappings.PythonManager},
+		RecommendedLibraryVersionId:     "222",
+		RecommendedLibraryVersionString: "1.52.0+sp1",
+		OpenVulnerabilities: []api.Vulnerability{
+			{CVE: "CVE-2023-1428"},
+			{CVE: "CVE-2023-32731"},
+		},
+		OriginVersion: "1.52.0",
+	}
+
+	scannedRequests := api.PackageVersion{
+		Version:                         "2.26.0",
+		Library:                         api.Package{Name: "requests", PackageManager: mappings.PythonManager},
+		RecommendedLibraryVersionId:     "333",
+		RecommendedLibraryVersionString: "2.26.0+sp1",
+		OpenVulnerabilities: []api.Vulnerability{
+			{CVE: "CVE-2023-32681"},
+		},
+		OriginVersion: "2.26.0",
+	}
+
+	fixedDjango := api.PackageVersion{
+		Version: "3.2.17+sp2",
+		Library: api.Package{Name: "Django", PackageManager: mappings.PythonManager},
+		SealedVulnerabilities: []api.Vulnerability{
+			{CVE: "CVE-2024-27351"},
+			{CVE: "CVE-2023-46695"},
+			{CVE: "CVE-2023-43665"},
+			{CVE: "CVE-2023-41164"},
+		},
+		OriginVersion: "3.2.17",
+	}
+
+	fixedGrpcio := api.PackageVersion{
+		Version: "1.52.0+sp1",
+		Library: api.Package{Name: "grpcio", PackageManager: mappings.PythonManager},
+		OpenVulnerabilities: []api.Vulnerability{
+			{CVE: "CVE-2023-1428"},
+		},
+		SealedVulnerabilities: []api.Vulnerability{
+			{CVE: "CVE-2023-32731"},
+		},
+		OriginVersion: "1.52.0",
+	}
+
+	fixedRequests := api.PackageVersion{
+		Version: "2.26.0+sp1",
+		Library: api.Package{Name: "requests", PackageManager: mappings.PythonManager},
+		SealedVulnerabilities: []api.Vulnerability{
+			{CVE: "CVE-2023-32681"},
+		},
+		OriginVersion: "2.26.0",
 	}
 
 	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &django, Paths: map[string]bool{
+		"a": &shared.FixedEntry{Package: &scannedDjango, Paths: map[string]bool{
 			filepath.Join("/prj", "pythonstuff/django"): true,
+		}},
+		"b": &shared.FixedEntry{Package: &scannedGrpcio, Paths: map[string]bool{
+			filepath.Join("/prj", "pythonstuff/grpcio"): true,
+		}},
+		"c": &shared.FixedEntry{Package: &scannedRequests, Paths: map[string]bool{
+			filepath.Join("/prj", "pythonstuff/requests"): true,
 		}},
 	}
 
-	got := buildSealedVulnerabilitiesMapping(fixmap)
+	fixResults := []api.PackageVersion{fixedDjango, fixedGrpcio, fixedRequests}
+
+	return fixmap, fixResults
+}
+
+func TestBuildSealedVulnerabilitiesMapping(t *testing.T) {
+	_, fixResults := getFixAndScanResult()
+
+	got := buildSealedVulnerabilitiesMapping(fixResults)
 	want := vulnerabilityMapping{
-		"django/3.2.17/pypi/cve-2023-41164": true,
+		"pypi/django/3.2.17/cve-2024-27351":   true,
+		"pypi/django/3.2.17/cve-2023-46695":   true,
+		"pypi/django/3.2.17/cve-2023-43665":   true,
+		"pypi/django/3.2.17/cve-2023-41164":   true,
+		"pypi/grpcio/1.52.0/cve-2023-32731":   true,
+		"pypi/requests/2.26.0/cve-2023-32681": true,
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -49,30 +130,19 @@ func TestBuildSealedVulnerabilitiesMapping(t *testing.T) {
 }
 
 func TestHandleAppliedFixes(t *testing.T) {
-	django := api.PackageVersion{
-		Version:                         "3.2.17",
-		Library:                         api.Package{Name: "Django", PackageManager: mappings.PythonManager},
-		RecommendedLibraryVersionId:     "111",
-		RecommendedLibraryVersionString: "3.2.17-sp1",
-		SealedVulnerabilities: []api.Vulnerability{
-			{CVE: "CVE-2023-41164"},
-		},
-	}
-
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &django, Paths: map[string]bool{
-			filepath.Join("/prj", "pythonstuff/django"): true,
-		}},
-	}
+	_, fixResults := getFixAndScanResult()
+	fixResults[1].SealedVulnerabilities = []api.Vulnerability{}
 
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: map[string]int{
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 202,
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": 202,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32681/remediation": 202,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 202, // unsealed
 		},
 		jsonContent: map[string]string{
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": "{}", // unsealed
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": "{}", // sealed
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32681/remediation": "{}", // sealed
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": "{}", // unsealed
 		},
 	}
 
@@ -86,7 +156,7 @@ func TestHandleAppliedFixes(t *testing.T) {
 		VersionToFilter: "versionName1",
 	}
 
-	err := handleAppliedFixes("projectName1", &c, fixmap)
+	err := handleAppliedFixes("projectName1", &c, fixResults)
 	if err != nil {
 		t.Errorf("HandleAppliedFixes() = %v, want nil", err)
 	}
@@ -97,68 +167,29 @@ func TestHandleAppliedFixes(t *testing.T) {
 			"https://test.com/api/projects":                                                            1,
 			"https://test.com/api/projects/projects-id/versions":                                       1,
 			"https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components": 1,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2024-27351/remediation": 0,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-46695/remediation": 0,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-43665/remediation": 0,
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": 1,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32681/remediation": 1,
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 1,
 		},
 	)
 }
 
 func TestHandleAppliedMultipleFixes(t *testing.T) {
-	django := api.PackageVersion{
-		Version:                         "3.2.17",
-		Library:                         api.Package{Name: "Django", PackageManager: mappings.PythonManager},
-		RecommendedLibraryVersionId:     "111",
-		RecommendedLibraryVersionString: "3.2.17-sp1",
-		SealedVulnerabilities: []api.Vulnerability{
-			{CVE: "CVE-2023-41164"},
-		},
-	}
-
-	grpcio := api.PackageVersion{
-		Version:                         "1.52.0",
-		Library:                         api.Package{Name: "grpcio", PackageManager: mappings.PythonManager},
-		RecommendedLibraryVersionId:     "222",
-		RecommendedLibraryVersionString: "1.52.0-sp1",
-		SealedVulnerabilities: []api.Vulnerability{
-			{CVE: "CVE-2023-1428"},
-			{CVE: "CVE-2023-32731"},
-		},
-	}
-
-	requests := api.PackageVersion{
-		Version:                         "2.26.0",
-		Library:                         api.Package{Name: "requests", PackageManager: mappings.PythonManager},
-		RecommendedLibraryVersionId:     "333",
-		RecommendedLibraryVersionString: "2.26.0-sp1",
-		SealedVulnerabilities: []api.Vulnerability{
-			{CVE: "CVE-2023-32681"},
-		},
-	}
-
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &django, Paths: map[string]bool{
-			filepath.Join("/prj", "pythonstuff/django"): true,
-		}},
-		"b": &shared.FixedEntry{Package: &grpcio, Paths: map[string]bool{
-			filepath.Join("/prj", "pythonstuff/grpcio"): true,
-		}},
-		"c": &shared.FixedEntry{Package: &requests, Paths: map[string]bool{
-			filepath.Join("/prj", "pythonstuff/requests"): true,
-		}},
-	}
+	_, fixResults := getFixAndScanResult()
 
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: map[string]int{
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": 202,
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-1428/remediation":  202,
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 202,
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32681/remediation": 202,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 202, // unsealed
 		},
 		jsonContent: map[string]string{
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": "{}",
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-1428/remediation":  "{}",
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": "{}",
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32681/remediation": "{}",
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": "{}", // sealed
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32681/remediation": "{}", // sealed
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": "{}", // unsealed
 		},
 	}
 
@@ -172,7 +203,7 @@ func TestHandleAppliedMultipleFixes(t *testing.T) {
 		VersionToFilter: "versionName1",
 	}
 
-	err := handleAppliedFixes("projectName1", &c, fixmap)
+	err := handleAppliedFixes("projectName1", &c, fixResults)
 	if err != nil {
 		t.Errorf("HandleAppliedFixes() = %v, want nil", err)
 	}
@@ -184,9 +215,8 @@ func TestHandleAppliedMultipleFixes(t *testing.T) {
 			"https://test.com/api/projects/projects-id/versions":                                       1,
 			"https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components": 1,
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-41164/remediation": 1,
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-1428/remediation":  1,
-			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 1,
 			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32681/remediation": 1,
+			"https://test.com/api/projects/projects-id/versions/versions-id/components/components-id/versions/versions-id/origins/origins-id/vulnerabilities/CVE-2023-32731/remediation": 1,
 		},
 	)
 }

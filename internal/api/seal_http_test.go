@@ -103,10 +103,11 @@ func TestSanity(t *testing.T) {
                     }
                 ],
                 "sealed_vulnerabilities": [],
-                "is_hidden": null,
-                "is_sealed": null,
-                "last_pulled": null,
-                "number_of_times_pulled": null
+                "is_hidden": false,
+                "is_sealed": true,
+                "last_pulled": "2024-04-08T09:01:46.212000Z",
+                "number_of_times_pulled": null,
+				"origin_version": "2.7.4"
             }
         ],
         "total": 1,
@@ -148,6 +149,38 @@ func TestSanity(t *testing.T) {
 
 	if vulnerablePackage.Version != dependency.Version {
 		t.Fatalf("wrong package manager name %s != %s", dependency.PackageManager, vulnerablePackage.Library.PackageManager)
+	}
+
+	if vulnerablePackage.RecommendedLibraryVersionId != "a83e834c-1f7c-4db5-97b1-da8f02c1f95c" {
+		t.Fatalf("wrong recommended id %s", vulnerablePackage.RecommendedLibraryVersionId)
+	}
+
+	if vulnerablePackage.RecommendedLibraryVersionString != "2.7.4-sp1" {
+		t.Fatalf("wrong recommended version %s", vulnerablePackage.RecommendedLibraryVersionString)
+	}
+
+	if len(vulnerablePackage.OpenVulnerabilities) != 2 {
+		t.Fatalf("wrong number of vulnerabilities %v", vulnerablePackage.OpenVulnerabilities)
+	}
+
+	if vulnerablePackage.IsHidden {
+		t.Fatalf("package is hidden")
+	}
+
+	if !vulnerablePackage.IsSealed {
+		t.Fatalf("package is not sealed")
+	}
+
+	if vulnerablePackage.LastPulled != "2024-04-08T09:01:46.212000Z" {
+		t.Fatalf("wrong last pulled %s", vulnerablePackage.LastPulled)
+	}
+
+	if vulnerablePackage.NumberOfTimesPulled != 0 {
+		t.Fatalf("wrong number of times pulled %d", vulnerablePackage.NumberOfTimesPulled)
+	}
+
+	if vulnerablePackage.OriginVersion != "2.7.4" {
+		t.Fatalf("wrong origin version %s", vulnerablePackage.OriginVersion)
 	}
 }
 

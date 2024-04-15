@@ -53,12 +53,17 @@ const (
 type PackageVersion struct {
 	// this struct has much more fields, but we only need these
 	VersionId                       string          `json:"id"` // internal uuid
-	Version                         string          `json:"version"`
 	Library                         Package         `json:"library"`
+	Version                         string          `json:"version"`
 	RecommendedLibraryVersionId     string          `json:"recommended_library_version_id,omitempty"`
 	RecommendedLibraryVersionString string          `json:"recommended_library_version,omitempty"`
 	OpenVulnerabilities             []Vulnerability `json:"open_vulnerabilities"`
 	SealedVulnerabilities           []Vulnerability `json:"sealed_vulnerabilities"`
+	IsHidden                        bool            `json:"is_hidden"`
+	IsSealed                        bool            `json:"is_sealed"`
+	LastPulled                      string          `json:"last_pulled"`
+	NumberOfTimesPulled             int             `json:"number_of_times_pulled"`
+	OriginVersion                   string          `json:"origin_version"`
 
 	OverrideMethod OverriddenMethod `json:"-"` // currently only used internally until remote config support is added
 }

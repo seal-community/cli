@@ -1,6 +1,7 @@
 package blackduck
 
 import (
+	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
 	"cli/internal/ecosystem/shared"
@@ -21,16 +22,12 @@ func parseKey(vals []string) string {
 	return strings.ToLower(strings.Join(vals, "/")) // Has to be '/' because this is what BlackDuck using in the componentVersionOriginId field
 }
 
-func buildSealedVulnerabilitiesMapping(fixes shared.FixMap) vulnerabilityMapping {
+func buildSealedVulnerabilitiesMapping(fixResults []api.PackageVersion) vulnerabilityMapping {
 	mapping := make(vulnerabilityMapping)
-	for _, fix := range fixes {
-		packageName := fix.Package.Library.Name
-		packageVersion := fix.Package.Version
-		packageManager := fix.Package.Library.PackageManager
-
-		for _, vuln := range fix.Package.SealedVulnerabilities {
+	for _, fix := range fixResults {
+		for _, vuln := range fix.SealedVulnerabilities {
 			v := vuln.PreferredId()
-			key := parseKey([]string{packageName, packageVersion, packageManager, v})
+			key := parseKey([]string{fix.Library.PackageManager, fix.Library.Name, fix.OriginVersion, v})
 			mapping[key] = true
 		}
 	}
@@ -41,11 +38,11 @@ func buildSealedVulnerabilitiesMapping(fixes shared.FixMap) vulnerabilityMapping
 
 func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, fixMapping vulnerabilityMapping) error {
 	pkgManager := bdVuln.ComponentVersionOriginName
-	pkgName := bdVuln.ComponentVersionOriginId
+	packageFullName := bdVuln.ComponentVersionOriginId
 	vuln := bdVuln.VulnerabilityWithRemediation.VulnerabilityName
-	slog.Debug("processing vulnerability", "packageManager", pkgManager, "packageName", pkgName, "vuln", vuln)
+	slog.Debug("processing vulnerability", "packageManager", pkgManager, "packageFullName", packageFullName, "vuln", vuln)
 
-	key := parseKey([]string{pkgName, pkgManager, vuln})
+	key := parseKey([]string{pkgManager, packageFullName, vuln})
 	slog.Debug("checking if vulnerability is sealed", "key", key)
 	if _, ok := fixMapping[key]; ok {
 		// Patch the vulnerability signed by seal
@@ -55,7 +52,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 			Comment:           patchComment,
 		}
 
-		slog.Debug("patching vulnerability", "url", url, "update", update, "pkgManager", pkgManager, "pkgName", pkgName, "vuln", vuln)
+		slog.Debug("patching vulnerability", "url", url, "update", update, "pkgManager", pkgManager, "packageFullName", packageFullName, "vuln", vuln)
 		err := c.updateVuln(url, &update)
 		if err != nil {
 			return common.NewPrintableError("failed to update BlackDuck that %s was sealed for %s", bdVuln.ComponentVersionOriginId, vuln)
@@ -64,7 +61,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 		return nil
 	}
 
-	slog.Debug("vulnerability is not sealed", "pkgManager", pkgManager, "pkgName", pkgName, "vuln", vuln)
+	slog.Debug("vulnerability is not sealed", "pkgManager", pkgManager, "packageFullName", packageFullName, "vuln", vuln)
 	if bdVuln.VulnerabilityWithRemediation.RemediationStatus == patchedStatus && bdVuln.VulnerabilityWithRemediation.Description == patchComment {
 		// If the vulnerability signed by seal is not found in the fixMapping, unpatch the vulnerability
 		url := bdVuln.Meta.Href
@@ -72,7 +69,7 @@ func patchVulnInBlackDuck(c *BlackDuckClient, bdVuln bdVulnerableBOMComponent, f
 			RemediationStatus: newStatus,
 			Comment:           "",
 		}
-		slog.Debug("unpatching vulnerability", "url", url, "update", update, "pkgManager", pkgManager, "pkgName", pkgName, "vuln", vuln)
+		slog.Debug("unpatching vulnerability", "url", url, "update", update, "pkgManager", pkgManager, "packageFullName", packageFullName, "vuln", vuln)
 		err := c.updateVuln(url, &update)
 		if err != nil {
 			return common.NewPrintableError("failed to update BlackDuck that %s is not sealed for %s", bdVuln.ComponentVersionOriginId, vuln)
@@ -107,14 +104,14 @@ type BlackDuckCallback struct {
 	Config *config.Config
 }
 
-func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes shared.FixMap) error {
+func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixResults []api.PackageVersion) error {
 	project, err := c.getProjectByName(bdProject)
 	if err != nil {
 		slog.Error("failed getting project", "err", err)
 		return common.FallbackPrintableMsg(err, "Failed to update BlackDuck")
 	}
 
-	fixMapping := buildSealedVulnerabilitiesMapping(fixes)
+	fixMapping := buildSealedVulnerabilitiesMapping(fixResults)
 	vulnerabilitiesChannel := make(chan bdVulnerableBOMComponent, 10)
 	g, ctx := errgroup.WithContext(context.Background())
 	g.Go(func() error {
@@ -137,10 +134,10 @@ func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes shared.FixMa
 	return nil
 }
 
-func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes shared.FixMap) error {
+func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes shared.FixMap, fixResults []api.PackageVersion) error {
 	bdConfg := b.Config.BlackDuck
 	c := NewClient(bdConfg)
-	return handleAppliedFixes(bdConfg.Project, c, fixes)
+	return handleAppliedFixes(bdConfg.Project, c, fixResults)
 }
 
 func (b *BlackDuckCallback) ShouldSkip() bool {
