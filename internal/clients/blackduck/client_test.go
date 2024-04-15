@@ -431,8 +431,8 @@ func TestUpdateVulnerability(t *testing.T) {
 			"https://test.com/api/projects/projects-id/versions/versions-id/vulnerable-bom-components": 202,
 		},
 		Validator: func(req *http.Request) {
-			if req.Header.Get("Content-Type") != "application/json" {
-				t.Fatalf("expected application/json, got %s", req.Header.Get("Content-Type"))
+			if req.Header.Get("Content-Type") != "application/vnd.blackducksoftware.bill-of-materials-6+json" {
+				t.Fatalf("expected application/vnd.blackducksoftware.bill-of-materials-6+json, got %s", req.Header.Get("Content-Type"))
 			}
 
 			if req.Header.Get("Accept") != "application/vnd.blackducksoftware.bill-of-materials-6+json" {
