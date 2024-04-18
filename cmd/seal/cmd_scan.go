@@ -22,6 +22,7 @@ type ResultHandler interface {
 
 const csvFlag = "csv"
 const actionFlag = "generate-local-config"
+const actionFlagNew = "generate-actions-file"
 const snykPolicyFlag = "generate-snyk-policy"
 const manifestFile = "manifest"
 
@@ -70,17 +71,19 @@ func createActionsObject(packages []api.PackageVersion, manager shared.PackageMa
 	return actionFile
 }
 
-func recreateActionsFile(overrides []api.PackageVersion, manager shared.PackageManager, project string, projectDir string) error {
+func recreateActionsFile(actionsFilePath string, overrides []api.PackageVersion, manager shared.PackageManager, project string, projectDir string) error {
+	slog.Info("recreating actions file", "path", actionsFilePath)
+
 	ao := createActionsObject(overrides, manager, project, projectDir) // should not fail
-	w, err := common.CreateFile(filepath.Join(projectDir, actions.ActionFileName))
+	w, err := common.CreateFile(actionsFilePath)
 	if err != nil {
-		return common.NewPrintableError("failed creating local config file")
+		return common.NewPrintableError("failed creating actions file")
 	}
 
 	err = actions.SaveActionFile(ao, w)
 	if err != nil {
 		slog.Error("failed saving action file", "err", err)
-		return common.FallbackPrintableMsg(err, "failed saving to local config file")
+		return common.FallbackPrintableMsg(err, "failed saving to actions file")
 	}
 
 	return nil
@@ -112,15 +115,16 @@ func convertActionsOverride(af *actions.ActionsFile) []api.PackageVersion {
 	return packages
 }
 
-func getExistingConfigOverrides(targetDir string) ([]api.PackageVersion, error) {
-	actions, err := loadActionsFile(targetDir)
+func getExistingConfigOverrides(actionsFilePath string) ([]api.PackageVersion, error) {
+	slog.Info("loading existing actions file", "path", actionsFilePath)
+	actions, err := loadActionsFile(actionsFilePath)
 	if err != nil {
-		slog.Error("failed opening local config", "err", err)
-		return nil, common.FallbackPrintableMsg(err, "failed opening local config file")
+		slog.Error("failed opening actions file", "err", err)
+		return nil, common.FallbackPrintableMsg(err, "failed opening actions file")
 	}
 
 	if actions == nil {
-		slog.Info("no local config found", "targetdir", targetDir)
+		slog.Info("no actions config found", "path", actionsFilePath)
 		return nil, nil
 	}
 
@@ -195,7 +199,7 @@ func scanCommand() *cobra.Command {
 					} else {
 						slog.Warn("non printable error", "err", err)
 					}
-					
+
 					// overwrite so we could distinguish between usage error and more internal ones
 					err = SubCommandError
 				}
@@ -213,9 +217,11 @@ func scanCommand() *cobra.Command {
 				return common.NewPrintableError("target not found `%s`", target)
 			}
 
+			configPath := getArgString(cmd, configFileKey)
 			verbosity := getArgCount(cmd, verboseFlagKey)
-			genActionsFile := getArgBool(cmd, actionFlag)
-			scanPhase, err := phase.NewScanPhase(target, verbosity == 0)
+			genActionsFile := getArgBool(cmd, actionFlag) || getArgBool(cmd, actionFlagNew)
+
+			scanPhase, err := phase.NewScanPhase(target, configPath, verbosity == 0)
 			if err != nil {
 				slog.Error("failed initializing scan", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing scan phase")
@@ -233,11 +239,17 @@ func scanCommand() *cobra.Command {
 			// printing allowed from here
 
 			if genActionsFile {
-				slog.Info("generating local actions file")
+
+				actionsFilePath := getArgString(cmd, actionsFileKey)
+				if actionsFilePath == "" {
+					actionsFilePath = filepath.Join(targetDir, actions.ActionFileName)
+				}
+
+				slog.Info("loading actions file", "path", actionsFilePath)
 				configOverrides := result.Vulnerable
-				oldOverrides, err := getExistingConfigOverrides(targetDir)
+				oldOverrides, err := getExistingConfigOverrides(actionsFilePath)
 				if err != nil {
-					return common.FallbackPrintableMsg(err, "failed getting existing local config file")
+					return common.FallbackPrintableMsg(err, "failed getting existing actions file")
 				}
 
 				if len(oldOverrides) > 0 {
@@ -247,7 +259,7 @@ func scanCommand() *cobra.Command {
 				}
 
 				// Project name isn't validated when creating the actions file!
-				if err = recreateActionsFile(configOverrides, scanPhase.Manager, scanPhase.Config.Project, scanPhase.ProjectDir); err != nil {
+				if err = recreateActionsFile(actionsFilePath, configOverrides, scanPhase.Manager, scanPhase.Config.Project, scanPhase.ProjectDir); err != nil {
 					// only a wrapper func, logged from withing
 					return err
 				}
@@ -292,8 +304,12 @@ func scanCommand() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().Bool(actionFlag, false, "generate a new actions file")
+	_ = cmd.Flags().MarkHidden(actionFlag) // will still work, but will not be shown anywhere
+
 	cmd.Flags().String(csvFlag, "", "output results as csv to path")
-	cmd.Flags().Bool(actionFlag, false, "generate a new local config file")
-	cmd.Flags().Bool(snykPolicyFlag, false, fmt.Sprintf("generate or update the .snyk file (can only be used with --%s)", actionFlag))
+	cmd.Flags().Bool(actionFlagNew, false, "generate a new seal actions file")
+	cmd.Flags().Bool(snykPolicyFlag, false, fmt.Sprintf("generate or update the .snyk file (can only be used with --%s)", actionFlagNew))
+
 	return cmd
 }

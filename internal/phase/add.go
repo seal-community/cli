@@ -15,8 +15,8 @@ type addPhase struct {
 	*scanPhase
 }
 
-func NewAddPhase(projectDir string, showProgress bool) (*addPhase, error) {
-	sp, err := NewScanPhase(projectDir, showProgress)
+func NewAddPhase(projectDir string, configPath string, showProgress bool) (*addPhase, error) {
+	sp, err := NewScanPhase(projectDir, configPath, showProgress)
 	if err != nil {
 		return nil, err
 	}

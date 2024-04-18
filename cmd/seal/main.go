@@ -22,6 +22,8 @@ const (
 )
 
 const verboseFlagKey = "verbose"
+const actionsFileKey = "actions-file-path"
+const configFileKey = "config-file-path"
 
 var SubCommandError = errors.New("") // used to differentiate between cobra usage error and our errors
 
@@ -41,7 +43,7 @@ func completionCommand() *cobra.Command {
 		Short:  "Generate the autocompletion script for the specified shell",
 		Hidden: true,
 	}
-	
+
 	return cmd
 }
 
@@ -71,6 +73,8 @@ func rootCmd() *cobra.Command {
 	)
 
 	cmd.PersistentFlags().CountP(verboseFlagKey, "v", "counted verbosity")
+	cmd.PersistentFlags().String(configFileKey, "", "path to config file")
+	cmd.PersistentFlags().String(actionsFileKey, "", "path to actions file")
 	return cmd
 }
 

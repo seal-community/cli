@@ -57,9 +57,9 @@ type ActionsFile struct {
 	Projects map[string]ProjectSection `yaml:"projects" validate:"required,min=1,max=1,dive"`
 }
 
-var FailedParsingActionYaml = common.NewPrintableError("failed to parse local config file")
-var FailedParsingActionYamlEmpty = common.NewPrintableError("empty local config format")
-var FailedParsingActionYamlInvalid = common.NewPrintableError("invalid local config format")
+var FailedParsingActionYaml = common.NewPrintableError("failed to parse actions file")
+var FailedParsingActionYamlEmpty = common.NewPrintableError("empty actions file format")
+var FailedParsingActionYamlInvalid = common.NewPrintableError("invalid actions file format")
 
 const ActionFileName = ".seal-actions.yml"
 
@@ -128,7 +128,7 @@ func SaveActionFile(actionFile *ActionsFile, w io.Writer) error {
 	yamlEncoder.SetIndent(2)
 	err := yamlEncoder.Encode(actionFile)
 	if err != nil {
-		return common.NewPrintableError("failed writing to local config")
+		return common.NewPrintableError("failed writing to actions file")
 	}
 
 	return nil

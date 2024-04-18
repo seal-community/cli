@@ -61,17 +61,22 @@ func findPackageManager(configDir *config.Config, projectDir string, target stri
 	return nil, common.NewPrintableError("failed to find a supported package manager in the project directory")
 }
 
-func (p *basePhase) init(path string, showProgress bool) error {
+func (p *basePhase) init(targetPath string, configPath string, showProgress bool) error {
 	var err error
-	p.ProjectDir = getProjectDir(path)
-	p.TargetFile = getTargetFile(path) // will be empty if a directory was provided
+	p.ProjectDir = getProjectDir(targetPath)
+	p.TargetFile = getTargetFile(targetPath) // will be empty if a directory was provided
 
-	slog.Debug("initialized project paths", "dir", p.ProjectDir, "target", p.TargetFile, "provided", path)
 	if p.ProjectDir == "" {
-		return common.NewPrintableError("bad project directory path: %s", path)
+		return common.NewPrintableError("bad project directory path: %s", targetPath)
 	}
 
-	confFilePath := filepath.Join(p.ProjectDir, config.ConfigFileName)
+	confFilePath := configPath
+	if confFilePath == "" {
+		slog.Debug("loading config from project folder", "dir", p.ProjectDir)
+		confFilePath = filepath.Join(p.ProjectDir, config.ConfigFileName)
+	}
+
+	slog.Info("initialized project paths", "project-dir", p.ProjectDir, "target", p.TargetFile, "provided-path", targetPath, "config", confFilePath)
 
 	p.Config, err = InitConfiguration(confFilePath)
 	if err != nil {

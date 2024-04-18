@@ -30,7 +30,7 @@ func getTargetFile(p string) string {
 
 	f, err := os.Stat(abs)
 	if err != nil || f.IsDir() {
-		slog.Debug("bad target path", "err", err, "path", abs) // ignoring error case here, same logic
+		slog.Debug("target path is not a file", "err", err, "path", abs) // ignoring error case here, same logic
 		return ""
 	}
 

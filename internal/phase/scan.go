@@ -15,9 +15,9 @@ type scanPhase struct {
 	// hold scan results
 }
 
-func NewScanPhase(target string, showProgress bool) (*scanPhase, error) {
+func NewScanPhase(target string, configPath string, showProgress bool) (*scanPhase, error) {
 	c := basePhase{}
-	if err := c.init(target, showProgress); err != nil {
+	if err := c.init(target, configPath, showProgress); err != nil {
 		return nil, err
 	}
 	c.addToMax(ScanSteps)

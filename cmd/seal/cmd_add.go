@@ -86,7 +86,7 @@ func upsertRule(resolved phase.ResolvedRule, existingOverrides *[]api.PackageVer
 func addCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add package version",
-		Short: "Add a package fix to local config",
+		Short: "Add a package fix to actions file",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			defer func() {
 				// used to print error message on exit
@@ -106,8 +106,9 @@ func addCommand() *cobra.Command {
 			outputSnykPolicy := getArgBool(cmd, snykPolicyFlag)
 			target := getArgString(cmd, manifestFile)
 			targetDir := common.GetAbsDirPath(target)
+			configPath := getArgString(cmd, configFileKey)
 
-			addPhase, err := phase.NewAddPhase(targetDir, verbosity == 0)
+			addPhase, err := phase.NewAddPhase(targetDir, configPath, verbosity == 0)
 			if err != nil {
 				slog.Error("failed initializing scan", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing scan phase")
@@ -127,12 +128,17 @@ func addCommand() *cobra.Command {
 				slog.Error("failed resolving rule", "err", err, "from", rule.From.Library, "version", rule.From.Version)
 				return common.FallbackPrintableMsg(err, "failed resolving version")
 			}
-			
+
 			addPhase.HideProgress() // explicitly stop the progress bar here, allow printing
 
-			existingOverrides, err := getExistingConfigOverrides(targetDir)
+			actionsFilePath := getArgString(cmd, actionsFileKey)
+			if actionsFilePath == "" {
+				actionsFilePath = filepath.Join(targetDir, actions.ActionFileName)
+			}
+
+			existingOverrides, err := getExistingConfigOverrides(actionsFilePath)
 			if err != nil {
-				return common.FallbackPrintableMsg(err, "failed getting existing local config file")
+				return common.FallbackPrintableMsg(err, "failed getting existing actions file")
 			}
 
 			if existingOverrides == nil {
@@ -156,7 +162,7 @@ func addCommand() *cobra.Command {
 			added := false
 			if modifedOverrides {
 				slog.Info("updating actions file with new rule")
-				if err = recreateActionsFile(existingOverrides, addPhase.Manager, addPhase.Config.Project, addPhase.ProjectDir); err != nil {
+				if err = recreateActionsFile(actionsFilePath, existingOverrides, addPhase.Manager, addPhase.Config.Project, addPhase.ProjectDir); err != nil {
 					return err // only a wrapper func, logged from withing
 				}
 				added = true

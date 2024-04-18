@@ -75,13 +75,12 @@ func printSummary(summary *output.Summary) {
 	fmt.Println(msg)
 }
 
-func loadActionsFile(targetDir string) (*actions.ActionsFile, error) {
-	actionsFilePath := filepath.Join(targetDir, actions.ActionFileName)
+func loadActionsFile(actionsFilePath string) (*actions.ActionsFile, error) {
 	f, err := os.Open(actionsFilePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			slog.Info("failed opening conf file", "err", err, "path", actionsFilePath)
-			return nil, common.NewPrintableError("could not open local config file in %s", actionsFilePath)
+			return nil, common.NewPrintableError("could not open actions file in %s", actionsFilePath)
 		}
 
 		slog.Info("actions file not found", "path", actions.FailedParsingActionYamlInvalid)
@@ -178,7 +177,9 @@ func fixCommand() *cobra.Command {
 
 			verbosity := getArgCount(cmd, verboseFlagKey)
 			summaryPath := getArgString(cmd, summaryFlag)
+			configPath := getArgString(cmd, configFileKey)
 			fm := getArgString(cmd, modeFlag)
+
 			fixModeUsed := fixModeFromString(fm)
 			if fixModeUsed == "" {
 				slog.Error("fix mode is unsupported", "mode", fm)
@@ -188,7 +189,7 @@ func fixCommand() *cobra.Command {
 			slog.Info("Fix mode", "mode", fixModeUsed)
 
 			// IMPORTANT - after this point printing directly to console would mess up the progress bar, msg should be used instead
-			fixPhase, err := phase.NewFixPhase(target, verbosity == 0)
+			fixPhase, err := phase.NewFixPhase(target, configPath, verbosity == 0)
 			if err != nil {
 				slog.Error("failed initializing fix", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing fix phase")
@@ -196,19 +197,24 @@ func fixCommand() *cobra.Command {
 
 			defer fixPhase.HideProgress() // should be gone when this is over, hide just in case
 
-			var actions *actions.ActionsFile = nil
+			var actionsFile *actions.ActionsFile = nil
+			actionsFilePath := getArgString(cmd, actionsFileKey)
+			if actionsFilePath == "" {
+				actionsFilePath = filepath.Join(targetDir, actions.ActionFileName)
+			}
+
 			if fixModeUsed == localMode {
 				// performing here for better experience in case of invalid file
-				slog.Info("loading actions file")
-				actions, err = loadActionsFile(targetDir)
+				slog.Info("trying to load actions file", "path", actionsFilePath)
+				actionsFile, err = loadActionsFile(actionsFilePath)
 				if err != nil {
-					slog.Error("failed opening local config for fix", "err", err)
-					return common.FallbackPrintableMsg(err, "failed loading local config")
+					slog.Error("failed opening actions file for fix", "err", err)
+					return common.FallbackPrintableMsg(err, "failed loading actions file")
 				}
 
-				if actions == nil {
+				if actionsFile == nil {
 					slog.Warn("actions file not found or empty", "dirpath", targetDir)
-					fmt.Printf(common.Colorize("Warning: Using local configuration, but local config not found. No fixes will be applied.\n", common.AnsiWarnYellow))
+					fmt.Printf(common.Colorize("Warning: instructed to use local actions file, but file not found. No fixes will be applied.\n", common.AnsiWarnYellow))
 					return nil
 				}
 				// NOTE: ideally we change the BE to support querying any package, then we pre-fetch it here and notify user, instead of failing later
@@ -226,10 +232,10 @@ func fixCommand() *cobra.Command {
 				return common.FallbackPrintableMsg(err, "failed performing initial scan")
 			}
 
-			if actions != nil {
+			if actionsFile != nil {
 				// replace existing slice
 				slog.Info("limiting results according to actions file", "before", len(result.Vulnerable))
-				overriddenPackages := getVulnerablePackagesAccordingToOverride(result.Vulnerable, actions)
+				overriddenPackages := getVulnerablePackagesAccordingToOverride(result.Vulnerable, actionsFile)
 				result.Vulnerable = overriddenPackages // even if we have 0 after filtering, so we don't fix anything
 				slog.Info("total available vulnerable after overriding", "count", len(overriddenPackages))
 			}

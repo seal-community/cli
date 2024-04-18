@@ -53,7 +53,7 @@ func NewSummary(projectDir string, fixes shared.FixMap) *Summary {
 					slog.Error("failed converting to relative path", "err", err, "path", origPath)
 					return nil
 				}
-				
+
 				common.Trace("converted path to relaive", "rel", path, "original", origPath)
 			}
 
@@ -108,7 +108,7 @@ func (s *Summary) Print() {
 		overrideMsg := ""
 		if f.pkg.IsOverridden() {
 			// in future we will support remote config as well
-			overrideMsg = common.Colorize(" (local config)", common.AnsiDarkGrey)
+			overrideMsg = common.Colorize(" (actions file)", common.AnsiDarkGrey)
 		}
 
 		fmt.Printf("%s replaced with %s%s\n",
