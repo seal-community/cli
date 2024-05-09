@@ -133,7 +133,7 @@ func (sp *scanPhase) Scan() (*ScanResult, error) {
 	slog.Info("finished local dependency gathering", "count", len(dependencyMap))
 	sp.advanceStep("Searching for vulnerabilities")
 
-	vulnerable, err := sp.Server.CheckVulnerablePackages(reduceToUniqueDeps(dependencyMap), metadata, func(chunk []api.PackageVersion, idx, total int) {
+	vulnerable, err := sp.Server.CheckVulnerablePackages(reduceToUniqueDeps(dependencyMap), metadata, func([]api.PackageVersion, int) {
 		// for each 'unexpected' step (i.e. chunk) increase max by one
 		sp.addFinishedStep()
 	})
@@ -148,7 +148,7 @@ func (sp *scanPhase) Scan() (*ScanResult, error) {
 		AllDependencies: dependencyMap,
 	}
 
-	slog.Info("got packages from server", "count", len(result.Vulnerable))
+	slog.Info("got vulnerable packages from server", "count", len(result.Vulnerable))
 	sp.advanceStep("") // final step
 
 	return result, nil

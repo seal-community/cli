@@ -62,7 +62,7 @@ func DownloadPythonPackage(s api.Server, name string, version string, compatible
 	libraryInfo, statusCode, err := api.SendSealRequest[any](
 		s.Client,
 		"GET",
-		fmt.Sprintf("https://pypi.sealsecurity.io/simple/%s/", name),
+		fmt.Sprintf("%s/simple/%s/", api.PypiServer, name),
 		nil,
 		[]api.StringPair{authHeader},
 		nil,

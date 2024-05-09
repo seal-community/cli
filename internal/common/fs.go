@@ -47,7 +47,7 @@ func OpenFile(p string) (*os.File, error) {
 			return nil, NewPrintableError("could not open file in %s", p)
 		}
 
-		slog.Info("actions file not found", "path", p)
+		slog.Info("file not found", "path", p)
 		return nil, nil
 
 	}
@@ -79,7 +79,7 @@ func FindPathsWithSuffix(path string, suffix string) ([]string, error) {
 		if strings.HasSuffix(strings.ToLower(info.Name()), strings.ToLower(suffix)) {
 			paths = append(paths, p)
 		}
-		
+
 		return nil
 	})
 	if err != nil {

@@ -253,16 +253,16 @@ func TestLockfileUpdateV2MultipleLocations(t *testing.T) {
 
 	projectDir := "/prj"
 
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &pkg,
-			Paths: map[string]bool{
-				filepath.Join(projectDir, "node_modules/commitizen/node_modules/lodash"): true,
-				filepath.Join(projectDir, "node_modules/cypress/node_modules/lodash"):    true,
+	fixes := []shared.DependnecyDescriptor{
+		{VulnerablePackage: &pkg,
+			FixedLocations: []string{
+				filepath.Join(projectDir, "node_modules/commitizen/node_modules/lodash"),
+				filepath.Join(projectDir, "node_modules/cypress/node_modules/lodash"),
 			},
 		},
 	}
 
-	if err := UpdateLockfile(lock, fixmap, projectDir); err != nil {
+	if err := UpdateLockfile(lock, fixes, projectDir); err != nil {
 		t.Fatalf("failed updating: %v", err)
 	}
 
@@ -300,16 +300,16 @@ func TestLockfileUpdateV3MultipleLocations(t *testing.T) {
 
 	projectDir := "/prj"
 
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &pkg,
-			Paths: map[string]bool{
-				filepath.Join(projectDir, "node_modules/commitizen/node_modules/lodash"): true,
-				filepath.Join(projectDir, "node_modules/cypress/node_modules/lodash"):    true,
+	fixes := []shared.DependnecyDescriptor{
+		{VulnerablePackage: &pkg,
+			FixedLocations: []string{
+				filepath.Join(projectDir, "node_modules/commitizen/node_modules/lodash"),
+				filepath.Join(projectDir, "node_modules/cypress/node_modules/lodash"),
 			},
 		},
 	}
 
-	if err := UpdateLockfile(lock, fixmap, projectDir); err != nil {
+	if err := UpdateLockfile(lock, fixes, projectDir); err != nil {
 		t.Fatalf("failed updating: %v", err)
 	}
 
@@ -337,13 +337,15 @@ func TestLockfileOldNotSupported(t *testing.T) {
 	}
 
 	projectDir := "/prj"
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &semverregex, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/semver-regex"): true,
-		}},
+	fixes := []shared.DependnecyDescriptor{
+		{VulnerablePackage: &semverregex,
+			FixedLocations: []string{
+				filepath.Join(projectDir, "node_modules/semver-regex"),
+			},
+		},
 	}
 
-	err := UpdateLockfile(lock, fixmap, projectDir)
+	err := UpdateLockfile(lock, fixes, projectDir)
 	if err != UnsupportedLockfileVersion {
 		t.Fatalf("got %v, expected  unsupported error", err)
 	}

@@ -49,11 +49,11 @@ func (m *FakePackageManager) ListDependencies(targetDir string) (*common.Process
 	return nil, false
 }
 
-func (m *FakePackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
+func (m *FakePackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
 	return nil, nil
 }
 
-func (m *FakePackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+func (m *FakePackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	return nil
 }
 

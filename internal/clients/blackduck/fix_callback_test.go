@@ -5,7 +5,6 @@ import (
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"net/http"
-	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -21,7 +20,7 @@ func TestParseKey(t *testing.T) {
 	}
 }
 
-func getFixAndScanResult() (shared.FixMap, []api.PackageVersion) {
+func getFixAndScanResult() []shared.DependnecyDescriptor {
 	scannedDjango := api.PackageVersion{
 		Version:                         "3.2.17+sp1",
 		Library:                         api.Package{Name: "Django", PackageManager: mappings.PythonManager},
@@ -35,7 +34,7 @@ func getFixAndScanResult() (shared.FixMap, []api.PackageVersion) {
 		SealedVulnerabilities: []api.Vulnerability{
 			{CVE: "CVE-2023-41164"},
 		},
-		OriginVersion: "3.2.17",
+		OriginVersionString: "3.2.17",
 	}
 
 	scannedGrpcio := api.PackageVersion{
@@ -47,7 +46,7 @@ func getFixAndScanResult() (shared.FixMap, []api.PackageVersion) {
 			{CVE: "CVE-2023-1428"},
 			{CVE: "CVE-2023-32731"},
 		},
-		OriginVersion: "1.52.0",
+		OriginVersionString: "1.52.0",
 	}
 
 	scannedRequests := api.PackageVersion{
@@ -58,7 +57,7 @@ func getFixAndScanResult() (shared.FixMap, []api.PackageVersion) {
 		OpenVulnerabilities: []api.Vulnerability{
 			{CVE: "CVE-2023-32681"},
 		},
-		OriginVersion: "2.26.0",
+		OriginVersionString: "2.26.0",
 	}
 
 	fixedDjango := api.PackageVersion{
@@ -70,7 +69,7 @@ func getFixAndScanResult() (shared.FixMap, []api.PackageVersion) {
 			{CVE: "CVE-2023-43665"},
 			{CVE: "CVE-2023-41164"},
 		},
-		OriginVersion: "3.2.17",
+		OriginVersionString: "3.2.17",
 	}
 
 	fixedGrpcio := api.PackageVersion{
@@ -82,7 +81,7 @@ func getFixAndScanResult() (shared.FixMap, []api.PackageVersion) {
 		SealedVulnerabilities: []api.Vulnerability{
 			{CVE: "CVE-2023-32731"},
 		},
-		OriginVersion: "1.52.0",
+		OriginVersionString: "1.52.0",
 	}
 
 	fixedRequests := api.PackageVersion{
@@ -91,28 +90,17 @@ func getFixAndScanResult() (shared.FixMap, []api.PackageVersion) {
 		SealedVulnerabilities: []api.Vulnerability{
 			{CVE: "CVE-2023-32681"},
 		},
-		OriginVersion: "2.26.0",
+		OriginVersionString: "2.26.0",
 	}
-
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &scannedDjango, Paths: map[string]bool{
-			filepath.Join("/prj", "pythonstuff/django"): true,
-		}},
-		"b": &shared.FixedEntry{Package: &scannedGrpcio, Paths: map[string]bool{
-			filepath.Join("/prj", "pythonstuff/grpcio"): true,
-		}},
-		"c": &shared.FixedEntry{Package: &scannedRequests, Paths: map[string]bool{
-			filepath.Join("/prj", "pythonstuff/requests"): true,
-		}},
+	return []shared.DependnecyDescriptor{
+		{VulnerablePackage: &scannedDjango, AvailableFix: &fixedDjango, Locations: nil, FixedLocations: nil},
+		{VulnerablePackage: &scannedGrpcio, AvailableFix: &fixedGrpcio, Locations: nil, FixedLocations: nil},
+		{VulnerablePackage: &scannedRequests, AvailableFix: &fixedRequests, Locations: nil, FixedLocations: nil},
 	}
-
-	fixResults := []api.PackageVersion{fixedDjango, fixedGrpcio, fixedRequests}
-
-	return fixmap, fixResults
 }
 
 func TestBuildSealedVulnerabilitiesMapping(t *testing.T) {
-	_, fixResults := getFixAndScanResult()
+	fixResults := getFixAndScanResult()
 
 	got := buildSealedVulnerabilitiesMapping(fixResults)
 	want := vulnerabilityMapping{
@@ -130,8 +118,8 @@ func TestBuildSealedVulnerabilitiesMapping(t *testing.T) {
 }
 
 func TestHandleAppliedFixes(t *testing.T) {
-	_, fixResults := getFixAndScanResult()
-	fixResults[1].SealedVulnerabilities = []api.Vulnerability{}
+	fixResults := getFixAndScanResult()
+	fixResults[1].VulnerablePackage.SealedVulnerabilities = []api.Vulnerability{}
 
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: map[string]int{
@@ -178,7 +166,7 @@ func TestHandleAppliedFixes(t *testing.T) {
 }
 
 func TestHandleAppliedMultipleFixes(t *testing.T) {
-	_, fixResults := getFixAndScanResult()
+	fixResults := getFixAndScanResult()
 
 	fakeRoundTripper := fakeRoundTripper{
 		statusCode: map[string]int{

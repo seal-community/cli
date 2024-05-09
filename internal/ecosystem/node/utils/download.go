@@ -25,7 +25,7 @@ func DownloadNPMPackage(s api.Server, name string, version string) ([]byte, erro
 	libraryInfo, statusCode, err := api.SendSealRequestJson[any, npmLibraryInfo](
 		s.Client,
 		"GET",
-		fmt.Sprintf("https://npm.sealsecurity.io/%s/", name),
+		fmt.Sprintf("%s/%s/", api.NpmServer, name),
 		nil,
 		[]api.StringPair{authHeader},
 		[]api.StringPair{},

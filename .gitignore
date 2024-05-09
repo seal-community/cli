@@ -30,4 +30,8 @@ test/*/output/
 *.seal-config.yml
 *.seal-actions.yml
 
-cmd/seal/__debug_bin*
+**/__debug_bin*
+
+# python
+.venv/
+requirements.txt

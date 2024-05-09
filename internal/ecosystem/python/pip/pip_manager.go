@@ -276,15 +276,15 @@ func (m *PipPackageManager) getCompatibleTags(name string, version string) ([]st
 	return m.getHostCompatibleTags()
 }
 
-func (m *PipPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
-	compatibleTags, err := m.getCompatibleTags(pkg.Library.Name, pkg.Version)
+func (m *PipPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+	compatibleTags, err := m.getCompatibleTags(descriptor.VulnerablePackage.Library.Name, descriptor.VulnerablePackage.Version)
 	if err != nil {
 		return nil, err
 	}
 
-	return utils.DownloadPythonPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString, compatibleTags)
+	return utils.DownloadPythonPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, compatibleTags)
 }
 
-func (m *PipPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+func (m *PipPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	return nil
 }

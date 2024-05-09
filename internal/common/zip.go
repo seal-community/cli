@@ -9,7 +9,7 @@ import (
 )
 
 func UnzipFile(file *zip.File, location string) error {
-	slog.Debug("extracting file", "file", file.Name, "location", location, "location+file", filepath.Join(location, file.Name))
+	Trace("extracting file", "file", file.Name, "location", location, "location+file", filepath.Join(location, file.Name))
 	target := filepath.Join(location, file.Name)
 	if file.FileInfo().IsDir() {
 		if err := os.MkdirAll(target, os.ModePerm); err != nil {
@@ -38,7 +38,7 @@ func UnzipFile(file *zip.File, location string) error {
 		slog.Error("failed opening file", "err", err, "file", file.Name)
 		return err
 	}
-	
+
 	defer rc.Close()
 
 	if _, err := io.Copy(targetFile, rc); err != nil {
@@ -46,7 +46,7 @@ func UnzipFile(file *zip.File, location string) error {
 		return err
 	}
 
-	slog.Debug("extracted file", "file", target)
+	Trace("extracted file", "file", target)
 
 	return nil
 }

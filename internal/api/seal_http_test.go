@@ -61,59 +61,77 @@ func TestEmpty(t *testing.T) {
 func TestSanity(t *testing.T) {
 	dependency := common.Dependency{
 		Name:           "ejs-escaped",
-		Version:        "2.7.4",
+		Version:        "2.7.4-sp1",
 		PackageManager: "NPM",
 	}
 	request := BulkCheckRequest{
 		Entries: []common.Dependency{dependency},
 	}
 
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, jsonContent: `{
-        "items": [
-            {
-                "id": "6f7a8ea8-c536-4e22-9d5d-69a25ac57899",
-                "recommended_library_version_id": "a83e834c-1f7c-4db5-97b1-da8f02c1f95c",
-                "recommended_library_version": "2.7.4-sp1",
-                "library": {
-                    "id": "33af4a95-4249-4d3b-9fa5-424184fa4b76",
-                    "name": "ejs",
-                    "escaped_name": "ejs-escaped",
-                    "package_manager": "NPM",
-                    "source_link": "https://github.com/mde/ejs"
-                },
-                "version": "2.7.4",
-                "open_vulnerabilities": [
-                    {
-                        "cve": "CVE-2022-29078",
-                        "nvd_score": 9.8,
-                        "snyk_id": "SNYK-JS-EJS-2803307",
-                        "snyk_cvss_score": 8.1,
-                        "github_advisory_id": "GHSA-phwq-j96m-2c2q",
-                        "github_advisory_score": 9.8,
-                        "unified_score": 9.8
-                    },
-                    {
-                        "cve": null,
-                        "nvd_score": null,
-                        "snyk_id": "SNYK-JS-EJS-1049328",
-                        "snyk_cvss_score": 4.1,
-                        "github_advisory_id": null,
-                        "github_advisory_score": null,
-                        "unified_score": 4.1
-                    }
-                ],
-                "sealed_vulnerabilities": [],
-                "is_hidden": false,
-                "is_sealed": true,
-                "last_pulled": "2024-04-08T09:01:46.212000Z",
-                "number_of_times_pulled": null,
-				"origin_version": "2.7.4"
-            }
-        ],
-        "total": 1,
-        "limit": 1,
-        "offset": 0
-    }`}
+	fakeRoundTripper := fakeRoundTripper{statusCode: 200, jsonContent: `
+        {
+			"items": [
+				{
+					"id": "a83e834c-1f7c-4db5-97b1-da8f02c1f95c",
+					"recommended_library_version_id": "226353d8-4e42-4e6c-91f7-c5038be2c7fa",
+					"recommended_library_version": "2.7.4-sp2",
+					"library": {
+						"id": "33af4a95-4249-4d3b-9fa5-424184fa4b76",
+						"name": "ejs",
+						"escaped_name": "ejs-escaped",
+						"package_manager": "NPM",
+						"source_link": "https://github.com/mde/ejs"
+					},
+					"version": "2.7.4-sp1",
+					"open_vulnerabilities": [
+						{
+							"cve": "CVE-2024-33883",
+							"nvd_score": null,
+							"snyk_id": "SNYK-JS-EJS-6689533",
+							"snyk_cvss_score": 5.3,
+							"github_advisory_id": "GHSA-ghr5-ch3p-vcr6",
+							"github_advisory_score": null,
+							"unified_score": 5.3,
+							"malicious_id": null
+						}
+					],
+					"sealed_vulnerabilities": [
+						{
+							"cve": "CVE-2022-29078",
+							"nvd_score": 9.8,
+							"snyk_id": "SNYK-JS-EJS-2803307",
+							"snyk_cvss_score": 8.1,
+							"github_advisory_id": "GHSA-phwq-j96m-2c2q",
+							"github_advisory_score": 9.8,
+							"unified_score": 9.8,
+							"malicious_id": null
+						},
+						{
+							"cve": null,
+							"nvd_score": null,
+							"snyk_id": "SNYK-JS-EJS-1049328",
+							"snyk_cvss_score": 4.1,
+							"github_advisory_id": null,
+							"github_advisory_score": null,
+							"unified_score": 4.1,
+							"malicious_id": null
+						}
+					],
+					"is_hidden": null,
+					"is_sealed": null,
+					"last_pulled": null,
+					"number_of_times_pulled": null,
+					"origin_version": "2.7.4",
+					"origin_version_id": "6f7a8ea8-c536-4e22-9d5d-69a25ac57899",
+					"patch_stage": "uploaded",
+					"patch_stage_result": "finished",
+					"publish_date": "2024-05-01T07:45:58.493077Z"
+				}
+			],
+			"total": 1,
+			"limit": 1,
+			"offset": 0
+		}`}
 
 	client := http.Client{Transport: fakeRoundTripper}
 
@@ -138,49 +156,51 @@ func TestSanity(t *testing.T) {
 	}
 
 	vulnerablePackage := result.Items[0]
+	if vulnerablePackage.VersionId != "a83e834c-1f7c-4db5-97b1-da8f02c1f95c" {
+		t.Fatalf("wrong version id %s", vulnerablePackage.VersionId)
+	}
+
+	if vulnerablePackage.Library.Id != "33af4a95-4249-4d3b-9fa5-424184fa4b76" {
+		t.Fatalf("wrong library id %s", vulnerablePackage.Library.Id)
+	}
+
 	if vulnerablePackage.Library.Name != dependency.Name {
 		t.Fatalf("wrong library name %s != %s", dependency.Name, vulnerablePackage.Library.Name)
-
 	}
 
 	if vulnerablePackage.Version != dependency.Version {
-		t.Fatalf("wrong library name %s != %s", dependency.Version, vulnerablePackage.Version)
+		t.Fatalf("wrong library version %s != %s", dependency.Version, vulnerablePackage.Version)
 	}
 
-	if vulnerablePackage.Version != dependency.Version {
+	if vulnerablePackage.Library.PackageManager != dependency.PackageManager {
 		t.Fatalf("wrong package manager name %s != %s", dependency.PackageManager, vulnerablePackage.Library.PackageManager)
 	}
 
-	if vulnerablePackage.RecommendedLibraryVersionId != "a83e834c-1f7c-4db5-97b1-da8f02c1f95c" {
+	if vulnerablePackage.RecommendedLibraryVersionId != "226353d8-4e42-4e6c-91f7-c5038be2c7fa" {
 		t.Fatalf("wrong recommended id %s", vulnerablePackage.RecommendedLibraryVersionId)
 	}
 
-	if vulnerablePackage.RecommendedLibraryVersionString != "2.7.4-sp1" {
+	if vulnerablePackage.RecommendedLibraryVersionString != "2.7.4-sp2" {
 		t.Fatalf("wrong recommended version %s", vulnerablePackage.RecommendedLibraryVersionString)
 	}
 
-	if len(vulnerablePackage.OpenVulnerabilities) != 2 {
-		t.Fatalf("wrong number of vulnerabilities %v", vulnerablePackage.OpenVulnerabilities)
+	if len(vulnerablePackage.OpenVulnerabilities) != 1 {
+		t.Fatalf("wrong number of open vulnerabilities %v", vulnerablePackage.OpenVulnerabilities)
+	}
+	if len(vulnerablePackage.SealedVulnerabilities) != 2 {
+		t.Fatalf("wrong number of sealed vulnerabilities %v", vulnerablePackage.SealedVulnerabilities)
 	}
 
-	if vulnerablePackage.IsHidden {
-		t.Fatalf("package is hidden")
-	}
-
-	if !vulnerablePackage.IsSealed {
+	if !vulnerablePackage.IsSealed() {
 		t.Fatalf("package is not sealed")
 	}
 
-	if vulnerablePackage.LastPulled != "2024-04-08T09:01:46.212000Z" {
-		t.Fatalf("wrong last pulled %s", vulnerablePackage.LastPulled)
+	if vulnerablePackage.OriginVersionString != "2.7.4" {
+		t.Fatalf("wrong origin version %s", vulnerablePackage.OriginVersionString)
 	}
 
-	if vulnerablePackage.NumberOfTimesPulled != 0 {
-		t.Fatalf("wrong number of times pulled %d", vulnerablePackage.NumberOfTimesPulled)
-	}
-
-	if vulnerablePackage.OriginVersion != "2.7.4" {
-		t.Fatalf("wrong origin version %s", vulnerablePackage.OriginVersion)
+	if vulnerablePackage.OriginVersionId != "6f7a8ea8-c536-4e22-9d5d-69a25ac57899" {
+		t.Fatalf("wrong origin version %s", vulnerablePackage.OriginVersionId)
 	}
 }
 

@@ -63,7 +63,7 @@ func createDepRollbackDir(target string, dep *common.Dependency) error {
 		slog.Error("tmp name already exists or failed checking for it", "err", err)
 		return err
 	}
-	
+
 	slog.Debug("got new temp path for dep", "path", dep.DiskPath, "id", dep.Id(), "tmp-path", target)
 
 	if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {
@@ -73,7 +73,7 @@ func createDepRollbackDir(target string, dep *common.Dependency) error {
 
 	return nil
 }
-func (f *fixer) Fix(dep *common.Dependency, packageDownload shared.PackageDownload) (bool, error) {
+func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 
 	if _, ok := f.rollback[dep.DiskPath]; ok {
 		// will have issue in future with N branches that have been dedup'd so that they both point to the same
@@ -110,9 +110,9 @@ func (f *fixer) Fix(dep *common.Dependency, packageDownload shared.PackageDownlo
 		return false, common.NewPrintableError("failed creating package folder for %s", dep.PrintableName())
 	}
 
-	err = UntarNpmPackage(bytes.NewReader(packageDownload.Data), dep.DiskPath)
+	err = UntarNpmPackage(bytes.NewReader(packageData), dep.DiskPath)
 	if err != nil {
-		slog.Error("failed untaring package", "err", err, "target", dep.DiskPath, "payloadLen", len(packageDownload.Data))
+		slog.Error("failed untaring package", "err", err, "target", dep.DiskPath, "payloadLen", len(packageData))
 		return false, common.NewPrintableError("failed applying fix for package %s", dep.PrintableName())
 	}
 

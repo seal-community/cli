@@ -70,7 +70,7 @@ func IsNpmProjectDir(path string) (bool, error) {
 		slog.Info("package.json does not exist", "path", packageFile)
 		return false, nil
 	}
-	
+
 	return true, nil
 }
 
@@ -139,12 +139,12 @@ func (m *NpmPackageManager) GetScanTargets() []string {
 	return []string{utils.PackageJsonFile}
 }
 
-func (m *NpmPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
-	return utils.DownloadNPMPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
+func (m *NpmPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
 // according to config, update lock file with the seal prefix
-func (m *NpmPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+func (m *NpmPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	if !m.Config.Npm.UpdatePackageNames {
 		slog.Debug("not updating package lock")
 		return nil

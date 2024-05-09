@@ -39,20 +39,22 @@ func TestLockfileUpdateV1Formatting(t *testing.T) {
 	}
 
 	projectDir := "/prj"
-
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &minimist1, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/mkdirp/node_modules/minimist"): true,
-		}},
-		"b": &shared.FixedEntry{Package: &minimist2, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/minimist"): true,
-		}},
-		"c": &shared.FixedEntry{Package: &lodash, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/lodash"): true,
-		}},
+	fixes := []shared.DependnecyDescriptor{
+		{
+			VulnerablePackage: &minimist1,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/mkdirp/node_modules/minimist")},
+		},
+		{
+			VulnerablePackage: &minimist2,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/minimist")},
+		},
+		{
+			VulnerablePackage: &lodash,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/lodash")},
+		},
 	}
 
-	if err := UpdateLockfile(lock, fixmap, projectDir); err != nil {
+	if err := UpdateLockfile(lock, fixes, projectDir); err != nil {
 		t.Fatalf("failed updating: %v", err)
 	}
 
@@ -93,19 +95,22 @@ func TestLockfileUpdateV2Formatting(t *testing.T) {
 	}
 
 	projectDir := "/prj"
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &merge, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/merge"): true,
-		}},
-		"b": &shared.FixedEntry{Package: &minimist, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/minimist"): true,
-		}},
-		"c": &shared.FixedEntry{Package: &lodash, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/lodash"): true,
-		}},
+	fixes := []shared.DependnecyDescriptor{
+		{
+			VulnerablePackage: &merge,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/merge")},
+		},
+		{
+			VulnerablePackage: &minimist,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/minimist")},
+		},
+		{
+			VulnerablePackage: &lodash,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/lodash")},
+		},
 	}
 
-	if err := UpdateLockfile(lock, fixmap, projectDir); err != nil {
+	if err := UpdateLockfile(lock, fixes, projectDir); err != nil {
 		t.Fatalf("failed updating: %v", err)
 	}
 
@@ -137,7 +142,7 @@ func TestLockfileUpdateV3Formatting(t *testing.T) {
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.0-sp1",
 	}
-	
+
 	minimist2 := api.PackageVersion{
 		Version:                         "0.0.8",
 		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
@@ -160,26 +165,35 @@ func TestLockfileUpdateV3Formatting(t *testing.T) {
 	}
 
 	projectDir := "/prj"
-	fixmap := shared.FixMap{
-		"a": &shared.FixedEntry{Package: &merge, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/merge"): true,
-		}},
-		"b": &shared.FixedEntry{Package: &minimist, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/minimist"): true,
-		}},
-		"bb": &shared.FixedEntry{Package: &minimist2, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/mkdirp/node_modules/minimist"): true,
-		}},
-		"c": &shared.FixedEntry{Package: &lodash, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/commitizen/node_modules/lodash"): true,
-			filepath.Join(projectDir, "node_modules/cypress/node_modules/lodash"):    true,
-		}},
-		"d": &shared.FixedEntry{Package: &lodash2, Paths: map[string]bool{
-			filepath.Join(projectDir, "node_modules/lodash"): true,
-		}},
+	fixes := []shared.DependnecyDescriptor{
+		{
+			VulnerablePackage: &merge,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/merge")},
+		},
+		{
+			VulnerablePackage: &minimist,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/minimist")},
+		},
+		{
+			VulnerablePackage: &minimist2,
+			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/mkdirp/node_modules/minimist")},
+		},
+		{
+			VulnerablePackage: &lodash,
+			FixedLocations: []string{
+				filepath.Join(projectDir, "node_modules/commitizen/node_modules/lodash"),
+				filepath.Join(projectDir, "node_modules/cypress/node_modules/lodash"),
+			},
+		},
+		{
+			VulnerablePackage: &lodash2,
+			FixedLocations: []string{
+				filepath.Join(projectDir, "node_modules/lodash"),
+			},
+		},
 	}
 
-	if err := UpdateLockfile(lock, fixmap, projectDir); err != nil {
+	if err := UpdateLockfile(lock, fixes, projectDir); err != nil {
 		t.Fatalf("failed updating: %v", err)
 	}
 

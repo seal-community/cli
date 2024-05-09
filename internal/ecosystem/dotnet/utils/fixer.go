@@ -61,7 +61,7 @@ func savePackageFiles(location, packageName string, nupkgData []byte) error {
 		slog.Error("failed reading directory", "err", err, "location", location)
 		return err
 	}
-	
+
 	for _, file := range files {
 		for _, suffix := range []string{".nupkg", ".nuspec"} {
 			if strings.HasSuffix(file.Name(), suffix) {
@@ -107,7 +107,7 @@ func ExtractPackage(location string, payload []byte, filesToSkip []string) error
 			continue
 		}
 
-		slog.Debug("extracting file", "file", file.Name)
+		common.Trace("extracting file", "file", file.Name)
 
 		err = common.UnzipFile(file, location)
 		if err != nil {
@@ -119,11 +119,11 @@ func ExtractPackage(location string, payload []byte, filesToSkip []string) error
 }
 
 // extract the data to the <HOME>/.nuget/packages/<Package>/<Version> cache folder
-func (f *fixer) Fix(dep *common.Dependency, packageDownload shared.PackageDownload) (bool, error) {
-	sealedVersion := packageDownload.PackageVersion.RecommendedLibraryVersionString
+func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+	sealedVersion := entry.AvailableFix.Version
 	location := filepath.Join(GetGlobalPackagesCachePath(), dep.Name, sealedVersion)
 	packageName := fmt.Sprintf("%s.%s.nupkg", dep.Name, sealedVersion)
-	err := savePackageFiles(location, packageName, packageDownload.Data)
+	err := savePackageFiles(location, packageName, packageData)
 	return err == nil, err
 }
 

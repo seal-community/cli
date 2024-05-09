@@ -15,7 +15,7 @@ func DownloadNugetPackage(s api.Server, name string, version string) ([]byte, er
 	libraryData, statusCode, err := api.SendSealRequest[any](
 		s.Client,
 		"GET",
-		fmt.Sprintf("https://nuget.sealsecurity.io/v3-flatcontainer/%s/%s/%s", name, version, packageName),
+		fmt.Sprintf("%s/v3-flatcontainer/%s/%s/%s", api.NugetServer, name, version, packageName),
 		nil,
 		[]api.StringPair{authHeader},
 		nil,

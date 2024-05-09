@@ -98,10 +98,10 @@ func (m *YarnPackageManager) GetScanTargets() []string {
 	return m.npmManager.GetScanTargets()
 }
 
-func (m *YarnPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
-	return utils.DownloadNPMPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
+func (m *YarnPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *YarnPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+func (m *YarnPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	return nil
 }

@@ -267,7 +267,7 @@ func scanCommand() *cobra.Command {
 				genSnykPolicy := getArgBool(cmd, snykPolicyFlag) // only available if we are generating actions file
 				snykUpdated := false
 				if genSnykPolicy && len(configOverrides) > 0 {
-					availableFixes, err := scanPhase.QueryFixesForPackages(configOverrides)
+					availableFixes, err := scanPhase.QueryRecommendedPackages(configOverrides)
 					if err != nil {
 						slog.Error("failed querying fixes", "err", err)
 						return common.WrapWithPrintable(err, "failed to get package metadata") // using wrap to show prettier error than internal server one

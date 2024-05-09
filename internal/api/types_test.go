@@ -1,6 +1,7 @@
 package api
 
 import (
+	"cli/internal/ecosystem/mappings"
 	"testing"
 )
 
@@ -103,8 +104,82 @@ func TestPreferredIdSnyk(t *testing.T) {
 	vulnerability := Vulnerability{
 		SnykID: "SNYK-123",
 	}
-	
+
 	if vulnerability.PreferredId() != "SNYK-123" {
 		t.Fatalf("expected SNYK-123")
+	}
+}
+
+func TestOriginId(t *testing.T) {
+	pv := PackageVersion{
+		VersionId: "1111",
+		Library: Package{
+			PackageManager: mappings.NpmManager,
+			Name:           "library",
+		},
+		Version:                         "version",
+		RecommendedLibraryVersionId:     "2222",
+		RecommendedLibraryVersionString: "recommended",
+		OriginVersionId:                 "3333",
+		OriginVersionString:             "origin",
+	}
+
+	if oid := pv.OriginId(); oid != "NPM|library@origin" {
+		t.Fatalf("got %s", oid)
+	}
+}
+
+func TestRecommendedId(t *testing.T) {
+	pv := PackageVersion{
+		VersionId: "1111",
+		Library: Package{
+			PackageManager: mappings.NpmManager,
+			Name:           "library",
+		},
+		Version:                         "version",
+		RecommendedLibraryVersionId:     "2222",
+		RecommendedLibraryVersionString: "recommended",
+		OriginVersionId:                 "3333",
+		OriginVersionString:             "origin",
+	}
+
+	if rid := pv.RecommendedId(); rid != "NPM|library@recommended" {
+		t.Fatalf("got %s", rid)
+	}
+}
+
+func TestOriginIdForOrigin(t *testing.T) {
+	pv := PackageVersion{
+		VersionId: "1111",
+		Library: Package{
+			PackageManager: mappings.NpmManager,
+			Name:           "library",
+		},
+		Version:                         "version",
+		RecommendedLibraryVersionId:     "2222",
+		RecommendedLibraryVersionString: "recommended",
+	}
+
+	if oid := pv.OriginId(); oid != "NPM|library@version" {
+		t.Fatalf("got %s", oid)
+	}
+}
+
+func TestVersionId(t *testing.T) {
+	pv := PackageVersion{
+		VersionId: "1111",
+		Library: Package{
+			PackageManager: mappings.NpmManager,
+			Name:           "library",
+		},
+		Version:                         "version",
+		RecommendedLibraryVersionId:     "2222",
+		RecommendedLibraryVersionString: "recommended",
+		OriginVersionId:                 "3333",
+		OriginVersionString:             "origin",
+	}
+
+	if vid := pv.Id(); vid != "NPM|library@version" {
+		t.Fatalf("got %s", vid)
 	}
 }

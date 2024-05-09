@@ -46,7 +46,7 @@ func (f *fixer) extractPackage(sitePackagesPath string, payload []byte, dotdotPa
 
 	distInfoPath := ""
 	for _, file := range r.File {
-		slog.Debug("extracting file", "file", file.Name)
+		common.Trace("extracting file", "file", file.Name)
 
 		err = common.UnzipFile(file, sitePackagesPath)
 		if err != nil {
@@ -152,7 +152,7 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 
 	// Remove directories from site-packages, since os.Rename for files did not remove them
 	for _, dir := range dirs {
-		slog.Debug("removing dir", "dir", dir)
+		common.Trace("removing dir", "dir", dir)
 		if err := os.RemoveAll(dir); err != nil {
 			slog.Error("failed removing dir", "err", err, "dir", dir)
 			return fmt.Errorf("failed removing directory %s", dir)
@@ -178,7 +178,7 @@ func splitDotdotPaths(paths []string) ([]string, []string) {
 }
 
 // Will fix the dependency, assuming payload is a .whl file
-func (f *fixer) Fix(dep *common.Dependency, packageDownload shared.PackageDownload) (bool, error) {
+func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	recordPaths, err := readRecordFile(dep.DiskPath)
 	if err != nil {
 		return false, fmt.Errorf("failed reading RECORD file for package %s", dep.PrintableName())
@@ -202,9 +202,9 @@ func (f *fixer) Fix(dep *common.Dependency, packageDownload shared.PackageDownlo
 
 	f.rollback[dep.DiskPath] = tmpName
 
-	distInfoPath, err := f.extractPackage(sitePackages, packageDownload.Data, dotdotPaths)
+	distInfoPath, err := f.extractPackage(sitePackages, packageData, dotdotPaths)
 	if err != nil {
-		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(packageDownload.Data))
+		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(packageData))
 		return false, fmt.Errorf("failed applying fix for package %s", dep.PrintableName())
 	}
 

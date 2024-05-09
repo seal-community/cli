@@ -2,6 +2,7 @@ package nuget
 
 import (
 	"cli/internal/api"
+	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"os"
@@ -94,13 +95,27 @@ func TestHandleFixes(t *testing.T) {
 		RecommendedLibraryVersionId:     "1.1.0-sp1",
 		RecommendedLibraryVersionString: "1.1.0-sp1",
 	}
+	fixedVersion := api.PackageVersion{
+		VersionId:           "1.1.0-sp1",
+		Version:             "1.1.0-sp1",
+		OriginVersionString: "Snappier",
+		OriginVersionId:     "Snappier",
+		Library: api.Package{
+			Name:           "Snappier",
+			PackageManager: "nuget",
+		},
+		RecommendedLibraryVersionId:     "",
+		RecommendedLibraryVersionString: "",
+	}
 
-	fixes := shared.FixMap{
-		"Snappier": &shared.FixedEntry{
-			Paths: map[string]bool{
-				"Snappier.1.1.0-sp1.nupkg": true,
+	fixes := []shared.DependnecyDescriptor{
+		{
+			Locations: map[string]common.Dependency{
+				"Snappier.1.1.0-sp1.nupkg": {},
 			},
-			Package: &packageVersion,
+			FixedLocations:    []string{"Snappier.1.1.0-sp1.nupkg"},
+			VulnerablePackage: &packageVersion,
+			AvailableFix:      &fixedVersion,
 		},
 	}
 
@@ -148,7 +163,7 @@ func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
 		`./abc/../t.sln`,
 		`.\abc\..\t.sln`,
 	}
-	
+
 	for i, p := range ps {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
 			if IsNugetIndicatorFile(p) {

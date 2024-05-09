@@ -1,7 +1,6 @@
 package output
 
 import (
-	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"encoding/json"
@@ -10,36 +9,31 @@ import (
 	"log/slog"
 	"path/filepath"
 	"slices"
-
-	"golang.org/x/exp/maps"
+	"sort"
 )
 
 type summaryFix struct {
-	pkg       *api.PackageVersion
+	dep       shared.DependnecyDescriptor
 	locations []string
 }
 
 type Summary struct {
-	Root  string        `json:"root"`
-	Fixes []*summaryFix `json:"fixes"`
+	Root  string       `json:"root"`
+	Fixes []summaryFix `json:"fixes"`
 }
 
-func NewSummary(projectDir string, fixes shared.FixMap) *Summary {
+func NewSummary(projectDir string, fixes []shared.DependnecyDescriptor) *Summary {
 	s := &Summary{Root: projectDir,
-		Fixes: make([]*summaryFix, 0, 10), // allocate, so if empty in json will be [] instead of null
+		Fixes: make([]summaryFix, 0, 10), // allocate, so if empty in json will be [] instead of null
 	}
 
-	keys := maps.Keys(fixes)
-	slices.Sort(keys)
-
-	for _, k := range keys {
-		entry := fixes[k]
-		if len(entry.Paths) == 0 || entry.Package == nil {
-			slog.Error("bad entry in fix map", "len", len(entry.Paths), "package", entry.Package)
+	for _, entry := range fixes {
+		if len(entry.FixedLocations) == 0 || entry.VulnerablePackage == nil {
+			slog.Error("bad entry in fix map", "len", len(entry.Locations), "package", entry.VulnerablePackage)
 			continue
 		}
 
-		paths := maps.Keys(entry.Paths)
+		paths := entry.FixedLocations
 		relativePaths := make([]string, 0, len(paths))
 
 		slices.Sort(paths)
@@ -60,13 +54,16 @@ func NewSummary(projectDir string, fixes shared.FixMap) *Summary {
 			relativePaths = append(relativePaths, path)
 		}
 
-		sf := &summaryFix{
-			pkg:       entry.Package,
+		s.Fixes = append(s.Fixes, summaryFix{
+			dep:       entry,
 			locations: relativePaths,
-		}
-
-		s.Fixes = append(s.Fixes, sf)
+		})
 	}
+
+	// sort results based on library name; sorting here to keep order of input
+	sort.Slice(s.Fixes, func(i, j int) bool {
+		return s.Fixes[i].dep.VulnerablePackage.Library.Name < s.Fixes[j].dep.VulnerablePackage.Library.Name
+	})
 
 	return s
 }
@@ -78,8 +75,8 @@ func (f *summaryFix) MarshalJSON() ([]byte, error) {
 		To    string   `json:"to"`
 		Paths []string `json:"locations"`
 	}{
-		From:  f.pkg.Descriptor(),
-		To:    f.pkg.RecommendedDescriptor(),
+		From:  f.dep.VulnerablePackage.Descriptor(),
+		To:    f.dep.AvailableFix.Descriptor(),
 		Paths: f.locations,
 	})
 }
@@ -106,14 +103,18 @@ func (s *Summary) Print() {
 	const prefix = "   "
 	for _, f := range s.Fixes {
 		overrideMsg := ""
-		if f.pkg.IsOverridden() {
-			// in future we will support remote config as well
-			overrideMsg = common.Colorize(" (actions file)", common.AnsiDarkGrey)
+		if f.dep.IsOverridden() {
+			switch f.dep.OverrideMethod {
+			case shared.OverriddenFromLocal:
+				overrideMsg = common.Colorize(" (actions file)", common.AnsiDarkGrey)
+			case shared.OverriddenFromRemote:
+				overrideMsg = common.Colorize(" (remote config)", common.AnsiDarkGrey)
+			}
 		}
 
 		fmt.Printf("%s replaced with %s%s\n",
-			common.Colorize(f.pkg.Descriptor(), common.AnsiColdPurple),
-			common.Colorize(f.pkg.RecommendedDescriptor(), common.AnsiBlue),
+			common.Colorize(f.dep.VulnerablePackage.Descriptor(), common.AnsiColdPurple),
+			common.Colorize(f.dep.AvailableFix.Descriptor(), common.AnsiBlue),
 			overrideMsg,
 		)
 

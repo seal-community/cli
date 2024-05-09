@@ -17,7 +17,7 @@ func TestBulkQuerySingleChunk(t *testing.T) {
 			chunksRequested += 1
 			m.Unlock()
 		}}
-		
+
 	client := http.Client{Transport: fakeRoundTripper}
 	s := Server{Client: client}
 	_, err := s.CheckVulnerablePackages([]common.Dependency{
@@ -63,5 +63,146 @@ func TestBulkQueryChunks(t *testing.T) {
 
 	if chunksRequested != 3 {
 		t.Fatalf("wrong number of chunks sent: %d", chunksRequested)
+	}
+}
+
+func TestRemoteConfigQuerySanity(t *testing.T) {
+
+	recommendedId := "2222"
+
+	query := RemoteOverrideQuery{
+		LibraryId:            "000",
+		OriginVersionId:      "111",
+		RecommendedVersionId: &recommendedId,
+	}
+
+	fakeRoundTripper := fakeRoundTripper{statusCode: 200,
+		jsonContent: `{
+			"items": [
+				{
+					"id": "a83e834c-1f7c-4db5-97b1-da8f02c1f95c",
+					"recommended_library_version_id": "226353d8-4e42-4e6c-91f7-c5038be2c7fa",
+					"recommended_library_version": "2.7.4-sp2",
+					"library": {
+						"id": "33af4a95-4249-4d3b-9fa5-424184fa4b76",
+						"name": "ejs",
+						"escaped_name": "ejs-escaped",
+						"package_manager": "NPM",
+						"source_link": "https://github.com/mde/ejs"
+					},
+					"version": "2.7.4-sp1",
+					"open_vulnerabilities": [
+						{
+							"cve": "CVE-2024-33883",
+							"nvd_score": null,
+							"snyk_id": "SNYK-JS-EJS-6689533",
+							"snyk_cvss_score": 5.3,
+							"github_advisory_id": "GHSA-ghr5-ch3p-vcr6",
+							"github_advisory_score": null,
+							"unified_score": 5.3,
+							"malicious_id": null
+						}
+					],
+					"sealed_vulnerabilities": [
+						{
+							"cve": "CVE-2022-29078",
+							"nvd_score": 9.8,
+							"snyk_id": "SNYK-JS-EJS-2803307",
+							"snyk_cvss_score": 8.1,
+							"github_advisory_id": "GHSA-phwq-j96m-2c2q",
+							"github_advisory_score": 9.8,
+							"unified_score": 9.8,
+							"malicious_id": null
+						},
+						{
+							"cve": null,
+							"nvd_score": null,
+							"snyk_id": "SNYK-JS-EJS-1049328",
+							"snyk_cvss_score": 4.1,
+							"github_advisory_id": null,
+							"github_advisory_score": null,
+							"unified_score": 4.1,
+							"malicious_id": null
+						}
+					],
+					"is_hidden": null,
+					"is_sealed": null,
+					"last_pulled": null,
+					"number_of_times_pulled": null,
+					"origin_version": "2.7.4",
+					"origin_version_id": "6f7a8ea8-c536-4e22-9d5d-69a25ac57899",
+					"patch_stage": "uploaded",
+					"patch_stage_result": "finished",
+					"publish_date": "2024-05-01T07:45:58.493077Z"
+				}
+			],
+			"total": 1,
+			"limit": 1,
+			"offset": 0
+		}`, Validator: func(r *http.Request) {
+			if r.Method != "POST" {
+				t.Fatalf("bad method %s", r.Method)
+			}
+
+			if r.URL.Path != "/authenticated/v1/fixes/remote/proj" {
+				t.Fatalf("bad url %s", r.URL.Path)
+			}
+		},
+	}
+
+	client := http.Client{Transport: fakeRoundTripper}
+	s := Server{Client: client, AuthToken: "asd"}
+	page, err := s.sendRemoteFixesQuery([]RemoteOverrideQuery{query}, "proj")
+
+	if err != nil || page == nil {
+		t.Fatalf("failed send unitest %v, page: %v", err, page)
+	}
+
+	if len(page.Items) != 1 {
+		t.Fatalf("bad number of returned items %v", len(page.Items))
+	}
+}
+
+func TestRemoteConfigQueryNoToken(t *testing.T) {
+
+	recommendedId := "2222"
+
+	query := RemoteOverrideQuery{
+		LibraryId:            "000",
+		OriginVersionId:      "111",
+		RecommendedVersionId: &recommendedId,
+	}
+
+	fakeRoundTripper := fakeRoundTripper{statusCode: 200,
+		jsonContent: `{"items":[],"total":0,"limit":1,"offset":0}`,
+	}
+
+	client := http.Client{Transport: fakeRoundTripper}
+	s := Server{Client: client, AuthToken: ""}
+	page, err := s.sendRemoteFixesQuery([]RemoteOverrideQuery{query}, "proj")
+
+	if err != MissingTokenForQueryingError || page != nil {
+		t.Fatalf("should fail without token %v, page: %v", err, page)
+	}
+}
+
+func TestRemoteConfigQueryProjectDoesNotExist(t *testing.T) {
+
+	recommendedId := "2222"
+
+	query := RemoteOverrideQuery{
+		LibraryId:            "000",
+		OriginVersionId:      "111",
+		RecommendedVersionId: &recommendedId,
+	}
+
+	fakeRoundTripper := fakeRoundTripper{statusCode: 404}
+
+	client := http.Client{Transport: fakeRoundTripper}
+	s := Server{Client: client, AuthToken: "asd"}
+	page, err := s.sendRemoteFixesQuery([]RemoteOverrideQuery{query}, "non-existent")
+
+	if err != NonExistentProjectError || page != nil {
+		t.Fatalf("should fail without token %v, page: %v", err, page)
 	}
 }

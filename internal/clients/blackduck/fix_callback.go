@@ -1,7 +1,6 @@
 package blackduck
 
 import (
-	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
 	"cli/internal/ecosystem/shared"
@@ -22,12 +21,13 @@ func parseKey(vals []string) string {
 	return strings.ToLower(strings.Join(vals, "/")) // Has to be '/' because this is what BlackDuck using in the componentVersionOriginId field
 }
 
-func buildSealedVulnerabilitiesMapping(fixResults []api.PackageVersion) vulnerabilityMapping {
+func buildSealedVulnerabilitiesMapping(fixes []shared.DependnecyDescriptor) vulnerabilityMapping {
 	mapping := make(vulnerabilityMapping)
-	for _, fix := range fixResults {
+	for _, entry := range fixes {
+		fix := entry.AvailableFix
 		for _, vuln := range fix.SealedVulnerabilities {
 			v := vuln.PreferredId()
-			key := parseKey([]string{fix.Library.PackageManager, fix.Library.Name, fix.OriginVersion, v})
+			key := parseKey([]string{fix.Library.PackageManager, fix.Library.Name, fix.OriginVersionString, v})
 			mapping[key] = true
 		}
 	}
@@ -104,14 +104,14 @@ type BlackDuckCallback struct {
 	Config *config.Config
 }
 
-func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixResults []api.PackageVersion) error {
+func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes []shared.DependnecyDescriptor) error {
 	project, err := c.getProjectByName(bdProject)
 	if err != nil {
 		slog.Error("failed getting project", "err", err)
 		return common.FallbackPrintableMsg(err, "Failed to update BlackDuck")
 	}
 
-	fixMapping := buildSealedVulnerabilitiesMapping(fixResults)
+	fixMapping := buildSealedVulnerabilitiesMapping(fixes)
 	vulnerabilitiesChannel := make(chan bdVulnerableBOMComponent, 10)
 	g, ctx := errgroup.WithContext(context.Background())
 	g.Go(func() error {
@@ -134,32 +134,32 @@ func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixResults []api.P
 	return nil
 }
 
-func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes shared.FixMap, fixResults []api.PackageVersion) error {
+func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	bdConfg := b.Config.BlackDuck
 	c := NewClient(bdConfg)
-	return handleAppliedFixes(bdConfg.Project, c, fixResults)
+	return handleAppliedFixes(bdConfg.Project, c, fixes)
 }
 
 func (b *BlackDuckCallback) ShouldSkip() bool {
 	bdConfg := b.Config.BlackDuck
 
 	if bdConfg.Url == "" {
-		slog.Debug("BlackDuck URL is not set in the configuration file")
+		slog.Debug("skipping blackduck", "reason", "BlackDuck URL not set")
 		return true
 	}
 
 	if bdConfg.Token == "" {
-		slog.Debug("BlackDuck token is not set in the configuration file")
+		slog.Debug("skipping blackduck", "reason", "BlackDuck token not set")
 		return true
 	}
 
 	if bdConfg.Project == "" {
-		slog.Debug("BlackDuck project is not set in the configuration file")
+		slog.Debug("skipping blackduck", "reason", "BlackDuck project not set")
 		return true
 	}
 
 	if bdConfg.VersionName == "" {
-		slog.Debug("BlackDuck version is not set in the configuration file")
+		slog.Debug("skipping blackduck", "reason", "BlackDuck version not set")
 		return true
 	}
 

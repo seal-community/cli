@@ -9,11 +9,11 @@ import (
 	"github.com/iancoleman/orderedmap"
 )
 
-func UpdateProjectAssetsfile(assets *orderedmap.OrderedMap, fixes shared.FixMap) error {
+func UpdateProjectAssetsfile(assets *orderedmap.OrderedMap, fixes []shared.DependnecyDescriptor) error {
 	for _, fix := range fixes {
-		name := fix.Package.Library.Name
-		fromVersion := fix.Package.Version
-		toVersion := fix.Package.RecommendedLibraryVersionString
+		name := fix.VulnerablePackage.Library.Name
+		fromVersion := fix.VulnerablePackage.Version
+		toVersion := fix.AvailableFix.Version
 
 		fromKey := fmt.Sprintf("%s/%s", name, fromVersion)
 		toKey := fmt.Sprintf("%s/%s", name, toVersion)
@@ -177,7 +177,7 @@ func fixProject(assets *orderedmap.OrderedMap, name, fromVersion, toVersion stri
 				if !ok {
 					continue
 				}
-				
+
 				versionObj, exists := depMap.Get("version")
 				if !exists {
 					continue

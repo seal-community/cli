@@ -9,19 +9,17 @@ import (
 	"net/url"
 )
 
-const baseURL = "https://api.sealsecurity.io"
-
-var BadServerResponseCode = common.NewPrintableError("remote server issue")
-
 const SealVersionHeader = "X-Seal-Version"
 const SealSessionIdHeader = "X-Seal-CLI-Session-ID"
+
+var BadServerResponseCode = common.NewPrintableError("remote server issue")
 
 func FormatUserAgent() string {
 	return fmt.Sprintf("seal-cli/%s", common.CliVersion)
 }
 
 func sendSealApiRequest[RequestType any, ResponseType any](client http.Client, method string, path string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
-	reqUrl, err := url.JoinPath(baseURL, path)
+	reqUrl, err := url.JoinPath(BaseURL, path)
 
 	if err != nil {
 		slog.Error("failed joining url path", "err", err)
@@ -62,7 +60,7 @@ func SendSealRequest[RequestType any](client http.Client, method string, url str
 		{Name: SealSessionIdHeader, Value: common.SessionId},
 		{Name: "User-Agent", Value: FormatUserAgent()},
 	}
-    
+
 	headers = append(headers, baseHeaders...)
 	return BaseSendRequest(client, method, url, body, headers, params)
 }

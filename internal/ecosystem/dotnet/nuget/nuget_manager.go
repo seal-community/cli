@@ -53,7 +53,7 @@ func getNugetMetadata(targetDir string) *NugetMetadata {
 		slog.Error("failed running nuget version", "err", err)
 		return nil
 	}
-	
+
 	if result.Code != 0 {
 		slog.Error("running nuget version returned non-zero", "result", result)
 		return nil
@@ -132,15 +132,15 @@ func (m *NugetPackageManager) GetScanTargets() []string {
 	return []string{m.nugetTargetFile}
 }
 
-func (m *NugetPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
-	return DownloadNugetPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
+func (m *NugetPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+	return DownloadNugetPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *NugetPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+func (m *NugetPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	return handleFixes(projectDir, fixes)
 }
 
-func handleFixes(projectDir string, fixes shared.FixMap) error {
+func handleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	slog.Info("updating project.assets.json with fixes", "count", len(fixes))
 	assetsPaths, err := common.FindPathsWithSuffix(projectDir, ProjectAssetsFileName)
 	for _, assetsPath := range assetsPaths {

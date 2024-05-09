@@ -40,15 +40,8 @@ func (VulnerabilityObject Vulnerability) PreferredId() string {
 type Package struct {
 	Name           string `json:"escaped_name"` // using escaped name to correctly match packages that resolve to the same value (e.g. for pip)
 	PackageManager string `json:"package_manager"`
+	Id             string `json:"id"`
 }
-
-type OverriddenMethod string
-
-const (
-	NotOverridden        OverriddenMethod = "" // default
-	OverriddenFromLocal  OverriddenMethod = "local"
-	OverriddenFromRemote OverriddenMethod = "remote"
-)
 
 type PackageVersion struct {
 	// this struct has much more fields, but we only need these
@@ -59,24 +52,19 @@ type PackageVersion struct {
 	RecommendedLibraryVersionString string          `json:"recommended_library_version,omitempty"`
 	OpenVulnerabilities             []Vulnerability `json:"open_vulnerabilities"`
 	SealedVulnerabilities           []Vulnerability `json:"sealed_vulnerabilities"`
-	IsHidden                        bool            `json:"is_hidden"`
-	IsSealed                        bool            `json:"is_sealed"`
-	LastPulled                      string          `json:"last_pulled"`
-	NumberOfTimesPulled             int             `json:"number_of_times_pulled"`
-	OriginVersion                   string          `json:"origin_version"`
-
-	OverrideMethod OverriddenMethod `json:"-"` // currently only used internally until remote config support is added
+	OriginVersionString             string          `json:"origin_version"`
+	OriginVersionId                 string          `json:"origin_version_id"`
 }
 
 type Metadata map[string]interface{}
 
-type BulkCheckRequest struct {
-	Entries  []common.Dependency    `json:"entries"`
-	Metadata map[string]interface{} `json:"metadata"`
-}
-
 func (p *PackageVersion) CanBeFixed() bool {
 	return p.RecommendedLibraryVersionId != ""
+}
+
+// is this packages a sealed version (could have a recommended version e.g. sp1)
+func (p *PackageVersion) IsSealed() bool {
+	return p.OriginVersionId != ""
 }
 
 func (p *PackageVersion) IsMalicious() bool {
@@ -97,6 +85,15 @@ func (p *PackageVersion) RecommendedId() string {
 	return common.DependencyId(p.Library.PackageManager, p.Library.Name, p.RecommendedLibraryVersionString)
 }
 
+func (p *PackageVersion) OriginId() string {
+	if p.OriginVersionString == "" {
+		// if this is an origin version it does not have an origin version set, return itself for matching in dictionaries
+		return p.Id()
+	}
+
+	return common.DependencyId(p.Library.PackageManager, p.Library.Name, p.OriginVersionString)
+}
+
 func (p *PackageVersion) Descriptor() string {
 	return fmt.Sprintf("%s@%s", p.Library.Name, p.Version)
 }
@@ -107,8 +104,4 @@ func (p *PackageVersion) RecommendedDescriptor() string {
 
 func (p *PackageVersion) Ecosystem() string {
 	return mappings.BackendManagerToEcosystem(p.Library.PackageManager)
-}
-
-func (p *PackageVersion) IsOverridden() bool {
-	return p.OverrideMethod != NotOverridden
 }

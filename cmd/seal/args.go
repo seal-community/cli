@@ -19,14 +19,14 @@ func getArgBool(cmd *cobra.Command, key string) bool {
 }
 
 func getArgString(cmd *cobra.Command, key string) string {
-	summaryPath, err := cmd.Flags().GetString(key)
+	v, err := cmd.Flags().GetString(key)
 	if err != nil {
 		// means misconfiguration in code
 		slog.Error("failed getting flag", "err", err, "key", key)
 		panic(fmt.Sprintf("failed getting string key %s", key))
 	}
-	
-	return summaryPath
+
+	return v
 }
 
 func getArgCount(cmd *cobra.Command, key string) int {

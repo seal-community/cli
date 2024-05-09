@@ -6,6 +6,7 @@ import (
 	"cli/internal/api"
 	"cli/internal/clients/blackduck"
 	"cli/internal/common"
+	"cli/internal/ecosystem/shared"
 	"cli/internal/phase"
 	"fmt"
 	"log/slog"
@@ -19,16 +20,9 @@ import (
 
 const summaryFlag = "summarize"
 
-type fixMode string
-
-const (
-	localMode fixMode = "local"
-	allMode   fixMode = "all"
-)
-
-func fixModeFromString(s string) fixMode {
-	modes := []fixMode{localMode, allMode}
-	fm := fixMode(s)
+func fixModeFromString(s string) phase.FixMode {
+	modes := []phase.FixMode{phase.FixModeAll, phase.FixModeRemote, phase.FixModeLocal}
+	fm := phase.FixMode(s)
 	if slices.Contains(modes, fm) {
 		return fm
 	} else {
@@ -128,7 +122,6 @@ func filterVulnerablePackageForProject(vulnPackages []api.PackageVersion, projec
 			vulnPackage.Library.Name = override.Library
 		}
 
-		vulnPackage.OverrideMethod = api.OverriddenFromLocal
 		overriddenPackages = append(overriddenPackages, vulnPackage) // will be copied, needs to keep all the other information like vulnerabilities
 	}
 
@@ -136,16 +129,51 @@ func filterVulnerablePackageForProject(vulnPackages []api.PackageVersion, projec
 	return overriddenPackages
 }
 
-func getVulnerablePackagesAccordingToOverride(vulnPackages []api.PackageVersion, actions *actions.ActionsFile) []api.PackageVersion {
-	if len(actions.Projects) > 1 {
-		// should be prevented by the validator when loading
-		slog.Error("found more than 1 project in actions file - using first", "count", len(actions.Projects))
+func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFilePath string) error {
+	actionsFile, err := loadActionsFile(actionsFilePath)
+	if err != nil {
+		slog.Error("failed opening actions file for fix", "err", err)
+		return common.FallbackPrintableMsg(err, "failed loading actions file")
 	}
 
-	projectId := maps.Keys(actions.Projects)[0]
-	projectSection := actions.Projects[projectId]
+	if actionsFile == nil {
+		slog.Error("actions file not found or empty", "path", actionsFilePath)
+		return common.NewPrintableError("actions file not found")
+	}
+
+	// replace existing slice
+	slog.Info("limiting results according to actions file", "before", len(result.Vulnerable))
+
+	if len(actionsFile.Projects) > 1 {
+		// should be prevented by the validator when loading
+		slog.Error("found more than 1 project in actions file - using first", "count", len(actionsFile.Projects))
+	}
+
+	projectId := maps.Keys(actionsFile.Projects)[0]
+	projectSection := actionsFile.Projects[projectId]
 	slog.Info("filtering according to overrides in project", "id", projectId)
-	return filterVulnerablePackageForProject(vulnPackages, projectSection)
+
+	// even if we have 0 after filtering, so we don't fix anything
+	result.Vulnerable = filterVulnerablePackageForProject(result.Vulnerable, projectSection)
+	slog.Info("total available vulnerable after overriding", "count", len(result.Vulnerable))
+
+	return nil
+}
+
+// dump and print a summary of the results
+func outputSummary(summaryPath string, fixes []shared.DependnecyDescriptor, projectDir string) error {
+	summary := output.NewSummary(projectDir, fixes)
+	if summary == nil {
+		return common.NewPrintableError("failed generating summary")
+	}
+
+	err := dumpSummary(summary, summaryPath)
+	if err != nil {
+		return err
+	}
+
+	printSummary(summary)
+	return nil
 }
 
 func fixCommand() *cobra.Command {
@@ -197,30 +225,12 @@ func fixCommand() *cobra.Command {
 
 			defer fixPhase.HideProgress() // should be gone when this is over, hide just in case
 
-			var actionsFile *actions.ActionsFile = nil
 			actionsFilePath := getArgString(cmd, actionsFileKey)
 			if actionsFilePath == "" {
 				actionsFilePath = filepath.Join(targetDir, actions.ActionFileName)
 			}
 
-			if fixModeUsed == localMode {
-				// performing here for better experience in case of invalid file
-				slog.Info("trying to load actions file", "path", actionsFilePath)
-				actionsFile, err = loadActionsFile(actionsFilePath)
-				if err != nil {
-					slog.Error("failed opening actions file for fix", "err", err)
-					return common.FallbackPrintableMsg(err, "failed loading actions file")
-				}
-
-				if actionsFile == nil {
-					slog.Warn("actions file not found or empty", "dirpath", targetDir)
-					fmt.Printf(common.Colorize("Warning: instructed to use local actions file, but file not found. No fixes will be applied.\n", common.AnsiWarnYellow))
-					return nil
-				}
-				// NOTE: ideally we change the BE to support querying any package, then we pre-fetch it here and notify user, instead of failing later
-			}
-
-			//  auth check could be run in parallel with scan sub command to improve experience
+			// auth check could be run in parallel with scan sub command to improve experience
 			slog.Info("authenticating")
 			if err := fixPhase.Authenticate(); err != nil {
 				slog.Error("auth failed", "err", err)
@@ -232,54 +242,52 @@ func fixCommand() *cobra.Command {
 				return common.FallbackPrintableMsg(err, "failed performing initial scan")
 			}
 
-			if actionsFile != nil {
-				// replace existing slice
-				slog.Info("limiting results according to actions file", "before", len(result.Vulnerable))
-				overriddenPackages := getVulnerablePackagesAccordingToOverride(result.Vulnerable, actionsFile)
-				result.Vulnerable = overriddenPackages // even if we have 0 after filtering, so we don't fix anything
-				slog.Info("total available vulnerable after overriding", "count", len(overriddenPackages))
+			if fixModeUsed == phase.FixModeLocal {
+				slog.Info("trying to load actions file", "path", actionsFilePath)
+				if err := updateScanResultAccordingToActionsFile(result, actionsFilePath); err != nil {
+					return common.FallbackPrintableMsg(err, "failed using actions file")
+				}
 			}
 
 			if len(result.Vulnerable) == 0 {
 				fixPhase.HideProgress() // make sure before printing
 				slog.Info("no vulnerable package found", "target", target)
+
 				err = dumpSummary(output.NewSummary(fixPhase.ProjectDir, nil), summaryPath) // output summary even if no fixes are relvant, so could be processed by 3rd-party
 				if err != nil {
 					return err
 				}
 
-				fmt.Println("No applicable fix available")
+				fmt.Println("No applicable fix available") // ok to print here
 				return nil
 			}
 
-			fixes, err := fixPhase.Fix(result)
+			slog.Info("trying to get available fixes", "mode", fixModeUsed)
+			availableFixes, err := fixPhase.GetAvailableFixes(result, fixModeUsed)
 			if err != nil {
-				return common.FallbackPrintableMsg(err, "failed performing fix")
+				slog.Error("failed getting available fixes", "err", err, "mode", fixModeUsed)
+				return common.FallbackPrintableMsg(err, "failed querying for fixes")
 			}
 
-			callbacks := []phase.PostFixRunner{
-				&blackduck.BlackDuckCallback{Config: fixPhase.Config},
-			}
+			var fixes []shared.DependnecyDescriptor
+			slog.Debug("fixes available", "mode", fixModeUsed, "available", len(availableFixes))
+			if len(availableFixes) > 0 {
+				slog.Info("attempting to apply fixes", "mode", fixModeUsed, "available", len(availableFixes))
+				fixes, err = fixPhase.Fix(availableFixes) // fixes can be null
+				if err != nil {
+					return common.FallbackPrintableMsg(err, "failed performing fix")
+				}
 
-			fixPhase.HandleCallbacks(callbacks, fixes)
+				slog.Info("checking callbacks")
+				fixPhase.HandleCallbacks(fixes, &blackduck.BlackDuckCallback{Config: fixPhase.Config})
+			}
 
 			fixPhase.HideProgress() // should be gone here, but before handling summary make sure it gone
-			summary := output.NewSummary(fixPhase.ProjectDir, fixes)
-			if summary == nil {
-				return common.NewPrintableError("failed generating summary")
-			}
-
-			err = dumpSummary(summary, summaryPath)
-			if err != nil {
-				return err
-			}
-
-			printSummary(summary)
-			return nil
+			return outputSummary(summaryPath, fixes, fixPhase.ProjectDir)
 		},
 	}
 
 	cmd.Flags().String(summaryFlag, "", "output fix summary to path")
-	cmd.Flags().String(modeFlag, "local", fmt.Sprintf("Fix mode, options: [%s|%s]", localMode, allMode))
+	cmd.Flags().String(modeFlag, "local", fmt.Sprintf("Fix mode, options: [%s|%s|%s]", phase.FixModeLocal, phase.FixModeRemote, phase.FixModeAll))
 	return cmd
 }

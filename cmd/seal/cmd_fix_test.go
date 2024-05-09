@@ -4,6 +4,7 @@ import (
 	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/ecosystem/mappings"
+	"cli/internal/phase"
 	"slices"
 	"testing"
 )
@@ -60,11 +61,6 @@ func TestOverrideFilterSanity(t *testing.T) {
 	if overriddenPackage.RecommendedLibraryVersionString != overriddenVersion {
 		// should not clear it for now, since it is being used to filter out what to install later
 		t.Fatalf("wrong overidden version `%s` instead of `%s`", overriddenPackage.RecommendedLibraryVersionString, overriddenVersion)
-	}
-
-	if string(overriddenPackage.OverrideMethod) != string(api.OverriddenFromLocal) {
-		// should not clear it for now, since it is being used to filter out what to install later
-		t.Fatalf("wrong overidden method `%s` ", overriddenPackage.OverrideMethod)
 	}
 }
 
@@ -149,7 +145,7 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
 		},
 	}
-	
+
 	overrides := actions.LibraryOverrideMap{}
 	proj := actions.ProjectSection{
 		Manager: actions.ProjectManagerSection{
@@ -167,13 +163,18 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 
 func TestFixModeParsing(t *testing.T) {
 	f := fixModeFromString("local")
-	if f != localMode {
+	if f != phase.FixModeLocal {
 		t.Fatalf("failed to parse local mode")
 	}
 
 	f = fixModeFromString("all")
-	if f != allMode {
+	if f != phase.FixModeAll {
 		t.Fatalf("failed to parse all mode")
+	}
+
+	f = fixModeFromString("remote")
+	if f != phase.FixModeRemote {
+		t.Fatalf("failed to parse remote mode")
 	}
 
 	f = fixModeFromString("fail")

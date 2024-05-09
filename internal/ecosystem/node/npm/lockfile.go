@@ -12,8 +12,6 @@ import (
 	"github.com/iancoleman/orderedmap"
 )
 
-
-
 var UnsupportedLockfileVersion = common.NewPrintableError("unsupported package-lock.json version")
 
 type lockfileVersion int
@@ -34,7 +32,7 @@ func formatUpdatedPackageName(originalName string) string {
 	if idx == -1 {
 		return fmt.Sprintf("seal-%s", originalName)
 	}
-	
+
 	// either nested path in node modules, or namespaces @owner/pkg
 	return fmt.Sprintf("%sseal-%s", originalName[:idx+1], originalName[idx+1:])
 }
@@ -73,23 +71,19 @@ func getLockfileVersion(lock *orderedmap.OrderedMap) lockfileVersion {
 //	diskpath -> package
 //
 // this way we can easily find entries in the lock file that needs updating
-func extractFixedLocations(fixes shared.FixMap) map[string]*api.PackageVersion {
+func extractFixedLocations(fixes []shared.DependnecyDescriptor) map[string]*api.PackageVersion {
 	newmap := make(map[string]*api.PackageVersion)
 	for _, entry := range fixes {
-		for path, fixed := range entry.Paths {
-			if !fixed {
-				continue // ignoreing non fixed paths
-			}
-
+		for _, path := range entry.FixedLocations {
 			// should not overwrite, shouldn't have dups, especially cross packages
-			newmap[path] = entry.Package
+			newmap[path] = entry.VulnerablePackage
 		}
 	}
 
 	return newmap
 }
 
-func UpdateLockfile(lock *orderedmap.OrderedMap, fixes shared.FixMap, projectDir string) error {
+func UpdateLockfile(lock *orderedmap.OrderedMap, fixes []shared.DependnecyDescriptor, projectDir string) error {
 	version := getLockfileVersion(lock)
 	fixmap := extractFixedLocations(fixes)
 

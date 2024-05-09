@@ -15,7 +15,7 @@ func (s Server) CheckAuthenticationValid() error {
 	_, statusCode, err := SendSealRequest[any](
 		s.Client,
 		"GET",
-		"https://authorization.sealsecurity.io/",
+		AuthURL,
 		nil,
 		[]StringPair{BuildBasicAuthHeader(s.AuthToken)},
 		nil,

@@ -119,10 +119,10 @@ func (m *PnpmPackageManager) GetScanTargets() []string {
 	return []string{utils.PackageJsonFile}
 }
 
-func (m *PnpmPackageManager) DownloadPackage(server api.Server, pkg api.PackageVersion) ([]byte, error) {
-	return utils.DownloadNPMPackage(server, pkg.Library.Name, pkg.RecommendedLibraryVersionString)
+func (m *PnpmPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *PnpmPackageManager) HandleFixes(projectDir string, fixes shared.FixMap) error {
+func (m *PnpmPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	return nil
 }

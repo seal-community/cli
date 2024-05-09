@@ -150,7 +150,8 @@ func (p *basePhase) addToMax(amount int) {
 	p.Bar.ChangeMax(p.Bar.GetMax() + amount)
 }
 
-func (p *basePhase) QueryFixesForPackages(vulnerablePackages []api.PackageVersion) ([]api.PackageVersion, error) {
+// query the BE for the recommended versions specified in the input vulnerable packages
+func (p *basePhase) QueryRecommendedPackages(vulnerablePackages []api.PackageVersion) ([]api.PackageVersion, error) {
 	// uses the recommended fields to create a new common.Dependency instance and query the BE about it
 
 	slog.Info("grabbing information about available fixes", "vulnerableCount", len(vulnerablePackages))
@@ -171,7 +172,7 @@ func (p *basePhase) QueryFixesForPackages(vulnerablePackages []api.PackageVersio
 	available, err := p.Server.GetFixedPackages(deps, nil, nil)
 	if err != nil {
 		slog.Error("failed getting fixed versions info", "err", err)
-		return nil, common.NewPrintableError("server error")
+		return nil, common.NewPrintableError("failed querying recommended fixes")
 	}
 
 	slog.Debug("got fixes info", "count", len(*available))
