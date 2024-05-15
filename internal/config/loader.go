@@ -28,6 +28,11 @@ type PnpmConfig struct {
 	ProdOnlyDeps bool `yaml:"prod-only"         env:"PROD_ONLY"` // same as npm
 }
 
+type MavenConfig struct {
+	ProdOnlyDeps bool   `yaml:"prod-only"  env:"PROD_ONLY"`
+	CachePath    string `yaml:"cache-path" env:"CACHE_PATH"` // since maven uses global cache, we need to set a new cache folder so we can override packages as we please
+}
+
 type BlackDuckConfig struct {
 	Url         string `yaml:"blackduck-url"                       env:"URL"`
 	Token       string `yaml:"blackduck-token"                     env:"TOKEN"`
@@ -40,6 +45,7 @@ type Config struct {
 	Project string     `yaml:"project"          env:"PROJECT"`
 	Npm     NpmConfig  `yaml:"npm"              envPrefix:"NPM_"`
 	Pnpm    PnpmConfig `yaml:"pnpm"             envPrefix:"PNPM_"`
+	Maven   MavenConfig `yaml:"maven"            envPrefix:"MAVEN_"`
 
 	BlackDuck BlackDuckConfig `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
 }

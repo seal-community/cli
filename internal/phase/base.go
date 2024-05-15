@@ -5,6 +5,7 @@ import (
 	"cli/internal/common"
 	"cli/internal/config"
 	"cli/internal/ecosystem/dotnet"
+	"cli/internal/ecosystem/java"
 	"cli/internal/ecosystem/node"
 	"cli/internal/ecosystem/python"
 	"cli/internal/ecosystem/shared"
@@ -29,6 +30,7 @@ type basePhase struct {
 func findPackageManager(configDir *config.Config, projectDir string, target string) (shared.PackageManager, error) {
 	nodeManager, nodeErr := node.GetPackageManager(configDir, projectDir, target)
 	pythonManager, pythonErr := python.GetPackageManager(configDir, projectDir, target)
+	javaManager, javaErr := java.GetPackageManager(configDir, projectDir, target)
 	dotnetManager, dotnetErr := dotnet.GetPackageManager(configDir, projectDir, target)
 
 	availableManagers := []struct {
@@ -37,6 +39,9 @@ func findPackageManager(configDir *config.Config, projectDir string, target stri
 	}{
 		{nodeManager, nodeErr},
 		{pythonManager, pythonErr},
+		{javaManager, javaErr},
+		// dotnet should be last for now since its current implementation searches
+		// recursively which can lead to a false positive identification
 		{dotnetManager, dotnetErr},
 	}
 

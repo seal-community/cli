@@ -340,6 +340,11 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []share
 	fp.Bar.Describe("Downloading packages")
 	fp.addToMax(jobCount) // add steps here to bump the progress bar once
 
+	if err := fixer.Prepare(); err != nil {
+		slog.Error("failed preparing fixer", "err", err)
+		return nil, common.FallbackPrintableMsg(err, "failed preparing environment")
+	}
+
 	// Fix packages one at a time
 	fixed := make([]shared.DependnecyDescriptor, 0, len(availableFixes))
 	for downloadedPackage := range downloadResultsChannel {

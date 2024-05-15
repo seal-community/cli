@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	cp "github.com/otiai10/copy"
 )
 
 var CliCWD string // the working directory the cli started running from
@@ -118,4 +119,13 @@ func GetAbsDirPath(p string) string {
 
 	// strip input from file component
 	return filepath.Dir(targetDir)
+}
+
+func CopyDir(src string, dst string) error {
+	err := cp.Copy(src, dst, cp.Options{PreserveTimes: true, PreserveOwner: true})
+	if err != nil {
+		slog.Error("copy failed", "err", err)
+		return NewPrintableError("failed copying directory %s to %s", src, dst)
+	}
+	return nil
 }

@@ -10,6 +10,7 @@ func TestEcosystemConversion(t *testing.T) {
 		{NpmManager, "node"},
 		{PythonManager, "python"},
 		{NugetManager, ".NET"},
+		{MavenManger, "java"},
 		{"asdasdasda", ""},
 	}
 
@@ -30,6 +31,7 @@ func TestManagerToEcosystemConversion(t *testing.T) {
 		{NodeEcosystem, "NPM"},
 		{PythonEcosystem, "PyPI"},
 		{DotnetEcosystem, "NuGet"},
+		{JavaEcosystem, "Maven"},
 		{"asdasdasda", ""},
 	}
 

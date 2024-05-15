@@ -1,0 +1,13 @@
+digraph "com.example.app:parent-project:pom:1.0-SNAPSHOT" {
+        "com.example.app:parent-project:pom:1.0-SNAPSHOT" -> "junit:junit:jar:3.8.1:test" ;
+ } digraph "com.example.app:module-a:jar:1.0-SNAPSHOT" {
+        "com.example.app:module-a:jar:1.0-SNAPSHOT" -> "junit:junit:jar:3.8.1:test" ;
+        "com.example.app:module-a:jar:1.0-SNAPSHOT" -> "net.minidev:json-smart:jar:2.4.8:compile" ;
+        "net.minidev:json-smart:jar:2.4.8:compile" -> "net.minidev:accessors-smart:jar:2.4.8:compile" ;
+        "net.minidev:accessors-smart:jar:2.4.8:compile" -> "org.ow2.asm:asm:jar:9.1:compile" ;
+ } digraph "com.example.app:module-b:jar:1.0-SNAPSHOT" {
+        "com.example.app:module-b:jar:1.0-SNAPSHOT" -> "junit:junit:jar:3.8.1:test" ;
+        "com.example.app:module-b:jar:1.0-SNAPSHOT" -> "org.springframework:spring-beans:jar:5.3.12:compile" ;
+        "org.springframework:spring-beans:jar:5.3.12:compile" -> "org.springframework:spring-core:jar:5.3.12:compile" ;
+        "org.springframework:spring-core:jar:5.3.12:compile" -> "org.springframework:spring-jcl:jar:5.3.12:compile" ;
+ } 

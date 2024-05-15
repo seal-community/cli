@@ -101,6 +101,7 @@ func IsNugetIndicatorFile(path string) bool {
 }
 
 func FindNugetIndicatorFile(path string) (bool, error) {
+	// This function seraches all the files, which isn't ideal
 	for _, suffixIndicator := range nugetSuffixIndicators {
 		files, err := common.FindPathsWithSuffix(path, suffixIndicator)
 		if err == nil && len(files) > 0 {

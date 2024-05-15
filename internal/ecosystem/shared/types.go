@@ -6,6 +6,7 @@ import (
 )
 
 type DependencyFixer interface {
+	Prepare() error
 	Fix(entry DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error)
 	Rollback() bool
 	Cleanup() bool

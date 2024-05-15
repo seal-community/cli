@@ -118,6 +118,10 @@ func ExtractPackage(location string, payload []byte, filesToSkip []string) error
 	return nil
 }
 
+func (f *fixer) Prepare() error {
+	return nil
+}
+
 // extract the data to the <HOME>/.nuget/packages/<Package>/<Version> cache folder
 func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	sealedVersion := entry.AvailableFix.Version

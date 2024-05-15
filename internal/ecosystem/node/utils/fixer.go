@@ -73,8 +73,12 @@ func createDepRollbackDir(target string, dep *common.Dependency) error {
 
 	return nil
 }
-func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 
+func (f *fixer) Prepare() error {
+	return nil
+}
+
+func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	if _, ok := f.rollback[dep.DiskPath]; ok {
 		// will have issue in future with N branches that have been dedup'd so that they both point to the same
 		// physical path and we will want to update one but not the other:

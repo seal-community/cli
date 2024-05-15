@@ -57,7 +57,7 @@ func (sp *scanPhase) Collect() (common.DependencyMap, error) {
 	packageManager := sp.Manager
 	targetDir := sp.ProjectDir
 
-	slog.Info("collecting npm packages", "manager_version", packageManager.GetVersion(targetDir))
+	slog.Info("collecting packages", "manager_version", packageManager.GetVersion(targetDir))
 
 	result, ok := packageManager.ListDependencies(targetDir)
 	if !ok {

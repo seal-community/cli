@@ -87,6 +87,10 @@ func (ap *addPhase) Resolve(rule AddRule) (*ResolvedRule, error) {
 
 	mngr := mappings.EcosystemToBackendManager(ap.Manager.GetEcosystem())
 
+	if mngr == "" {
+		return nil, common.NewPrintableError("unsupported package manager for ecosystem: %s", ap.Manager.GetEcosystem())
+	}
+
 	var resolvedTo *api.PackageVersion
 	resolvedFrom, err := ap.resolveOverride(mngr, rule.From, api.OnlyVulnerable)
 

@@ -177,6 +177,10 @@ func splitDotdotPaths(paths []string) ([]string, []string) {
 	return absPaths, dotdotPaths
 }
 
+func (f *fixer) Prepare() error {
+	return nil
+}
+
 // Will fix the dependency, assuming payload is a .whl file
 func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	recordPaths, err := readRecordFile(dep.DiskPath)
