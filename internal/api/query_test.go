@@ -2,6 +2,8 @@ package api
 
 import (
 	"cli/internal/common"
+	"cli/internal/ecosystem/mappings"
+	"io"
 	"net/http"
 	"sync"
 	"testing"
@@ -20,10 +22,11 @@ func TestBulkQuerySingleChunk(t *testing.T) {
 
 	client := http.Client{Transport: fakeRoundTripper}
 	s := Server{Client: client}
-	_, err := s.CheckVulnerablePackages([]common.Dependency{
+	_, err := s.FetchPackagesInfo([]common.Dependency{
 		{Name: "a", Version: "1.2.3", PackageManager: "mmm"},
 	},
 		Metadata{},
+		OnlyVulnerable,
 		nil,
 	)
 
@@ -48,12 +51,13 @@ func TestBulkQueryChunks(t *testing.T) {
 		}}
 	client := http.Client{Transport: fakeRoundTripper}
 	s := Server{Client: client, BulkChunkSize: 1}
-	_, err := s.CheckVulnerablePackages([]common.Dependency{
+	_, err := s.FetchPackagesInfo([]common.Dependency{
 		{Name: "a", Version: "1.2.3", PackageManager: "mmm"},
 		{Name: "b", Version: "1.0.0", PackageManager: "mmm"},
 		{Name: "c", Version: "0.0.1", PackageManager: "mmm"},
 	},
 		Metadata{},
+		OnlyVulnerable,
 		nil,
 	)
 
@@ -181,7 +185,7 @@ func TestRemoteConfigQueryNoToken(t *testing.T) {
 	s := Server{Client: client, AuthToken: ""}
 	page, err := s.sendRemoteFixesQuery([]RemoteOverrideQuery{query}, "proj")
 
-	if err != MissingTokenForQueryingError || page != nil {
+	if err != MissingTokenForApiRequest || page != nil {
 		t.Fatalf("should fail without token %v, page: %v", err, page)
 	}
 }
@@ -203,6 +207,132 @@ func TestRemoteConfigQueryProjectDoesNotExist(t *testing.T) {
 	page, err := s.sendRemoteFixesQuery([]RemoteOverrideQuery{query}, "non-existent")
 
 	if err != NonExistentProjectError || page != nil {
+		t.Fatalf("should fail without token %v, page: %v", err, page)
+	}
+}
+
+func TestBulkQuery(t *testing.T) {
+	dep := common.Dependency{Name: "ejs", Version: "2.7.4", PackageManager: mappings.NpmManager}
+	fakeRoundTripper := fakeRoundTripper{statusCode: 200,
+		Validator: func(req *http.Request) {
+			if fixedParam := req.URL.Query().Get("fixed"); fixedParam != "0" {
+				t.Fatalf("did not set fixed param correctly for only vulnerable: %s", fixedParam)
+			}
+
+			if req.URL.Path != "/unauthenticated/v1/bulk" {
+				t.Fatalf("bad endpoint uri: %s", req.URL.RawPath)
+			}
+
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				t.Fatalf("failed to read body: %v", err)
+			}
+
+			expected := "{\"entries\":[{\"library_name\":\"ejs\",\"library_version\":\"2.7.4\",\"library_package_manager\":\"NPM\"}],\"metadata\":null}"
+			if string(body) != expected {
+				t.Fatalf("expected %s, got %s", expected, string(body))
+			}
+		},
+		jsonContent: `{"items":[],"total":0,"limit":1,"offset":0}`,
+	}
+
+	client := http.Client{Transport: fakeRoundTripper}
+	s := Server{Client: client, AuthToken: ""}
+
+	page, err := s.sendBulkRequest(&BulkCheckRequest{
+		Metadata: nil,
+		Entries:  []common.Dependency{dep},
+	}, OnlyVulnerable)
+
+	if err != nil || page == nil {
+		t.Fatalf("should fail without token %v, page: %v", err, page)
+	}
+}
+
+func TestBulkQueryAuth(t *testing.T) {
+	dep := common.Dependency{Name: "ejs", Version: "2.7.4", PackageManager: mappings.NpmManager}
+	proj := "myproj"
+	fakeRoundTripper := fakeRoundTripper{statusCode: 200,
+		Validator: func(req *http.Request) {
+			if req.URL.Path != "/authenticated/v1/scan/myproj" {
+				t.Fatalf("bad endpoint uri: %s", req.URL.RawPath)
+			}
+
+			if storeParam := req.URL.Query().Get("store"); storeParam != "" {
+				t.Fatalf("found store param without generating activity: %s", storeParam)
+			}
+
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				t.Fatalf("failed to read body: %v", err)
+			}
+
+			expected := "{\"entries\":[{\"library_name\":\"ejs\",\"library_version\":\"2.7.4\",\"library_package_manager\":\"NPM\"}],\"metadata\":null}"
+			if string(body) != expected {
+				t.Fatalf("expected %s, got %s", expected, string(body))
+			}
+		},
+		jsonContent: `{"items":[],"total":0,"limit":1,"offset":0}`,
+	}
+
+	client := http.Client{Transport: fakeRoundTripper}
+	s := Server{Client: client, AuthToken: "123123"}
+
+	page, err := s.sendBulkRequestAuth(&BulkCheckRequest{
+		Metadata: nil,
+		Entries:  []common.Dependency{dep},
+	}, OnlyVulnerable, proj, false)
+
+	if err != nil || page == nil {
+		t.Fatalf("should fail without token %v, page: %v", err, page)
+	}
+}
+
+func TestBulkQueryAuthMissingToken(t *testing.T) {
+	client := http.Client{Transport: nil}
+	s := Server{Client: client, AuthToken: ""}
+
+	_, err := s.sendBulkRequestAuth(nil, OnlyVulnerable, "proj", false)
+	if err != MissingTokenForApiRequest {
+		t.Fatalf("should fail without token %v", err)
+	}
+}
+
+func TestBulkQueryAuthGenerateActivity(t *testing.T) {
+	dep := common.Dependency{Name: "ejs", Version: "2.7.4", PackageManager: mappings.NpmManager}
+	proj := "myproj"
+	fakeRoundTripper := fakeRoundTripper{statusCode: 200,
+		Validator: func(req *http.Request) {
+			if req.URL.Path != "/authenticated/v1/scan/myproj" {
+				t.Fatalf("bad endpoint uri: %s", req.URL.RawPath)
+			}
+
+			if storeParam := req.URL.Query().Get("store"); storeParam != "1" {
+				t.Fatalf("did not set store param correctly for generating activity: %s", storeParam)
+			}
+
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				t.Fatalf("failed to read body: %v", err)
+			}
+
+			expected := "{\"entries\":[{\"library_name\":\"ejs\",\"library_version\":\"2.7.4\",\"library_package_manager\":\"NPM\"}],\"metadata\":null}"
+			if string(body) != expected {
+				t.Fatalf("expected %s, got %s", expected, string(body))
+			}
+		},
+		jsonContent: `{"items":[],"total":0,"limit":1,"offset":0}`,
+	}
+
+	client := http.Client{Transport: fakeRoundTripper}
+	s := Server{Client: client, AuthToken: "123123"}
+
+	page, err := s.sendBulkRequestAuth(&BulkCheckRequest{
+		Metadata: nil,
+		Entries:  []common.Dependency{dep},
+	}, OnlyVulnerable, proj, true)
+
+	if err != nil || page == nil {
 		t.Fatalf("should fail without token %v, page: %v", err, page)
 	}
 }

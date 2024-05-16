@@ -12,7 +12,6 @@ const ScanSteps = 3
 
 type scanPhase struct {
 	*basePhase
-	// hold scan results
 }
 
 func NewScanPhase(target string, configPath string, showProgress bool) (*scanPhase, error) {
@@ -98,7 +97,31 @@ func reduceToUniqueDeps(dependencyMap common.DependencyMap) []common.Dependency 
 	return dependencies
 }
 
-func (sp *scanPhase) Scan() (*ScanResult, error) {
+// will query vulnerable packages in db
+// uses authenticated endpoint if possible
+// will generate activity for the scanned items if instructed so
+func (sp *scanPhase) checkVulnerabilitiesInPackages(deps []common.Dependency, metadata api.Metadata, generateActivity bool) (*[]api.PackageVersion, error) {
+	progressCb := func([]api.PackageVersion, int) {
+		// for each 'unexpected' step (i.e. chunk) increase max by one
+		sp.addFinishedStep()
+	}
+
+	if generateActivity && (sp.Server.AuthToken == "" || sp.Config.Project == "") {
+		slog.Warn("bad input for generating scan acitivty", "hasToken", sp.Server.AuthToken == "", "project", sp.Config.Project)
+		return nil, common.NewPrintableError("uploading scan results requires a valid token and project")
+	}
+
+	if sp.Server.AuthToken != "" && sp.Config.Project != "" {
+		slog.Debug("using authenticated package query", "uploadResults", generateActivity)
+		// if generateActivity is true we will store the vulnerable packages as activity
+		return sp.Server.FetchPackagesInfoAuth(deps, metadata, api.OnlyVulnerable, progressCb, sp.Config.Project, generateActivity)
+	} else {
+		slog.Debug("using unauth package query")
+		return sp.Server.FetchPackagesInfo(deps, metadata, api.OnlyVulnerable, progressCb)
+	}
+}
+
+func (sp *scanPhase) Scan(generateActivity bool) (*ScanResult, error) {
 	slog.Info("starting scan", "target", sp.ProjectDir)
 
 	metadata := sp.cliMetadata()
@@ -133,14 +156,11 @@ func (sp *scanPhase) Scan() (*ScanResult, error) {
 	slog.Info("finished local dependency gathering", "count", len(dependencyMap))
 	sp.advanceStep("Searching for vulnerabilities")
 
-	vulnerable, err := sp.Server.CheckVulnerablePackages(reduceToUniqueDeps(dependencyMap), metadata, func([]api.PackageVersion, int) {
-		// for each 'unexpected' step (i.e. chunk) increase max by one
-		sp.addFinishedStep()
-	})
+	vulnerable, err := sp.checkVulnerabilitiesInPackages(reduceToUniqueDeps(dependencyMap), metadata, generateActivity)
 
-	if err != nil {
+	if err != nil || vulnerable == nil {
 		slog.Error("failed getting vulnerabilities", "err", err)
-		return nil, common.NewPrintableError("server error")
+		return nil, common.FallbackPrintableMsg(err, "server error")
 	}
 
 	result := &ScanResult{

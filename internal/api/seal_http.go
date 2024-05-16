@@ -62,5 +62,5 @@ func SendSealRequest[RequestType any](client http.Client, method string, url str
 	}
 
 	headers = append(headers, baseHeaders...)
-	return BaseSendRequest(client, method, url, body, headers, params)
+	return SendHttpRequest(client, method, url, body, headers, params)
 }

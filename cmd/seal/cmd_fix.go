@@ -215,6 +215,7 @@ func fixCommand() *cobra.Command {
 			}
 
 			slog.Info("Fix mode", "mode", fixModeUsed)
+			uploadScanActivity := getArgBool(cmd, uploadResultsKey)
 
 			// IMPORTANT - after this point printing directly to console would mess up the progress bar, msg should be used instead
 			fixPhase, err := phase.NewFixPhase(target, configPath, verbosity == 0)
@@ -237,7 +238,7 @@ func fixCommand() *cobra.Command {
 				return common.FallbackPrintableMsg(err, "authentication issue")
 			}
 
-			result, err := fixPhase.Scan()
+			result, err := fixPhase.Scan(uploadScanActivity)
 			if err != nil {
 				return common.FallbackPrintableMsg(err, "failed performing initial scan")
 			}

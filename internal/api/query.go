@@ -39,7 +39,7 @@ const MaxDependencyChunkSize = 800
 const MaxRemoteOverrideChunkSize = 800
 
 var NonExistentProjectError = common.NewPrintableError("specified project does not exist")
-var MissingTokenForQueryingError = errors.New("missing authentication token for querying remote config")
+var MissingTokenForApiRequest = errors.New("missing authentication token for querying remote config")
 
 func (s Server) sendBulkRequest(request *BulkCheckRequest, queryType PackageQueryType) (*Page[PackageVersion], error) {
 	var param StringPair
@@ -80,14 +80,56 @@ func (s Server) sendBulkRequest(request *BulkCheckRequest, queryType PackageQuer
 	return data, nil
 }
 
+func (s Server) sendBulkRequestAuth(request *BulkCheckRequest, queryType PackageQueryType, project string, generateActivity bool) (*Page[PackageVersion], error) {
+	params := []StringPair{}
+	if queryType == OnlyFixed {
+		params = append(params, StringPair{Name: "fixed", Value: "1"})
+	} else {
+		params = append(params, StringPair{Name: "fixed", Value: "0"})
+	}
+
+	if generateActivity {
+		common.Trace("will instruct server to generate activity for the requested packages")
+		params = append(params, StringPair{Name: "store", Value: "1"}) // defaults to false
+	}
+
+	if s.AuthToken == "" {
+		slog.Error("missing auth token for querying remote config")
+		return nil, MissingTokenForApiRequest
+	}
+
+	headers := []StringPair{BuildBasicAuthHeader(s.AuthToken)}
+
+	data, statusCode, err := sendSealApiRequest[BulkCheckRequest, Page[PackageVersion]](
+		s.Client,
+		"POST",
+		fmt.Sprintf("/authenticated/v1/scan/%s", project),
+		request,
+		headers,
+		params,
+	)
+
+	if statusCode != 200 {
+		slog.Error("server returned bad status code for query", "status", statusCode, "err", err)
+		return nil, BadServerResponseCode
+	}
+
+	if err != nil {
+		slog.Error("http error", "err", err, "status", statusCode)
+		return nil, err
+	}
+
+	return data, nil
+}
+
 // performs the BE request to get the approved remote config
 func (s Server) sendRemoteFixesQuery(query []RemoteOverrideQuery, project string) (*Page[PackageVersion], error) {
 
 	var headers []StringPair
 
-	// send token if we have it configured
 	if s.AuthToken == "" {
-		return nil, MissingTokenForQueryingError
+		slog.Error("missing auth token for querying remote config")
+		return nil, MissingTokenForApiRequest
 	}
 
 	headers = []StringPair{BuildBasicAuthHeader(s.AuthToken)}
@@ -120,14 +162,6 @@ func (s Server) sendRemoteFixesQuery(query []RemoteOverrideQuery, project string
 	return data, nil
 }
 
-func (s Server) CheckVulnerablePackages(deps []common.Dependency, metadata Metadata, chunkDone ChunkDownloadedCallback) (*[]PackageVersion, error) {
-	return s.FetchPackagesInfo(deps, metadata, OnlyVulnerable, chunkDone)
-}
-
-func (s Server) GetFixedPackages(deps []common.Dependency, metadata Metadata, chunkDone ChunkDownloadedCallback) (*[]PackageVersion, error) {
-	return s.FetchPackagesInfo(deps, metadata, OnlyFixed, chunkDone)
-}
-
 func (s Server) FetchPackagesInfo(deps []common.Dependency, metadata Metadata, queryType PackageQueryType, chunkDone ChunkDownloadedCallback) (*[]PackageVersion, error) {
 	allVersions := make([]PackageVersion, 0, len(deps))
 	chunkSize := s.BulkChunkSize
@@ -141,6 +175,32 @@ func (s Server) FetchPackagesInfo(deps []common.Dependency, metadata Metadata, q
 				Metadata: metadata,
 				Entries:  chunk,
 			}, queryType)
+		},
+		func(data *Page[PackageVersion], chunkIdx int) error {
+			// safe to perform, run from inside mutex
+			allVersions = append(allVersions, data.Items...)
+			if chunkDone != nil {
+				chunkDone(data.Items, chunkIdx)
+			}
+			return nil
+		})
+
+	return &allVersions, err
+}
+
+func (s Server) FetchPackagesInfoAuth(deps []common.Dependency, metadata Metadata, queryType PackageQueryType, chunkDone ChunkDownloadedCallback, project string, generateActivity bool) (*[]PackageVersion, error) {
+	allVersions := make([]PackageVersion, 0, len(deps))
+	chunkSize := s.BulkChunkSize
+	if chunkSize == 0 {
+		chunkSize = MaxDependencyChunkSize
+	}
+
+	err := common.ConcurrentChunks(deps, chunkSize,
+		func(chunk []common.Dependency, chunkIdx int) (*Page[PackageVersion], error) {
+			return s.sendBulkRequestAuth(&BulkCheckRequest{
+				Metadata: metadata,
+				Entries:  chunk,
+			}, queryType, project, generateActivity)
 		},
 		func(data *Page[PackageVersion], chunkIdx int) error {
 			// safe to perform, run from inside mutex

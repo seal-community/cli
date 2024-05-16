@@ -174,31 +174,10 @@ func (p *basePhase) QueryRecommendedPackages(vulnerablePackages []api.PackageVer
 		})
 	}
 
-	available, err := p.Server.GetFixedPackages(deps, nil, nil)
+	available, err := p.Server.FetchPackagesInfo(deps, nil, api.OnlyFixed, nil)
 	if err != nil {
 		slog.Error("failed getting fixed versions info", "err", err)
 		return nil, common.NewPrintableError("failed querying recommended fixes")
-	}
-
-	slog.Debug("got fixes info", "count", len(*available))
-	return *available, nil
-}
-
-func (p *basePhase) QueryPackages(vulnerablePackages []api.PackageVersion, qt api.PackageQueryType) ([]api.PackageVersion, error) {
-	slog.Info("grabbing information about available fixes", "vulnerableCount", len(vulnerablePackages))
-	// building array of 'deps' using the recommended fixed version
-	deps := make([]common.Dependency, 0, len(vulnerablePackages))
-	for _, vulnerable := range vulnerablePackages {
-		deps = append(deps, common.Dependency{Name: vulnerable.Library.Name,
-			Version:        vulnerable.Version,
-			PackageManager: vulnerable.Library.PackageManager,
-		})
-	}
-
-	available, err := p.Server.FetchPackagesInfo(deps, nil, qt, nil)
-	if err != nil {
-		slog.Error("failed getting fixed versions info", "err", err)
-		return nil, common.NewPrintableError("server error")
 	}
 
 	slog.Debug("got fixes info", "count", len(*available))

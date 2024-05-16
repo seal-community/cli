@@ -14,7 +14,7 @@ type StringPair struct {
 	Value string
 }
 
-func BaseSendRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
+func SendHttpRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
 	var err error
 	encodedBody := []byte{}
 	if body != nil {

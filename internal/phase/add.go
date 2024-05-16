@@ -55,28 +55,24 @@ var overrideNotFound = errors.New("override not found")
 var overrideMultipleCandidates = errors.New("multiple candidates found")
 
 func (ap *addPhase) resolveOverride(manager string, o actions.Override, qt api.PackageQueryType) (*api.PackageVersion, error) {
-	pv := api.PackageVersion{
-		Library: api.Package{
-			Name:           o.Library,
-			PackageManager: manager,
-		},
-		Version: o.Version,
-	}
 
-	resolvedList, err := ap.QueryPackages([]api.PackageVersion{pv}, qt)
-	if err != nil {
+	dep := common.Dependency{Name: o.Library, Version: o.Version, PackageManager: manager}
+	result, err := ap.Server.FetchPackagesInfo([]common.Dependency{dep}, nil, qt, nil)
+	if err != nil || result == nil {
 		slog.Error("ƒailed querying package", "err", err, "from-library", o.Library, "from-version", o.Version)
 		return nil, err
 	}
+	resolvedList := *result
 
 	if len(resolvedList) > 1 {
-		slog.Warn("got multiple results for package", "package", pv, "results", len(resolvedList))
+		slog.Warn("got multiple results for package", "package", dep, "results", len(resolvedList))
 		return nil, overrideMultipleCandidates // should not happen
 	}
 
 	if len(resolvedList) == 0 {
 		return nil, overrideNotFound
 	}
+
 	return &(resolvedList[0]), nil
 }
 

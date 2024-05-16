@@ -220,6 +220,7 @@ func scanCommand() *cobra.Command {
 			configPath := getArgString(cmd, configFileKey)
 			verbosity := getArgCount(cmd, verboseFlagKey)
 			genActionsFile := getArgBool(cmd, actionFlag) || getArgBool(cmd, actionFlagNew)
+			uploadScanActivity := getArgBool(cmd, uploadResultsKey)
 
 			scanPhase, err := phase.NewScanPhase(target, configPath, verbosity == 0)
 			if err != nil {
@@ -229,7 +230,7 @@ func scanCommand() *cobra.Command {
 
 			defer scanPhase.HideProgress() // should be gone when this is over, hide just in case
 
-			result, err := scanPhase.Scan()
+			result, err := scanPhase.Scan(uploadScanActivity)
 			if err != nil {
 				return common.FallbackPrintableMsg(err, "failed performing scan")
 			}

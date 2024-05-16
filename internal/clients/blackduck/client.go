@@ -45,7 +45,7 @@ func (c *BlackDuckClient) authenticate() error {
 		{Name: "Authorization", Value: fmt.Sprintf("token %s", c.Token)},
 		{Name: "Accept", Value: contentTypeUserV4},
 	}
-	res, statusCode, err := api.BaseSendRequest[any](
+	res, statusCode, err := api.SendHttpRequest[any](
 		c.Client,
 		"POST",
 		url,
@@ -108,7 +108,7 @@ func (c *BlackDuckClient) getHeaders(content_type string) ([]api.StringPair, err
 }
 
 func (c *BlackDuckClient) executeGet(url string, params []api.StringPair, headers []api.StringPair) ([]byte, error) {
-	res, statusCode, err := api.BaseSendRequest[any](
+	res, statusCode, err := api.SendHttpRequest[any](
 		c.Client,
 		"GET",
 		url,
@@ -263,7 +263,7 @@ func (c *BlackDuckClient) updateVuln(url string, update *bdUpdateBOMComponentVul
 		return err
 	}
 
-	res, statusCode, err := api.BaseSendRequest(
+	res, statusCode, err := api.SendHttpRequest(
 		c.Client,
 		"PUT",
 		url,
