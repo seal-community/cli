@@ -14,7 +14,7 @@ func TestIndicatorMatches(t *testing.T) {
 		`./abc/../pnpm-lock.yaml`,
 		`.\abc\..\pnpm-lock.yaml`,
 	}
-	
+
 	for i, p := range ps {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
 			if !IsPnpmIndicatorFile(p) {

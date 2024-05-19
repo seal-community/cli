@@ -11,7 +11,7 @@ import (
 
 func DownloadMavenPackage(s api.Server, name string, version string) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
-	
+
 	orgName, artifactName, err := SplitJavaPackageName(name)
 	if err != nil {
 		slog.Error("failed to split package name", "err", err)

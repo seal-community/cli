@@ -33,7 +33,7 @@ func JsonSave(projectAssets *orderedmap.OrderedMap, path string) error {
 		slog.Error("failed opening json file", "err", err, "path", path)
 		return err
 	}
-	
+
 	defer w.Close()
 
 	return JsonDump(projectAssets, w)

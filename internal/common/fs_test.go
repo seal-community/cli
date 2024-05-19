@@ -26,7 +26,7 @@ func TestFindPathsWithSuffix(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	defer os.Remove(target)
 
 	inner_target, err := os.MkdirTemp(target, "test_seal_inner_dir_*")

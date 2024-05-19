@@ -210,26 +210,26 @@ func TestWorkspaceIsNotSkipped(t *testing.T) {
 	}
 
 	defer os.Remove(target)
-	
-	if err := os.MkdirAll(filepath.Join(target, "workspace1"), 0755) ; err != nil {
+
+	if err := os.MkdirAll(filepath.Join(target, "workspace1"), 0755); err != nil {
 		panic(err)
 	}
 
-	if err := os.MkdirAll(filepath.Join(target, "workspace2"), 0755) ; err != nil {
+	if err := os.MkdirAll(filepath.Join(target, "workspace2"), 0755); err != nil {
 		panic(err)
 	}
 
-	if err := os.MkdirAll(filepath.Join(target, "node_modules", "@babel", "cli"), 0755) ; err != nil {
+	if err := os.MkdirAll(filepath.Join(target, "node_modules", "@babel", "cli"), 0755); err != nil {
 		panic(err)
 	}
 
-	if err := os.MkdirAll(filepath.Join(target, "node_modules", "yup"), 0755) ; err != nil {
+	if err := os.MkdirAll(filepath.Join(target, "node_modules", "yup"), 0755); err != nil {
 		panic(err)
 	}
-	if err := os.Symlink(filepath.Join(target,"workspace1"), filepath.Join(target, "node_modules", "workspace1")); err != nil {
+	if err := os.Symlink(filepath.Join(target, "workspace1"), filepath.Join(target, "node_modules", "workspace1")); err != nil {
 		panic(err)
 	}
-	if err := os.Symlink(filepath.Join(target,"workspace2"), filepath.Join(target, "node_modules", "workspace2")); err != nil {
+	if err := os.Symlink(filepath.Join(target, "workspace2"), filepath.Join(target, "node_modules", "workspace2")); err != nil {
 		panic(err)
 	}
 
@@ -254,7 +254,7 @@ func TestWorkspaceIsNotSkipped(t *testing.T) {
 		t.Fatalf("wrong path for workspace1 %s %s", workspace1[1].DiskPath, filepath.Join(target, "node_modules", "workspace1"))
 	}
 
-	if ! ((workspace1[0].Branch == "" && workspace1[1].Branch == "workspace2@1.8.0") || 
+	if !((workspace1[0].Branch == "" && workspace1[1].Branch == "workspace2@1.8.0") ||
 		(workspace1[0].Branch == "workspace2@1.8.0" && workspace1[1].Branch == "")) {
 		t.Fatalf("wrong branch for workspace1 %s %s", workspace1[0].Branch, workspace1[1].Branch)
 	}
@@ -279,7 +279,7 @@ func TestWorkspaceIsNotSkipped(t *testing.T) {
 	if babelCli[0].DiskPath != filepath.Join(target, "node_modules", "@babel", "cli") {
 		t.Fatalf("wrong path for @babel/cli %s", babelCli[0].DiskPath)
 	}
-	
+
 	if babelCli[0].Branch != "workspace1@1.0.0" {
 		t.Fatalf("wrong branch for @babel/cli %s", babelCli[0].Branch)
 	}
@@ -292,7 +292,7 @@ func TestWorkspaceIsNotSkipped(t *testing.T) {
 	if yup[0].DiskPath != filepath.Join(target, "node_modules", "yup") {
 		t.Fatalf("wrong path for yup %s", yup[0].DiskPath)
 	}
-	
+
 	if yup[0].Branch != "workspace2@1.8.0" {
 		t.Fatalf("wrong branch for yup %s", yup[0].Branch)
 	}

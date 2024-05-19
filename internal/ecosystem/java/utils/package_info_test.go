@@ -95,9 +95,9 @@ func TestCreateJavaPackageInfo(t *testing.T) {
 
 func TestGetPackageFileName(t *testing.T) {
 	tests := []struct {
-		artifactName  string
-		version 			string
-		expected    	string
+		artifactName string
+		version      string
+		expected     string
 	}{
 		{"example-app", "1.2.3", "example-app-1.2.3.jar"},
 		{"example.app", "1.2.3+sp1", "example.app-1.2.3+sp1.jar"},
@@ -147,4 +147,3 @@ func TestOrgNameToUrlPath(t *testing.T) {
 		})
 	}
 }
-

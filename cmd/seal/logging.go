@@ -23,7 +23,7 @@ func setupLogging(logfile *os.File, verbosity int) {
 			addSource = true
 			level = slog.LevelDebug
 		}
-		
+
 		if verbosity > 2 {
 			level = common.LevelTrace // http body response etc, will show as DBG due to handler formatting
 		}

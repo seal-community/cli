@@ -20,7 +20,7 @@ import (
 var prodBuildScopes = []string{"compile", "runtime", ""}
 
 type dependencyParser struct {
-	config *config.Config
+	config   *config.Config
 	cacheDir string
 }
 

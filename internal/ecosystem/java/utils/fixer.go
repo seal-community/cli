@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 )
 
-
 type fixer struct {
 	rollback   map[string]string // original version path -> tmp-location
 	projectDir string
@@ -111,7 +110,7 @@ func (f *fixer) Rollback() bool {
 		if err := os.RemoveAll(orig); err != nil {
 			slog.Error("failed removing original version dir", "dir", orig)
 		}
-		
+
 		if err := os.Rename(tmp, orig); err != nil {
 			slog.Error("failed renaming tmp to original version dir", "tmp", tmp, "orig", orig)
 		}

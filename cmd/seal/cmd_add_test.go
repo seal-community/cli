@@ -227,7 +227,7 @@ func TestUpsertModifiedNotExact(t *testing.T) {
 	if existing[1].RecommendedLibraryVersionString != "2.7.4-sp2" {
 		t.Fatal("did not update version string")
 	}
-	
+
 	if existing[1].RecommendedLibraryVersionId != "recommended-id" {
 		t.Fatal("did not update version id")
 	}

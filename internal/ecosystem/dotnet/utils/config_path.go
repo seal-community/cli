@@ -11,7 +11,7 @@ func GetNugetCacheLocation() string {
 	if err != nil {
 		slog.Error("failed getting user home dir", "err", err)
 	}
-	
+
 	return filepath.Join(dirname, ".nuget")
 }
 

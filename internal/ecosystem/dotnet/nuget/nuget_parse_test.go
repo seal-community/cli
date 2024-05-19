@@ -72,7 +72,7 @@ func TestParseDefaultDependencies(t *testing.T) {
 			if dep[0].Version != expectedVersion {
 				t.Fatalf("wrong version %v", dep[0].Version)
 			}
-			
+
 		} else {
 			t.Fatalf("unexpected package %v", dep[0].Name)
 		}

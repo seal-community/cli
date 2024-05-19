@@ -40,7 +40,7 @@ func TestSaveFiles(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	f.Close()
 
 	packageName := "Snappier.1.1.0-sp1.nupkg"

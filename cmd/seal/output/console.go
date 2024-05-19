@@ -113,7 +113,7 @@ func (p ConsolePrinter) Handle(vulnerablePackages []api.PackageVersion, allDeps 
 				"",
 			})
 		}
-		
+
 		t.AppendSeparator()
 	}
 

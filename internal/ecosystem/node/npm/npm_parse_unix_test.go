@@ -37,7 +37,7 @@ func TestEmptyDepObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed parsing with empty dep %v", err)
 	}
-	
+
 	if len(deps) != 0 {
 		t.Fatalf("wrong number of deps %d", len(deps))
 
@@ -168,5 +168,3 @@ func TestLocalFolderPackageInstallLinks(t *testing.T) {
 		t.Fatalf("did not detect as direct dep %v", dep)
 	}
 }
-
-

@@ -1,11 +1,11 @@
 package common
 
 import (
+	cp "github.com/otiai10/copy"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
-	cp "github.com/otiai10/copy"
 )
 
 var CliCWD string // the working directory the cli started running from

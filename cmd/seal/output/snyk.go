@@ -72,7 +72,7 @@ func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, 
 		if err != nil {
 			return false, common.WrapWithPrintable(err, "failed to create .snyk file: %s", policyFilePath)
 		}
-		
+
 		defer f.Close()
 
 		if err = snyk.SavePolicy(pf, f); err != nil {

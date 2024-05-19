@@ -9,17 +9,17 @@ import (
 )
 
 type JavaPackageInfo struct {
-	OrgName string
+	OrgName      string
 	ArtifactName string
-	Version string
-	Scope string
+	Version      string
+	Scope        string
 }
 
 // identifier format: orgName:artifactName:packageType:version:scope, for example:
 // org.apache.commons:commons-lang3:jar:3.11:compile will return {org.apache.commons, commons-lang3, 3.11, compile}, nil
 func CreateJavaPackageInfo(identifier string) (*JavaPackageInfo, error) {
 	parts := strings.Split(identifier, ":")
-	
+
 	if len(parts) < 2 {
 		slog.Error("failed parsing package info from identifier", "identifier", identifier)
 		return nil, common.NewPrintableError("invalid package identifier: %s", identifier)
@@ -29,7 +29,7 @@ func CreateJavaPackageInfo(identifier string) (*JavaPackageInfo, error) {
 	if len(parts) >= 4 {
 		version = parts[3]
 	}
-	
+
 	buildScope := ""
 	if len(parts) >= 5 {
 		buildScope = parts[4]

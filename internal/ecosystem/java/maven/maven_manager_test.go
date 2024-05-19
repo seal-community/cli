@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-
 func TestIndicatorMatches(t *testing.T) {
 	ps := []string{
 		`/b/pom.xml`,
@@ -35,7 +34,7 @@ func TestIndicatorDoesNotMatchOtherXml(t *testing.T) {
 		`./abc/../package.xml`,
 		`.\abc\..\package.xml`,
 	}
-	
+
 	for i, p := range ps {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
 			if IsMavenIndicatorFile(p) {

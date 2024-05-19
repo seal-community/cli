@@ -35,7 +35,7 @@ func TestIllegalPaths(t *testing.T) {
 		`./abc/../x.txt`,
 		`.\abc\..\x.txt`,
 	}
-	
+
 	for i, p := range badPaths {
 		t.Run(fmt.Sprintf("bad_path_%d", i), func(t *testing.T) {
 			if !isIllegalPath(p) {

@@ -12,6 +12,6 @@ func Colorize(s string, c AnsiColor) string {
 	if !isTty {
 		return s
 	}
-	
+
 	return fmt.Sprintf("%s%s%s", c, s, AnsiReset)
 }

@@ -88,7 +88,7 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 				if parser.shouldSkip(&pkg) {
 					continue
 				}
-				
+
 				addDepInstance(deps, &pkg, projectDir)
 			}
 		}

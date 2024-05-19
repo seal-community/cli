@@ -30,7 +30,7 @@ func writeFile(target string, src io.Reader, entry *tar.Header) error {
 	if err != nil {
 		return err
 	}
-	
+
 	defer outFile.Close()
 
 	bytesWritten, err := io.Copy(outFile, src)

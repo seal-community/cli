@@ -41,10 +41,10 @@ type BlackDuckConfig struct {
 }
 
 type Config struct {
-	Token   string     `yaml:"token"            env:"TOKEN"`
-	Project string     `yaml:"project"          env:"PROJECT"`
-	Npm     NpmConfig  `yaml:"npm"              envPrefix:"NPM_"`
-	Pnpm    PnpmConfig `yaml:"pnpm"             envPrefix:"PNPM_"`
+	Token   string      `yaml:"token"            env:"TOKEN"`
+	Project string      `yaml:"project"          env:"PROJECT"`
+	Npm     NpmConfig   `yaml:"npm"              envPrefix:"NPM_"`
+	Pnpm    PnpmConfig  `yaml:"pnpm"             envPrefix:"PNPM_"`
 	Maven   MavenConfig `yaml:"maven"            envPrefix:"MAVEN_"`
 
 	BlackDuck BlackDuckConfig `yaml:"blackduck" envPrefix:"BLACKDUCK_"`

@@ -10,14 +10,14 @@ const (
 	NpmManager    = "NPM"
 	PythonManager = "PyPI"
 	NugetManager  = "NuGet"
-	MavenManger    = "Maven"
+	MavenManger   = "Maven"
 )
 
 const (
 	NodeEcosystem   = "node"
 	PythonEcosystem = "python"
 	DotnetEcosystem = ".NET"
-	JavaEcosystem = "java"
+	JavaEcosystem   = "java"
 )
 
 func BackendManagerToEcosystem(bem string) string {

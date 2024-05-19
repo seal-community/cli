@@ -38,7 +38,7 @@ func (parser *dependencyParser) isWorkspace(root *NpmPackage, p *NpmPackage) boo
 		slog.Warn("failed resolving symlink", "path", root.Path, "err", err)
 		return false
 	}
-	
+
 	packageSymLinkDest, err := filepath.EvalSymlinks(p.Path)
 	if err != nil {
 		slog.Warn("failed resolving symlink", "path", p.Path, "err", err)
@@ -55,7 +55,7 @@ func (parser *dependencyParser) isWorkspace(root *NpmPackage, p *NpmPackage) boo
 		slog.Debug("not in workspace", "path", p.Path, "rel_path", relPath)
 		return false
 	}
-	
+
 	return true
 }
 

@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-
 func TestEmptyMetadataFile(t *testing.T) {
 	content := ``
 	_, err := LoadPackageMetadata(strings.NewReader(content))

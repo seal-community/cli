@@ -138,7 +138,7 @@ func (m *MavenPackageManager) HandleFixes(projectDir string, fixes []shared.Depe
 		slog.Warn("failed getting maven cache dir")
 		return common.NewPrintableError("failed getting maven cache dir")
 	}
-	
+
 	if currCacheDir == m.cacheDir {
 		slog.Debug("maven cache dir is already set")
 		return nil

@@ -56,6 +56,6 @@ func loadPackageJson(dir string) map[string]any {
 		slog.Error("failed loading json", "err", err, "path", p)
 		return nil
 	}
-	
+
 	return pkg
 }

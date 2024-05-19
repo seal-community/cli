@@ -70,7 +70,7 @@ func TestPnpmOutputSkippingInvalidCR(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err reading buffer: %v", err)
 	}
-	
+
 	after := string(afterBytes)
 	if after != "/Users/mococo/proj/node_modules/.pnpm/@adobe+css-tools@4.3.3/node_modules/@adobe/css-tools:@adobe/css-tools@4.3.3" {
 		t.Fatalf("skip failed - did not skip correctly, before: `%s` after: `%s`", before, after)

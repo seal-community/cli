@@ -57,7 +57,7 @@ func TestAuthenticaionFailureOnStatusCode(t *testing.T) {
 			if testCase.ok && err != nil {
 				t.Fatalf("got error %v for code %d", err, testCase.code)
 			}
-			
+
 			if !testCase.ok && err == nil {
 				t.Fatalf("expected error for code %d", testCase.code)
 			}

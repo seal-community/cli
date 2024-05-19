@@ -10,6 +10,7 @@ linters:
   enable:
     - godox # checks no BUG/FIXME/TODO
     - forbidigo # arbitrary forbidden patterns
+    - gofmt # formatting
 
 linters-settings:
   staticcheck:
