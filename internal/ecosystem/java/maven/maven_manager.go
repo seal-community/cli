@@ -172,7 +172,8 @@ func listPackages(targetDir string) (*common.ProcessResult, bool) {
 	}
 
 	if listResult.Code != 0 {
-		slog.Error("failed running maven dependency:tree", "err", listResult.Stderr)
+		// maven outputs the error to stdout
+		slog.Error("failed running maven dependency:tree", "err", listResult.Stderr, "out", listResult.Stdout)
 		return listResult, false
 	}
 
