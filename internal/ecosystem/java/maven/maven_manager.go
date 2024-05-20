@@ -145,7 +145,7 @@ func (m *MavenPackageManager) HandleFixes(projectDir string, fixes []shared.Depe
 	}
 
 	slog.Info("setting maven cache dir", "dir", m.cacheDir)
-	err := setCacheDir(projectDir, currCacheDir)
+	err := setCacheDir(projectDir, m.cacheDir)
 	if err != nil {
 		return common.NewPrintableError("failed setting maven cache dir")
 	}
