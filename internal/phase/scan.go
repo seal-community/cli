@@ -46,6 +46,11 @@ func (sp *scanPhase) metadata() (*PackageManagerMetadata, error) {
 		return nil, fmt.Errorf("failed getting package manager version")
 	}
 
+	if !packageManager.IsVersionSupported(version) {
+		slog.Error("unsupported package manager version", "version", version)
+		return nil, common.NewPrintableError("unsupported package manager version %s", version)
+	}
+
 	slog.Info("package manager version", "version", version, "name", name)
 
 	return &PackageManagerMetadata{Version: version, Name: name}, nil

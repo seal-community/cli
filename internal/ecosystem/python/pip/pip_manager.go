@@ -87,6 +87,10 @@ func (m *PipPackageManager) getSitePackages() string {
 	return ""
 }
 
+func (m *PipPackageManager) IsVersionSupported(version string) bool {
+	return true
+}
+
 func (m *PipPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
 	return listPackages(targetDir)
 }

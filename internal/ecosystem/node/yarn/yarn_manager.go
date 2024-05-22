@@ -67,6 +67,10 @@ func (m *YarnPackageManager) GetVersion(targetDir string) string {
 	return fmt.Sprintf("%s (npm %s)", m.version, npmVersion) // specifying both versions for metadata until we return a map here
 }
 
+func (m *YarnPackageManager) IsVersionSupported(version string) bool {
+	return true
+}
+
 func (m *YarnPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
 	return m.npmManager.ListDependencies(targetDir)
 }

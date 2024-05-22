@@ -74,6 +74,10 @@ func (m *NugetPackageManager) GetVersion(targetDir string) string {
 	return ""
 }
 
+func (m *NugetPackageManager) IsVersionSupported(version string) bool {
+	return true
+}
+
 func (m *NugetPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
 	return listPackages(targetDir)
 }

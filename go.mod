@@ -22,6 +22,8 @@ require (
 
 require github.com/otiai10/copy v1.14.0
 
+require github.com/hashicorp/go-version v1.6.0 // indirect
+
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect

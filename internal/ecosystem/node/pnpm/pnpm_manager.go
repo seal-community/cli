@@ -40,6 +40,10 @@ func (m *PnpmPackageManager) GetVersion(targetDir string) string {
 	return m.version
 }
 
+func (m *PnpmPackageManager) IsVersionSupported(version string) bool {
+	return true
+}
+
 func (m *PnpmPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
 	return listPnpmPackages(targetDir, m.version, m.Config.Pnpm.ProdOnlyDeps)
 }

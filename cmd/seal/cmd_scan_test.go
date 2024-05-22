@@ -29,6 +29,10 @@ func (m *FakePackageManager) GetVersion(targetDir string) string {
 	return "1.2.3"
 }
 
+func (m *FakePackageManager) IsVersionSupported(version string) bool {
+	return true
+}
+
 func (m *FakePackageManager) GetProjectName(projectDir string) string {
 	return ""
 }

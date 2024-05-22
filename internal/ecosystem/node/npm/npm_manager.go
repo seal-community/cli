@@ -40,6 +40,10 @@ func (m *NpmPackageManager) GetVersion(targetDir string) string {
 	return m.version
 }
 
+func (m *NpmPackageManager) IsVersionSupported(version string) bool {
+	return true
+}
+
 func (m *NpmPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
 	return listPackages(targetDir, m.GetVersion(targetDir), m.Config.Npm.ProdOnlyDeps)
 }

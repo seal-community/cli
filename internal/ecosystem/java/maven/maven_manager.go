@@ -13,6 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	version_parse "github.com/hashicorp/go-version"
 )
 
 const sealCacheName = ".seal-m2"
@@ -20,6 +22,7 @@ const mavenIndicator = "pom.xml"
 const mavenManagerName = "maven"
 const mavenConfigName = ".mvn/maven.config"
 const m2CacheFlag = "-Dmaven.repo.local"
+const minimumMavenVersion = "3.3.1"
 
 type MavenPackageManager struct {
 	Config         *config.Config
@@ -44,6 +47,28 @@ func (m *MavenPackageManager) GetVersion(targetDir string) string {
 	}
 	m.mavenVersion = version
 	return m.mavenVersion
+}
+
+func (m *MavenPackageManager) IsVersionSupported(version string) bool {
+	if version == "" {
+		slog.Error("maven version is empty")
+		return false
+	}
+
+	v, err1 := version_parse.NewVersion(version)
+	sv, err2 := version_parse.NewVersion(minimumMavenVersion)
+
+	if err1 != nil || err2 != nil {
+		slog.Warn("failed parsing maven version", "version", version)
+		return false
+	}
+
+	if v.LessThan(sv) {
+		slog.Warn("maven version is not supported", "version", version)
+		return false
+	}
+
+	return true
 }
 
 func IsMavenIndicatorFile(path string) bool {
@@ -215,7 +240,19 @@ func setCacheDir(projectDir string, newCacheDir string) error {
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(fmt.Sprintf("\n%s=%s", m2CacheFlag, newCacheDir))
+	fi, err := file.Stat()
+	if err != nil {
+		slog.Error("failed getting file info", "err", err)
+		return common.NewPrintableError("failed getting file info for %s", mavenConfigName)
+	}
+
+	// maven version 3.3.1 doesn't support an empty line in the start of the file
+	if fi.Size() != 0 {
+		// ignoring error because the same operation is checked in the next block
+		_, _ = file.WriteString("\n")
+	}
+
+	_, err = file.WriteString(fmt.Sprintf("%s=%s", m2CacheFlag, newCacheDir))
 	if err != nil {
 		slog.Error("failed writing to maven.config file", "err", err)
 		return common.NewPrintableError("failed writing to %s file", mavenConfigName)

@@ -44,6 +44,7 @@ type PackageDownload struct {
 type PackageManager interface {
 	Name() string
 	GetVersion(targetDir string) string
+	IsVersionSupported(version string) bool
 	ListDependencies(targetDir string) (*common.ProcessResult, bool)
 	GetParser() ResultParser
 	GetProjectName(dir string) string // empty string means failure
