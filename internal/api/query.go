@@ -22,11 +22,6 @@ const (
 	// futue support for query all
 )
 
-type BulkCheckRequest struct {
-	Entries  []common.Dependency    `json:"entries"`
-	Metadata map[string]interface{} `json:"metadata"`
-}
-
 type RemoteOverrideQuery struct {
 	LibraryId            string  `json:"libray_id"`
 	OriginVersionId      string  `json:"origin_version_id"`

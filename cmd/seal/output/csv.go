@@ -47,9 +47,9 @@ func (e CsvExporter) Handle(vulnerablePackages []api.PackageVersion, allDeps com
 			continue
 		}
 
-		hasSealed := csvCanSealTrueValue
+		hasSealed := csvCanSealFalseValue
 		if vulnPackage.CanBeFixed() {
-			hasSealed = csvCanSealFalseValue
+			hasSealed = csvCanSealTrueValue
 		}
 
 		// in csv we don't care how many vulnerability ids we have
