@@ -36,3 +36,4 @@ test/*/output/
 .venv/
 requirements.txt
 mockserver/seal
+test/test.log
