@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
+	"strings"
 )
 
 type Server struct {
@@ -52,6 +54,9 @@ func (s Server) sendBulkRequest(request *BulkCheckRequest, queryType PackageQuer
 		headers = []StringPair{BuildBasicAuthHeader(s.AuthToken)}
 		common.Trace("sending auth header in bulk request")
 	}
+
+	// adding sort for deterministic order in request
+	slices.SortFunc(request.Entries, func(a, b common.Dependency) int { return strings.Compare(a.Id(), b.Id()) })
 
 	data, statusCode, err := sendSealApiRequest[BulkCheckRequest, Page[PackageVersion]](
 		s.Client,

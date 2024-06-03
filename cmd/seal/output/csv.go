@@ -54,7 +54,8 @@ func (e CsvExporter) Handle(vulnerablePackages []api.PackageVersion, allDeps com
 
 		// in csv we don't care how many vulnerability ids we have
 		combinedIds := vulnPackage.OpenVulnerabilities[0].PreferredId()
-		for _, vulnerability := range vulnPackage.OpenVulnerabilities {
+		// must have at least 1, so okay to slice
+		for _, vulnerability := range vulnPackage.OpenVulnerabilities[1:] {
 			combinedIds = strings.Join([]string{combinedIds, vulnerability.PreferredId()}, csvSubTextSeparator)
 		}
 
