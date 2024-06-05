@@ -9,6 +9,7 @@ import (
 	"cli/internal/ecosystem/node"
 	"cli/internal/ecosystem/python"
 	"cli/internal/ecosystem/shared"
+	"fmt"
 	"log/slog"
 	"path/filepath"
 
@@ -66,6 +67,71 @@ func findPackageManager(configDir *config.Config, projectDir string, target stri
 	return nil, common.NewPrintableError("failed to find a supported package manager in the project directory")
 }
 
+func findProjectId(projMap map[string]config.ProjectInfo, projectDir string, targetFile string) (string, error) {
+
+	relTarget, err := filepath.Rel(projectDir, targetFile)
+	if err != nil {
+		slog.Error("failed getting relative path for target file ", "err", err, "dir", projectDir, "file", targetFile)
+		return "", common.NewPrintableError("could not locate target file %s in target dir %s", targetFile, projectDir)
+	}
+
+	for pid, pi := range projMap {
+		for _, target := range pi.Targets {
+			// case-sensitive exact comparison just in case it matters
+			if target == relTarget {
+				slog.Debug("found project id in config project map", "target", relTarget, "id", pid)
+				return pid, nil
+			}
+		}
+	}
+
+	slog.Debug("target does not appear in config project map", "target", relTarget)
+	return "", nil
+}
+
+func calculateProjectId(manager shared.PackageManager, projectDir string, targetFile string) (string, error) {
+	// not implemented yet- should not reach here, return err that signifies the actual reason
+	return "", common.NewPrintableError("config does not contain the provided target %s", targetFile)
+}
+
+func getProjectId(conf *config.Config, manager shared.PackageManager, projectDir string, targetFile string) (string, error) {
+	if len(conf.ProjectMap) != 0 && targetFile != "" {
+		slog.Debug("looking for project id in new config format", "target", targetFile)
+		// this only works when we were provided a target file
+		projId, err := findProjectId(conf.ProjectMap, projectDir, targetFile)
+		if err != nil {
+			return "", err
+		}
+
+		if projId != "" { // found the target file
+			return projId, nil
+		}
+
+		slog.Warn("did not find manifest file in config, generating id")
+		projId, err = calculateProjectId(manager, projectDir, targetFile)
+		if err != nil || projId == "" {
+			slog.Error("failed generating project id", "err", err, "projectId", projId)
+			return "", common.FallbackPrintableMsg(err, "failed calculating project id")
+		}
+
+		// IMPORTANT: can technically print here, as it is part of the init of the phase that comes before the progress bar is initialized
+		fmt.Printf("warning: using newly generated project-id: %s\n", projId)
+		return projId, nil
+
+	} else {
+		// legacy project name
+		// perform best effort to find a project name if it was not configured;
+		slog.Info("project name not configured, using manager value", "manager", manager.Name())
+		projId := manager.GetProjectName(projectDir)
+		if projId == "" {
+			slog.Warn("manager project name not viable, using folder name")
+			projId = filepath.Base(projectDir)
+		}
+
+		return projId, nil
+	}
+}
+
 func (p *basePhase) init(targetPath string, configPath string, showProgress bool) error {
 	var err error
 	p.ProjectDir = getProjectDir(targetPath)
@@ -94,15 +160,15 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 	}
 
 	if p.Config.Project == "" {
-		// perform best effort to find a project name if it was not configured;
-		slog.Info("project name not configured, using manager value")
-		projName := p.Manager.GetProjectName(p.ProjectDir)
-		if projName == "" {
-			slog.Warn("manager name not viable, using folder name")
-			projName = filepath.Base(p.ProjectDir)
+		// was not set as env override (or was set using legacy config)
+		// try finding matching project id from project map
+		slog.Debug("project id not set, trying to find it")
+		projectId, err := getProjectId(p.Config, p.Manager, p.ProjectDir, p.TargetFile)
+		if err != nil {
+			return common.FallbackPrintableMsg(err, "failed finding project id")
 		}
 
-		p.Config.Project = projName
+		p.Config.Project = projectId
 	}
 
 	p.Workdir, err = createInternalSealFolder(p.ProjectDir)

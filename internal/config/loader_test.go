@@ -124,3 +124,91 @@ func TestDefaultValueOverriddenByEnv(t *testing.T) {
 		t.Fatalf("wrong default value in config - got %v expected %v", config.Npm.ProdOnlyDeps, true)
 	}
 }
+
+func TestProjectId(t *testing.T) {
+	content := "project: proj-id-1"
+	config, err := Load(strings.NewReader(content), emptyEnv)
+
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+
+	if config.Project != "proj-id-1" {
+		t.Fatalf("wrong project value - got %v", config.Project)
+	}
+}
+
+func TestProjectIdEmpty(t *testing.T) {
+	content := "project: \n"
+	config, err := Load(strings.NewReader(content), emptyEnv)
+
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+
+	if config.Project != "" {
+		t.Fatalf("wrong project value - got %v", config.Project)
+	}
+}
+
+func TestProjectsMap(t *testing.T) {
+	content := "projects: \n  proj-id-1:\n    targets:\n      - package.json"
+	config, err := Load(strings.NewReader(content), emptyEnv)
+
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+
+	if config.Project != "" {
+		t.Fatalf("wrong project value - got %v", config.Project)
+	}
+
+	if len(config.ProjectMap) != 1 {
+		t.Fatalf("wrong projct map size: %d", len(config.ProjectMap))
+	}
+
+	projInfo, ok := config.ProjectMap["proj-id-1"]
+	if !ok {
+		t.Fatalf("proj id not found")
+	}
+
+	if len(projInfo.Targets) != 1 {
+		t.Fatalf("wrong number of targets: %d", len(projInfo.Targets))
+	}
+
+	if projInfo.Targets[0] != "package.json" {
+		t.Fatalf("wrong target: %s", projInfo.Targets[0])
+	}
+}
+
+func TestProjectsMapAndProject(t *testing.T) {
+	// not really supported
+
+	content := "project: proj-id-3\nprojects: \n  proj-id-1:\n    targets:\n      - package.json"
+	config, err := Load(strings.NewReader(content), emptyEnv)
+
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+
+	if config.Project != "proj-id-3" {
+		t.Fatalf("wrong project value - got %v", config.Project)
+	}
+
+	if len(config.ProjectMap) != 1 {
+		t.Fatalf("wrong projct map size: %d", len(config.ProjectMap))
+	}
+
+	projInfo, ok := config.ProjectMap["proj-id-1"]
+	if !ok {
+		t.Fatalf("proj id not found")
+	}
+
+	if len(projInfo.Targets) != 1 {
+		t.Fatalf("wrong number of targets: %d", len(projInfo.Targets))
+	}
+
+	if projInfo.Targets[0] != "package.json" {
+		t.Fatalf("wrong target: %s", projInfo.Targets[0])
+	}
+}

@@ -20,7 +20,7 @@ func TestGetProjectNameSanity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pyproj := GetProjectName(tmp)
+	pyproj := GetPyprojectProjectName(tmp)
 	if pyproj != "test_project" {
 		t.Fatal("failed to load pyproject.toml")
 	}
@@ -40,7 +40,7 @@ func TestGetProjectNamePoetry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pyproj := GetProjectName(tmp)
+	pyproj := GetPyprojectProjectName(tmp)
 	if pyproj != "poetry_project" {
 		t.Fatal("failed to load pyproject.toml")
 	}
@@ -49,7 +49,7 @@ func TestGetProjectNamePoetry(t *testing.T) {
 func TestGetProjectNameNoFile(t *testing.T) {
 	tmp := t.TempDir()
 
-	pyproj := GetProjectName(tmp)
+	pyproj := GetPyprojectProjectName(tmp)
 	if pyproj != "" {
 		t.Fatal("failed to load pyproject.toml")
 	}
@@ -69,7 +69,7 @@ func TestGetProjectNameNoName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pyproj := GetProjectName(tmp)
+	pyproj := GetPyprojectProjectName(tmp)
 	if pyproj != "" {
 		t.Fatal("failed to load pyproject.toml")
 	}
@@ -89,7 +89,7 @@ func TestGetProjectNameProjectWrongType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pyproj := GetProjectName(tmp)
+	pyproj := GetPyprojectProjectName(tmp)
 	if pyproj != "" {
 		t.Fatal("failed to load pyproject.toml")
 	}

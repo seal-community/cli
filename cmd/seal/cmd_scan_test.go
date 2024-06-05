@@ -14,51 +14,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type FakePackageManager struct {
-}
-
-func (m *FakePackageManager) Name() string {
-	return "fakename"
-}
-
-func (m *FakePackageManager) GetEcosystem() string {
-	return "fakeecosystem"
-}
-
-func (m *FakePackageManager) GetVersion(targetDir string) string {
-	return "1.2.3"
-}
-
-func (m *FakePackageManager) IsVersionSupported(version string) bool {
-	return true
-}
-
-func (m *FakePackageManager) GetProjectName(projectDir string) string {
-	return ""
-}
-
-func (m *FakePackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
-	return nil
-}
-
-func (m *FakePackageManager) GetParser() shared.ResultParser {
-	return nil
-}
-
-func (m *FakePackageManager) GetScanTargets() []string {
-	return []string{"package.json"}
-}
-
-func (m *FakePackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	return nil, false
-}
-
-func (m *FakePackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
-	return nil, nil
-}
-
-func (m *FakePackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
-	return nil
+var fakeManager = shared.FakePackageManager{
+	ManagerName:      "fakename",
+	Ecosystem:        "fakeecosystem",
+	Version:          "1.2.3",
+	VersionSupported: true,
+	ScanTargets:      []string{"package.json"},
 }
 
 func getTestVulns() []api.PackageVersion {
@@ -99,7 +60,7 @@ projects:
         1.2.3:
           use: 1.2.3-sp1
 `
-	manager := &FakePackageManager{}
+	manager := &fakeManager
 	vulns := getTestVulns()
 	actionsObject := createActionsObject(vulns, manager, "project", "projectDir")
 	if actionsObject == nil {

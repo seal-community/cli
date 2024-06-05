@@ -134,14 +134,14 @@ func (sp *scanPhase) Scan(generateActivity bool) (*ScanResult, error) {
 	sp.Bar.Describe("Checking metadata")
 	_ = sp.Bar.RenderBlank() // draw without progress to show the description
 
-	nodeMetadata, err := sp.metadata()
+	managerMetadata, err := sp.metadata()
 	if err != nil {
 		return nil, common.FallbackPrintableMsg(err, "failed checking metadata")
 	}
 
-	if nodeMetadata != nil {
-		slog.Debug("done collecting npm metadata")
-		metadata["npm"] = nodeMetadata
+	if managerMetadata != nil {
+		slog.Debug("done collecting manager metadata")
+		metadata[sp.Manager.Name()] = managerMetadata
 	}
 
 	sp.advanceStep("Scanning local dependencies")

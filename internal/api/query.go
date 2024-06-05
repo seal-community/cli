@@ -100,6 +100,9 @@ func (s Server) sendBulkRequestAuth(request *BulkCheckRequest, queryType Package
 
 	headers := []StringPair{BuildBasicAuthHeader(s.AuthToken)}
 
+	// adding sort for deterministic order in request
+	slices.SortFunc(request.Entries, func(a, b common.Dependency) int { return strings.Compare(a.Id(), b.Id()) })
+
 	data, statusCode, err := sendSealApiRequest[BulkCheckRequest, Page[PackageVersion]](
 		s.Client,
 		"POST",

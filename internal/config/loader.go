@@ -40,6 +40,10 @@ type BlackDuckConfig struct {
 	VersionName string `yaml:"blackduck-project-version-name"      env:"PROJECT_VERSION_NAME"`
 }
 
+type ProjectInfo struct {
+	Targets []string `yaml:"targets"` // list of scan targets
+}
+
 type Config struct {
 	Token   string      `yaml:"token"            env:"TOKEN"`
 	Project string      `yaml:"project"          env:"PROJECT"`
@@ -48,6 +52,9 @@ type Config struct {
 	Maven   MavenConfig `yaml:"maven"            envPrefix:"MAVEN_"`
 
 	BlackDuck BlackDuckConfig `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
+
+	// the following map deprecates the Project field, but we keep support for backward compatibility and utilizing it for 'caching' the selected project
+	ProjectMap map[string]ProjectInfo `yaml:"projects"` // project id is the key - no env override for this
 }
 
 var FailedParsingConfYaml = common.NewPrintableError("could not parse configuration")

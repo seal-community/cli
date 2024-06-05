@@ -10,9 +10,10 @@ import (
 
 const PyProjectTomlFile = "pyproject.toml"
 
-func GetProjectName(dir string) string {
+func GetPyprojectProjectName(dir string) string {
 	pyproj := loadPyProjectToml(dir)
 	if pyproj == nil {
+		slog.Warn("failed opening pyproject toml")
 		return ""
 	}
 
@@ -100,12 +101,12 @@ func loadPyProjectToml(dir string) map[string]any {
 	p := filepath.Join(dir, PyProjectTomlFile)
 	data, err := os.ReadFile(p)
 	if err != nil {
-		slog.Error("failed opening pyproject.toml file", "err", err, "path", p)
+		slog.Debug("failed opening pyproject.toml file", "err", err, "path", p)
 		return nil
 	}
 
 	if err := toml.Unmarshal(data, &pyproj); err != nil {
-		slog.Error("failed loading toml", "err", err, "path", p)
+		slog.Debug("failed loading toml", "err", err, "path", p)
 		return nil
 	}
 
