@@ -154,6 +154,8 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 		return err
 	}
 
+	slog.Info("initiated config", "has-token", p.Config.Token != "")
+
 	p.Manager, err = findPackageManager(p.Config, p.ProjectDir, p.TargetFile)
 	if err != nil {
 		return err
@@ -162,7 +164,7 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 	if p.Config.Project == "" {
 		// was not set as env override (or was set using legacy config)
 		// try finding matching project id from project map
-		slog.Debug("project id not set, trying to find it")
+		slog.Info("project id not set, trying to find it")
 		projectId, err := getProjectId(p.Config, p.Manager, p.ProjectDir, p.TargetFile)
 		if err != nil {
 			return common.FallbackPrintableMsg(err, "failed finding project id")

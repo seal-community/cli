@@ -109,6 +109,11 @@ func cleanWorkdir(fixer shared.DependencyFixer, err *error) {
 
 func (fp *fixPhase) Authenticate() error {
 	fp.Bar.Describe("Checking authentication")
+	if fp.Config.Token == "" {
+		slog.Error("no auth token")
+		return common.NewPrintableError("missing authentication token")
+	}
+
 	err := fp.Server.CheckAuthenticationValid()
 	_ = fp.Bar.Add(1)
 
