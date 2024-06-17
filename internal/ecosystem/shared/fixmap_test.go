@@ -9,7 +9,7 @@ import (
 func TestFixMapKey(t *testing.T) {
 	p := &api.PackageVersion{
 		Version:                         "1.2.3",
-		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "123123",
 		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}

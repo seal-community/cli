@@ -44,12 +44,22 @@ func (m *NpmPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *NpmPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	return listPackages(targetDir, m.GetVersion(targetDir), m.Config.Npm.ProdOnlyDeps)
-}
+func (m *NpmPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
+	result, ok := listPackages(targetDir, m.GetVersion(targetDir), m.Config.Npm.ProdOnlyDeps)
+	if !ok {
+		slog.Error("failed running package manager in the current dir", "name", m.Name())
+		return nil, shared.ManagerProcessFailed
+	}
 
-func (m *NpmPackageManager) GetParser() shared.ResultParser {
-	return &dependencyParser{config: m.Config}
+	parser := &dependencyParser{config: m.Config, normalizer: m}
+	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	if err != nil {
+		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
+		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
+		return nil, shared.FailedParsingManagerOutput
+	}
+
+	return dependencyMap, nil
 }
 
 func (m *NpmPackageManager) GetProjectName(projectDir string) string {
@@ -172,4 +182,9 @@ func (m *NpmPackageManager) HandleFixes(projectDir string, fixes []shared.Depend
 	}
 
 	return nil
+}
+
+// Npm packages are case sensitive, There are multiple packages with the same name, but different capitalization
+func (m *NpmPackageManager) NormalizePackageName(name string) string {
+	return name
 }

@@ -38,7 +38,8 @@ func (VulnerabilityObject Vulnerability) PreferredId() string {
 }
 
 type Package struct {
-	Name           string `json:"escaped_name"` // using escaped name to correctly match packages that resolve to the same value (e.g. for pip)
+	Name           string `json:"escaped_name"`    // using escaped name to correctly match packages that resolve to the same value (e.g. for pip)
+	NormalizedName string `json:"normalized_name"` // the names are normalized differently according to the package manager
 	PackageManager string `json:"package_manager"`
 	Id             string `json:"id"`
 }
@@ -77,12 +78,12 @@ func (p *PackageVersion) IsMalicious() bool {
 }
 
 func (p *PackageVersion) Id() string {
-	return common.DependencyId(p.Library.PackageManager, p.Library.Name, p.Version)
+	return common.DependencyId(p.Library.PackageManager, p.Library.NormalizedName, p.Version)
 }
 
 func (p *PackageVersion) RecommendedId() string {
 	// in future we should have a recommendedName field / entire new object for it (in case we have a completely different package name)
-	return common.DependencyId(p.Library.PackageManager, p.Library.Name, p.RecommendedLibraryVersionString)
+	return common.DependencyId(p.Library.PackageManager, p.Library.NormalizedName, p.RecommendedLibraryVersionString)
 }
 
 func (p *PackageVersion) OriginId() string {
@@ -91,7 +92,7 @@ func (p *PackageVersion) OriginId() string {
 		return p.Id()
 	}
 
-	return common.DependencyId(p.Library.PackageManager, p.Library.Name, p.OriginVersionString)
+	return common.DependencyId(p.Library.PackageManager, p.Library.NormalizedName, p.OriginVersionString)
 }
 
 func (p *PackageVersion) Descriptor() string {

@@ -1,6 +1,7 @@
 package pip
 
 import (
+	"cli/internal/config"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,6 +95,25 @@ func TestIndicatorMatches(t *testing.T) {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
 			if !IsPythonIndicatorFile(p) {
 				t.Fatalf("failed to detect indicator path `%s`", p)
+			}
+		})
+	}
+}
+
+func TestNormalizePackageNames(t *testing.T) {
+	c, _ := config.New(nil)
+	manager := NewPipManager(c, "", "")
+	names := map[string]string{
+		"aaaaa": "aaaaa",
+		"aaAAa": "aaaaa",
+		"AAAAA": "aaaaa",
+		"AAa_a": "aaa-a",
+		"AaA-a": "aaa-a",
+	}
+	for n, expected := range names {
+		t.Run(fmt.Sprintf("name_%s", n), func(t *testing.T) {
+			if manager.NormalizePackageName(n) != expected {
+				t.Fatalf("failed to normalize `%s`", n)
 			}
 		})
 	}

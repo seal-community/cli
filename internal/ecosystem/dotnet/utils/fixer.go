@@ -125,7 +125,7 @@ func (f *fixer) Prepare() error {
 // extract the data to the <HOME>/.nuget/packages/<Package>/<Version> cache folder
 func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	sealedVersion := entry.AvailableFix.Version
-	location := filepath.Join(GetGlobalPackagesCachePath(), dep.Name, sealedVersion)
+	location := filepath.Join(GetGlobalPackagesCachePath(), dep.NormalizedName, sealedVersion)
 	packageName := fmt.Sprintf("%s.%s.nupkg", dep.Name, sealedVersion)
 	err := savePackageFiles(location, packageName, packageData)
 	return err == nil, err

@@ -5,6 +5,7 @@ import (
 	"cli/internal/config"
 	"cli/internal/ecosystem/dotnet/utils"
 	"cli/internal/ecosystem/mappings"
+	"cli/internal/ecosystem/shared"
 	"encoding/json"
 	"log/slog"
 	"path/filepath"
@@ -41,7 +42,8 @@ type NugetPackage struct {
 }
 
 type dependencyParser struct {
-	config *config.Config
+	config     *config.Config
+	normalizer shared.Normalizer
 }
 
 func (parser *dependencyParser) shouldSkip(p *NugetPackage) bool {
@@ -81,7 +83,7 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 					continue
 				}
 
-				addDepInstance(deps, &pkg, projectDir)
+				parser.addDepInstance(deps, &pkg, projectDir)
 			}
 
 			for _, pkg := range framework.TransitivePackages {
@@ -89,7 +91,7 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 					continue
 				}
 
-				addDepInstance(deps, &pkg, projectDir)
+				parser.addDepInstance(deps, &pkg, projectDir)
 			}
 		}
 	}
@@ -97,13 +99,14 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 	return deps, nil
 }
 
-func addDepInstance(deps common.DependencyMap, p *NugetPackage, projectDir string) *common.Dependency {
+func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, p *NugetPackage, projectDir string) *common.Dependency {
 	common.Trace("adding dep", "name", p.Name, "version", p.ResolvedVersion)
 	packagesPath := utils.GetGlobalPackagesCachePath()
 	diskPath := filepath.Join(packagesPath, strings.ToLower(p.Name), p.ResolvedVersion)
 
 	newDep := &common.Dependency{
 		Name:           p.Name,
+		NormalizedName: parser.normalizer.NormalizePackageName(p.Name),
 		Version:        p.ResolvedVersion,
 		PackageManager: mappings.NugetManager,
 		DiskPath:       diskPath,

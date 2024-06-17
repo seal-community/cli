@@ -71,12 +71,14 @@ func (m *YarnPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *YarnPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	return m.npmManager.ListDependencies(targetDir)
-}
+func (m *YarnPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
+	dependencyMap, err := m.npmManager.ListDependencies(targetDir)
+	if err != nil {
+		slog.Error("failed running package manager in the current dir", "name", m.Name())
+		return nil, shared.ManagerProcessFailed
+	}
 
-func (m *YarnPackageManager) GetParser() shared.ResultParser {
-	return m.npmManager.GetParser()
+	return dependencyMap, nil
 }
 
 func getYarnVersion(targetDir string) (string, bool) {
@@ -108,4 +110,9 @@ func (m *YarnPackageManager) DownloadPackage(server api.Server, descriptor share
 
 func (m *YarnPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	return nil
+}
+
+// yarn is case sensitive
+func (m *YarnPackageManager) NormalizePackageName(name string) string {
+	return name
 }

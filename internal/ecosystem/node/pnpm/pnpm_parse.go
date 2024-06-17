@@ -6,6 +6,7 @@ import (
 	"cli/internal/config"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/utils"
+	"cli/internal/ecosystem/shared"
 	"fmt"
 	"io"
 	"log/slog"
@@ -26,7 +27,8 @@ type PnpmPackage struct {
 }
 
 type pnpmDependencyParser struct {
-	config *config.Config // in the future we might want to only pass the npm specific config object
+	config     *config.Config // in the future we might want to only pass the npm specific config object
+	normalizer shared.Normalizer
 }
 
 func shouldSkip(d common.Dependency) bool {
@@ -92,7 +94,7 @@ func skipToPackages(output *bufio.Reader, projectDir string) error {
 	return nil
 }
 
-func parseLine(line string, projectDir string) *common.Dependency {
+func (parser *pnpmDependencyParser) parseLine(line string, projectDir string) *common.Dependency {
 	// format: {diskpath}:{package}@{version}
 	// 	 package - can be scoped, limitations: https://docs.npmjs.com/cli/v10/configuring-npm/package-json#name
 	//	 dispath - windows/unix path, absolute, can contain may characters
@@ -133,6 +135,7 @@ func parseLine(line string, projectDir string) *common.Dependency {
 
 	return &common.Dependency{
 		Name:           pkgName,
+		NormalizedName: parser.normalizer.NormalizePackageName(pkgName),
 		Version:        version,
 		PackageManager: mappings.NpmManager, // using NPM here as well for the sake of the BE
 		DiskPath:       path,
@@ -161,7 +164,7 @@ func (parser *pnpmDependencyParser) Parse(lsOutput string, projectDir string) (c
 	for i := 0; scanner.Scan(); i++ {
 		line := scanner.Text()
 
-		d := parseLine(line, projectDir)
+		d := parser.parseLine(line, projectDir)
 		if d == nil {
 			slog.Warn("failed parsing dep", "idx", i, "line", line)
 			return nil, fmt.Errorf("failed parsing pnpm output line %d", i) // returning genreal error, up to caller to use fallback

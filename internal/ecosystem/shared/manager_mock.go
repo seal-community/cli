@@ -17,7 +17,6 @@ type FakePackageManager struct {
 	VersionSupported bool
 	ProjetName       string
 	Fixer            DependencyFixer
-	Parser           ResultParser
 	ScanTargets      []string
 }
 
@@ -45,16 +44,12 @@ func (m *FakePackageManager) GetFixer(projectDir string, workdir string) Depende
 	return m.Fixer
 }
 
-func (m *FakePackageManager) GetParser() ResultParser {
-	return m.Parser
-}
-
 func (m *FakePackageManager) GetScanTargets() []string {
 	return m.ScanTargets
 }
 
-func (m *FakePackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	return nil, false
+func (m *FakePackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
+	return nil, *new(error)
 }
 
 func (m *FakePackageManager) DownloadPackage(server api.Server, descriptor DependnecyDescriptor) ([]byte, error) {
@@ -63,4 +58,8 @@ func (m *FakePackageManager) DownloadPackage(server api.Server, descriptor Depen
 
 func (m *FakePackageManager) HandleFixes(projectDir string, fixes []DependnecyDescriptor) error {
 	return nil
+}
+
+func (m *FakePackageManager) NormalizePackageName(name string) string {
+	return name
 }

@@ -78,12 +78,22 @@ func (m *NugetPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *NugetPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	return listPackages(targetDir)
-}
+func (m *NugetPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
+	result, ok := listPackages(targetDir)
+	if !ok {
+		slog.Error("failed running package manager in the current dir", "name", m.Name())
+		return nil, shared.ManagerProcessFailed
+	}
 
-func (m *NugetPackageManager) GetParser() shared.ResultParser {
-	return &dependencyParser{config: m.Config}
+	parser := &dependencyParser{config: m.Config, normalizer: m}
+	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	if err != nil {
+		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
+		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
+		return nil, shared.FailedParsingManagerOutput
+	}
+
+	return dependencyMap, nil
 }
 
 func (m *NugetPackageManager) GetProjectName(projectDir string) string {
@@ -172,4 +182,10 @@ func handleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	}
 
 	return nil
+}
+
+// Nuget package names are case-insensitive as stated here:
+// https://learn.microsoft.com/en-us/nuget/consume-packages/finding-and-choosing-packages
+func (m *NugetPackageManager) NormalizePackageName(name string) string {
+	return strings.ToLower(name)
 }

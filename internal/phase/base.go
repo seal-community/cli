@@ -237,6 +237,7 @@ func (p *basePhase) QueryRecommendedPackages(vulnerablePackages []api.PackageVer
 		}
 
 		deps = append(deps, common.Dependency{Name: vulnerable.Library.Name,
+			NormalizedName: vulnerable.Library.NormalizedName,
 			Version:        vulnerable.RecommendedLibraryVersionString,
 			PackageManager: vulnerable.Library.PackageManager,
 		})

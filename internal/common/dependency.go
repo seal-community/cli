@@ -6,6 +6,7 @@ type Dependency struct {
 	Name           string      `json:"library_name"`
 	Version        string      `json:"library_version"`
 	PackageManager string      `json:"library_package_manager"`
+	NormalizedName string      `json:"-"` // The manager needs to normalize the name
 	DiskPath       string      `json:"-"` // local disk path for the package
 	NameAlias      string      `json:"-"` // currently npm-specific, name that can be used to reference this dependency
 	Parent         *Dependency `json:"-"`
@@ -30,7 +31,7 @@ func (d *Dependency) IsTransitive() bool {
 }
 
 func (d *Dependency) Id() string {
-	return DependencyId(d.PackageManager, d.Name, d.Version)
+	return DependencyId(d.PackageManager, d.NormalizedName, d.Version)
 }
 
 func (d *Dependency) PrintableName() string {

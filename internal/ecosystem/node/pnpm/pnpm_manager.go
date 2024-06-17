@@ -44,12 +44,22 @@ func (m *PnpmPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *PnpmPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	return listPnpmPackages(targetDir, m.version, m.Config.Pnpm.ProdOnlyDeps)
-}
+func (m *PnpmPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
+	result, ok := listPnpmPackages(targetDir, m.version, m.Config.Pnpm.ProdOnlyDeps)
+	if !ok {
+		slog.Error("failed running package manager in the current dir", "name", m.Name())
+		return nil, shared.ManagerProcessFailed
+	}
 
-func (m *PnpmPackageManager) GetParser() shared.ResultParser {
-	return &pnpmDependencyParser{config: m.Config}
+	parser := &pnpmDependencyParser{config: m.Config, normalizer: m}
+	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	if err != nil {
+		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
+		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
+		return nil, shared.FailedParsingManagerOutput
+	}
+
+	return dependencyMap, nil
 }
 
 func (m *PnpmPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
@@ -129,4 +139,8 @@ func (m *PnpmPackageManager) DownloadPackage(server api.Server, descriptor share
 
 func (m *PnpmPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	return nil
+}
+
+func (m *PnpmPackageManager) NormalizePackageName(name string) string {
+	return name
 }

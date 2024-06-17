@@ -16,13 +16,13 @@ func TestSummarySanity(t *testing.T) {
 	descLodash := shared.DependnecyDescriptor{
 		VulnerablePackage: &api.PackageVersion{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+			Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 		AvailableFix: &api.PackageVersion{
 			Version:   "1.2.3-sp1",
-			Library:   api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+			Library:   api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 			VersionId: "123123",
 		},
 		Locations: map[string]common.Dependency{
@@ -40,13 +40,13 @@ func TestSummarySanity(t *testing.T) {
 	descGlob := shared.DependnecyDescriptor{
 		VulnerablePackage: &api.PackageVersion{
 			Version:                         "3.1.0",
-			Library:                         api.Package{Name: "glob-parent", PackageManager: mappings.NpmManager},
+			Library:                         api.Package{NormalizedName: "glob-parent", Name: "glob-parent", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "1111",
 			RecommendedLibraryVersionString: "3.1.0-sp1",
 		},
 		AvailableFix: &api.PackageVersion{
 			Version:   "3.1.0-sp1",
-			Library:   api.Package{Name: "glob-parent", PackageManager: mappings.NpmManager},
+			Library:   api.Package{NormalizedName: "glob-parent", Name: "glob-parent", PackageManager: mappings.NpmManager},
 			VersionId: "1111",
 		},
 		Locations: map[string]common.Dependency{

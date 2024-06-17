@@ -90,8 +90,8 @@ func recreateActionsFile(actionsFilePath string, overrides []api.PackageVersion,
 }
 
 // creates fake PackageVersion for each override, assumes only 1 project
-func convertActionsOverride(af *actions.ActionsFile) []api.PackageVersion {
-	packages := make([]api.PackageVersion, 0, 10)
+func convertActionsOverride(af *actions.ActionsFile, normalizer shared.Normalizer) map[string]api.PackageVersion {
+	packages := make(map[string]api.PackageVersion)
 	if len(af.Projects) > 1 {
 		slog.Warn("more than 1 project, not supported")
 	}
@@ -101,12 +101,20 @@ func convertActionsOverride(af *actions.ActionsFile) []api.PackageVersion {
 		for libraryName, versionMap := range projectSection.Overrides {
 			slog.Debug("converting override in library", "lib", libraryName)
 			for version, override := range versionMap {
-				packages = append(packages, api.PackageVersion{
+				p := api.PackageVersion{
 					Version:                         version,
 					RecommendedLibraryVersionString: override.Version,
 					// should add recommended library when supported from BE
-					Library: api.Package{Name: libraryName, PackageManager: mappings.EcosystemToBackendManager(projectSection.Manager.Ecosystem)}, // ideally the ecosystem would be validated to be from currently supported list
-				})
+					Library: api.Package{
+						Name:           libraryName,
+						NormalizedName: normalizer.NormalizePackageName(libraryName),
+						PackageManager: mappings.EcosystemToBackendManager(projectSection.Manager.Ecosystem),
+					}, // ideally the ecosystem would be validated to be from currently supported list
+				}
+				if _, ok := packages[p.Id()]; ok {
+					slog.Warn("duplicate override found", "id", p.Id())
+				}
+				packages[p.Id()] = p
 			}
 		}
 		break // supports only 1 project for now
@@ -115,7 +123,7 @@ func convertActionsOverride(af *actions.ActionsFile) []api.PackageVersion {
 	return packages
 }
 
-func getExistingConfigOverrides(actionsFilePath string) ([]api.PackageVersion, error) {
+func getExistingConfigOverrides(actionsFilePath string, normalizer shared.Normalizer) (map[string]api.PackageVersion, error) {
 	slog.Info("loading existing actions file", "path", actionsFilePath)
 	actions, err := loadActionsFile(actionsFilePath)
 	if err != nil {
@@ -128,26 +136,26 @@ func getExistingConfigOverrides(actionsFilePath string) ([]api.PackageVersion, e
 		return nil, nil
 	}
 
-	return convertActionsOverride(actions), nil
+	return convertActionsOverride(actions, normalizer), nil
 }
 
-func getMergedOverride(allDeps common.DependencyMap, remotePackages []api.PackageVersion, oldOverrides []api.PackageVersion) []api.PackageVersion {
+func getMergedOverride(allDeps common.DependencyMap, remotePackages []api.PackageVersion, oldOverrides map[string]api.PackageVersion) []api.PackageVersion {
 
 	// the following maps are used to find remote package recommendations, even if the old overrides have been installed, therefore sending the 'installed' version; in case of old-override of `origin->sp1`, the server could return `sp1->sp2`, so we need to updated the override so it becomes `origin->sp2`
 	overrideIds := make(map[string]api.PackageVersion)
 	overrideRecommendedIds := make(map[string]api.PackageVersion)
 
 	// filter out stale overrides, that are not present on disk at all (neither fixed, nor vulnerable versions)
-	for _, override := range oldOverrides {
-		if _, found := allDeps[override.Id()]; !found {
+	for identifier, override := range oldOverrides {
+		if _, found := allDeps[identifier]; !found {
 			if _, found = allDeps[override.RecommendedId()]; !found {
-				slog.Debug("ignoring old override - not found in local deps", "id", override.Id(), "recommended id", override.RecommendedId())
+				slog.Debug("ignoring old override - not found in local deps", "id", identifier, "recommended id", override.RecommendedId())
 				continue
 			}
 		}
 
 		slog.Debug("keeping old override", "id", override.Id(), "recommended id", override.RecommendedId())
-		overrideIds[override.Id()] = override
+		overrideIds[identifier] = override
 		overrideRecommendedIds[override.RecommendedId()] = override
 	}
 
@@ -248,7 +256,7 @@ func scanCommand() *cobra.Command {
 
 				slog.Info("loading actions file", "path", actionsFilePath)
 				configOverrides := result.Vulnerable
-				oldOverrides, err := getExistingConfigOverrides(actionsFilePath)
+				oldOverrides, err := getExistingConfigOverrides(actionsFilePath, scanPhase.Manager)
 				if err != nil {
 					return common.FallbackPrintableMsg(err, "failed getting existing actions file")
 				}

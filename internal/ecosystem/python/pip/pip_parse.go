@@ -5,6 +5,7 @@ import (
 	"cli/internal/config"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/python/utils"
+	"cli/internal/ecosystem/shared"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -19,7 +20,8 @@ type PythonPackage struct {
 }
 
 type dependencyParser struct {
-	config *config.Config // in the future we might want to only pass the pip specific config object
+	config     *config.Config // in the future we might want to only pass the pip specific config object
+	normalizer shared.Normalizer
 }
 
 func (parser *dependencyParser) shouldSkip(p *PythonPackage) bool {
@@ -35,12 +37,13 @@ func (parser *dependencyParser) shouldSkip(p *PythonPackage) bool {
 	return false
 }
 
-func addDepInstance(deps common.DependencyMap, p *PythonPackage, sitePackages string) *common.Dependency {
+func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, p *PythonPackage, sitePackages string) *common.Dependency {
 	common.Trace("adding dep", "name", p.Name, "version", p.Version, "editableProjectLocation", p.EditableProjectLocation)
 	diskPath := filepath.Join(sitePackages, utils.DistInfoPath(p.Name, p.Version))
 
 	newDep := &common.Dependency{
-		Name:           strings.ToLower(p.Name), // IMPORTANT: case is not the only normalization needed
+		Name:           p.Name,
+		NormalizedName: parser.normalizer.NormalizePackageName(p.Name),
 		Version:        p.Version,
 		PackageManager: mappings.PythonManager,
 		DiskPath:       diskPath,
@@ -86,7 +89,7 @@ func (parser *dependencyParser) Parse(pipOutput string, projectDir string) (comm
 			slog.Warn("skipping dep", "name", p.Name, "version", p.Version, "index", i)
 			continue
 		}
-		_ = addDepInstance(deps, &p, sitePackages)
+		_ = parser.addDepInstance(deps, &p, sitePackages)
 	}
 
 	slog.Info("root package", "direct_deps", len(dependencyList))

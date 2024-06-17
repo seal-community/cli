@@ -3,6 +3,7 @@ package nuget
 import (
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/config"
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"os"
@@ -90,6 +91,7 @@ func TestHandleFixes(t *testing.T) {
 		Version:   "1.1.0",
 		Library: api.Package{
 			Name:           "Snappier",
+			NormalizedName: "snappier",
 			PackageManager: "nuget",
 		},
 		RecommendedLibraryVersionId:     "1.1.0-sp1",
@@ -102,6 +104,7 @@ func TestHandleFixes(t *testing.T) {
 		OriginVersionId:     "Snappier",
 		Library: api.Package{
 			Name:           "Snappier",
+			NormalizedName: "snappier",
 			PackageManager: "nuget",
 		},
 		RecommendedLibraryVersionId:     "",
@@ -168,6 +171,25 @@ func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
 			if IsNugetIndicatorFile(p) {
 				t.Fatalf("failed to detect indicator path `%s`", p)
+			}
+		})
+	}
+}
+
+func TestNormalizePackageNames(t *testing.T) {
+	c, _ := config.New(nil)
+	manager := NewNugetManager(c, "")
+	names := map[string]string{
+		"aaaaa": "aaaaa",
+		"aaAAa": "aaaaa",
+		"AAAAA": "aaaaa",
+		"AAa_a": "aaa_a",
+		"AaA-a": "aaa-a",
+	}
+	for n, expected := range names {
+		t.Run(fmt.Sprintf("name_%s", n), func(t *testing.T) {
+			if manager.NormalizePackageName(n) != expected {
+				t.Fatalf("failed to normalize `%s`", n)
 			}
 		})
 	}

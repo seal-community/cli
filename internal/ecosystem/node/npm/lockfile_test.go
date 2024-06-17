@@ -181,7 +181,7 @@ func TestLockfileUpdateV1(t *testing.T) {
 	lock := _loadf("5.10.0.package-lock.json")
 	pkg := api.PackageVersion{
 		Version:                         "1.0.0",
-		Library:                         api.Package{Name: "semver-regex", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "semver-regex", Name: "semver-regex", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.0.0-sp1",
 	}
@@ -215,7 +215,7 @@ func TestLockfileUpdateV1MultipleLocations(t *testing.T) {
 	lock := _loadf("5.10.0.multi-versions.package-lock.json")
 	pkg := api.PackageVersion{
 		Version:                         "4.17.11",
-		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "4.17.11-sp1",
 	}
@@ -246,7 +246,7 @@ func TestLockfileUpdateV2MultipleLocations(t *testing.T) {
 	lock := _loadf("7.24.2.multi-versions.package-lock.json")
 	pkg := api.PackageVersion{
 		Version:                         "4.17.11",
-		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "4.17.11-sp1",
 	}
@@ -293,7 +293,7 @@ func TestLockfileUpdateV3MultipleLocations(t *testing.T) {
 	lock := _loadf("10.1.0.multi-versions.package-lock.json")
 	pkg := api.PackageVersion{
 		Version:                         "4.17.11",
-		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "4.17.11-sp1",
 	}
@@ -331,7 +331,7 @@ func TestLockfileOldNotSupported(t *testing.T) {
 
 	semverregex := api.PackageVersion{
 		Version:                         "1.0.0",
-		Library:                         api.Package{Name: "semver-regex", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "semver-regex", Name: "semver-regex", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.0.0-sp1",
 	}

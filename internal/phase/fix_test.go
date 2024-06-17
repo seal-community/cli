@@ -14,6 +14,7 @@ func TestDependencyDescriptorMerging(t *testing.T) {
 
 	dep := common.Dependency{
 		Name:           "Django",
+		NormalizedName: "django",
 		Version:        "3.2.17",
 		PackageManager: mappings.PythonManager,
 		DiskPath:       "abc",
@@ -21,7 +22,7 @@ func TestDependencyDescriptorMerging(t *testing.T) {
 
 	vulnerable := api.PackageVersion{
 		Version:                         "3.2.17",
-		Library:                         api.Package{Name: dep.Name, PackageManager: dep.PackageManager},
+		Library:                         api.Package{NormalizedName: dep.NormalizedName, Name: dep.Name, PackageManager: dep.PackageManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "3.2.17+sp1",
 		OpenVulnerabilities: []api.Vulnerability{
@@ -32,7 +33,7 @@ func TestDependencyDescriptorMerging(t *testing.T) {
 	}
 	vulnerableWithoutFix := api.PackageVersion{
 		Version:                         "1.2.1",
-		Library:                         api.Package{Name: dep.Name, PackageManager: dep.PackageManager},
+		Library:                         api.Package{NormalizedName: dep.NormalizedName, Name: dep.Name, PackageManager: dep.PackageManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.1+sp1",
 		OpenVulnerabilities: []api.Vulnerability{
@@ -104,7 +105,7 @@ func TestDependencyDescriptorMerging(t *testing.T) {
 func TestRemoteOverrideQuerySanity(t *testing.T) {
 	djangoVulnerable := api.PackageVersion{
 		Version:                     "3.2.17",
-		Library:                     api.Package{Name: "django", PackageManager: mappings.PythonManager},
+		Library:                     api.Package{NormalizedName: "django", Name: "django", PackageManager: mappings.PythonManager},
 		OriginVersionId:             "111",
 		RecommendedLibraryVersionId: "222",
 	}
@@ -135,7 +136,7 @@ func TestRemoteOverrideQuerySanity(t *testing.T) {
 func TestRemoteOverrideQueryNoRecommended(t *testing.T) {
 	djangoVulnerable := api.PackageVersion{
 		Version:                     "3.2.17",
-		Library:                     api.Package{Name: "django", PackageManager: mappings.PythonManager},
+		Library:                     api.Package{NormalizedName: "django", Name: "django", PackageManager: mappings.PythonManager},
 		OriginVersionId:             "111",
 		RecommendedLibraryVersionId: "",
 	}

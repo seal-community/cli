@@ -9,18 +9,24 @@ import (
 	"testing"
 )
 
+type npmFakeNormalizer struct{}
+
+func (f npmFakeNormalizer) NormalizePackageName(name string) string {
+	return name
+}
+
 func TestOverrideFilterSanity(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+			Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
 		},
 		{
 			Version:                         "1.0.0",
-			Library:                         api.Package{Name: "semver-regex", PackageManager: mappings.NpmManager},
+			Library:                         api.Package{NormalizedName: "semver-regex", Name: "semver-regex", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-12312", UnifiedScore: 9.8}},
@@ -34,7 +40,13 @@ func TestOverrideFilterSanity(t *testing.T) {
 		Name:      mappings.NpmManager,
 	}, Overrides: overrides}
 
-	result := filterVulnerablePackageForProject(vulnPackages, proj)
+	meta := actions.MetaSection{SchemaVersion: "0.1.0", CreatedOn: actions.IsoTime{Time: actions.IsoTime{}.Time}, CliVersion: "0.1.0"}
+
+	af := actions.ActionsFile{Meta: meta, Projects: map[string]actions.ProjectSection{"project": proj}}
+
+	ov := convertActionsOverride(&af, npmFakeNormalizer{})
+
+	result := filterVulnerablePackageForOverrides(vulnPackages, ov)
 	if len(result) != 1 {
 		t.Fatalf("wrong result length filtered %d", len(result))
 	}
@@ -48,6 +60,10 @@ func TestOverrideFilterSanity(t *testing.T) {
 
 	if overriddenPackage.Library.Name != vulnPackage.Library.Name {
 		t.Fatalf("wrong library name %s", overriddenPackage.Library.Name)
+	}
+
+	if overriddenPackage.Library.NormalizedName != vulnPackage.Library.NormalizedName {
+		t.Fatalf("wrong library normalized name %s", overriddenPackage.Library.NormalizedName)
 	}
 
 	if overriddenPackage.Library.PackageManager != vulnPackage.Library.PackageManager {
@@ -68,7 +84,7 @@ func TestOverrideFilterNoMatchLibrary(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+			Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
@@ -82,7 +98,13 @@ func TestOverrideFilterNoMatchLibrary(t *testing.T) {
 		Name:      mappings.NpmManager,
 	}, Overrides: overrides}
 
-	result := filterVulnerablePackageForProject(vulnPackages, proj)
+	meta := actions.MetaSection{SchemaVersion: "0.1.0", CreatedOn: actions.IsoTime{Time: actions.IsoTime{}.Time}, CliVersion: "0.1.0"}
+
+	af := actions.ActionsFile{Meta: meta, Projects: map[string]actions.ProjectSection{"project": proj}}
+
+	ov := convertActionsOverride(&af, npmFakeNormalizer{})
+
+	result := filterVulnerablePackageForOverrides(vulnPackages, ov)
 	if len(result) != 0 {
 		t.Fatalf("wrong result length filtered %v", result)
 	}
@@ -92,7 +114,7 @@ func TestOverrideFilterNoMatchVersion(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+			Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "123123",
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
@@ -106,7 +128,13 @@ func TestOverrideFilterNoMatchVersion(t *testing.T) {
 		Name:      mappings.NpmManager,
 	}, Overrides: overrides}
 
-	result := filterVulnerablePackageForProject(vulnPackages, proj)
+	meta := actions.MetaSection{SchemaVersion: "0.1.0", CreatedOn: actions.IsoTime{Time: actions.IsoTime{}.Time}, CliVersion: "0.1.0"}
+
+	af := actions.ActionsFile{Meta: meta, Projects: map[string]actions.ProjectSection{"project": proj}}
+
+	ov := convertActionsOverride(&af, npmFakeNormalizer{})
+
+	result := filterVulnerablePackageForOverrides(vulnPackages, ov)
 	if len(result) != 0 {
 		t.Fatalf("wrong result length filtered %v", result)
 	}
@@ -116,7 +144,7 @@ func TestOverrideFilterDoesNotAllowOverrideNonSealable(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+			Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "",
 			RecommendedLibraryVersionString: "",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
@@ -130,7 +158,13 @@ func TestOverrideFilterDoesNotAllowOverrideNonSealable(t *testing.T) {
 		Name:      mappings.NpmManager,
 	}, Overrides: overrides}
 
-	result := filterVulnerablePackageForProject(vulnPackages, proj)
+	meta := actions.MetaSection{SchemaVersion: "0.1.0", CreatedOn: actions.IsoTime{Time: actions.IsoTime{}.Time}, CliVersion: "0.1.0"}
+
+	af := actions.ActionsFile{Meta: meta, Projects: map[string]actions.ProjectSection{"project": proj}}
+
+	ov := convertActionsOverride(&af, npmFakeNormalizer{})
+
+	result := filterVulnerablePackageForOverrides(vulnPackages, ov)
 	if len(result) != 0 {
 		t.Fatalf("wrong result length filtered %v", result)
 	}
@@ -139,7 +173,7 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 	vulnPackages := []api.PackageVersion{
 		{
 			Version:                         "1.2.3",
-			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+			Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionId:     "",
 			RecommendedLibraryVersionString: "",
 			OpenVulnerabilities:             []api.Vulnerability{{CVE: "CVE-2012-0865", UnifiedScore: 9.8}},
@@ -155,7 +189,13 @@ func TestOverrideFilterWithNoAllowedOverrides(t *testing.T) {
 		Overrides: overrides,
 	}
 
-	result := filterVulnerablePackageForProject(vulnPackages, proj)
+	meta := actions.MetaSection{SchemaVersion: "0.1.0", CreatedOn: actions.IsoTime{Time: actions.IsoTime{}.Time}, CliVersion: "0.1.0"}
+
+	af := actions.ActionsFile{Meta: meta, Projects: map[string]actions.ProjectSection{"project": proj}}
+
+	ov := convertActionsOverride(&af, npmFakeNormalizer{})
+
+	result := filterVulnerablePackageForOverrides(vulnPackages, ov)
 	if len(result) != 0 {
 		t.Fatalf("wrong result length filtered %v", result)
 	}

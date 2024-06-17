@@ -7,11 +7,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"testing"
 
 	"golang.org/x/exp/maps"
 )
+
+type fakeNormalizer struct{}
+
+func (f fakeNormalizer) NormalizePackageName(name string) string {
+	return strings.Replace(strings.ToLower(name), "_", "-", -1)
+}
 
 const defaultTestProjectDir = "/Users/fuwawa/proj"
 
@@ -29,7 +36,7 @@ func getTestFile(name string) string {
 
 func TestParseDefaultDependencies(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("24.0_default_deps"),
 		defaultTestProjectDir)
@@ -83,7 +90,7 @@ func TestParseDefaultDependencies(t *testing.T) {
 
 func TestParseEditable(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("24.0_editable"),
 		defaultTestProjectDir)
@@ -99,7 +106,7 @@ func TestParseEditable(t *testing.T) {
 func TestParseNoDependencies(t *testing.T) {
 	// Can't really happen, pip is always a dep, but here for good measures
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("24.0_no_deps"),
 		defaultTestProjectDir)
@@ -114,7 +121,7 @@ func TestParseNoDependencies(t *testing.T) {
 
 func TestParseSP(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("24.0_sp_version"),
 		defaultTestProjectDir)
@@ -155,7 +162,7 @@ func TestParseSP(t *testing.T) {
 
 func TestParseWindowsDependencies(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("24.0_windows"),
 		defaultTestProjectDir)
@@ -196,7 +203,7 @@ func TestParseWindowsDependencies(t *testing.T) {
 
 func TestShouldFix(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 	noSkip := &PythonPackage{
 		Name:                    "pip",
 		Version:                 "24.0",

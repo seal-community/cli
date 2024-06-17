@@ -20,8 +20,9 @@ import (
 var prodBuildScopes = []string{"compile", "runtime", ""}
 
 type dependencyParser struct {
-	config   *config.Config
-	cacheDir string
+	config     *config.Config
+	cacheDir   string
+	normalizer shared.Normalizer
 }
 
 func formatString(v ast.Vertex) string {
@@ -43,7 +44,7 @@ func getJavaPackageSealedVersion(path string) string {
 	return metadata.SealedVersion
 }
 
-func addDepInstance(deps common.DependencyMap, packageInfo *utils.JavaPackageInfo, prodOnly bool, cacheDir string) *common.Dependency {
+func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, packageInfo *utils.JavaPackageInfo, prodOnly bool, cacheDir string) *common.Dependency {
 	slog.Info("adding dependency", "packageInfo", packageInfo)
 	if prodOnly && !slices.Contains(prodBuildScopes, packageInfo.Scope) {
 		slog.Debug("skipping dependency", "packageInfo", packageInfo)
@@ -70,6 +71,7 @@ func addDepInstance(deps common.DependencyMap, packageInfo *utils.JavaPackageInf
 
 	newDep := &common.Dependency{
 		Name:           packageName,
+		NormalizedName: parser.normalizer.NormalizePackageName(packageName),
 		Version:        packageVersion,
 		PackageManager: mappings.MavenManger,
 	}
@@ -95,7 +97,7 @@ func (parser *dependencyParser) Parse(mavenOutput string, projectDir string) (co
 			slog.Error("failed creating package info", "err", err)
 			return nil, err
 		}
-		addDepInstance(deps, info, parser.config.Maven.ProdOnlyDeps, parser.cacheDir)
+		parser.addDepInstance(deps, info, parser.config.Maven.ProdOnlyDeps, parser.cacheDir)
 	}
 
 	return deps, nil

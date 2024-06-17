@@ -69,7 +69,7 @@ func New() *ActionsFile {
 	// init basic meta fields
 	af.Meta.CliVersion = common.CliVersion
 	af.Meta.SchemaVersion = SchemaVersion
-	af.Meta.CreatedOn = IsoTime{time.Now().UTC()}
+	af.Meta.CreatedOn = IsoTime{common.CliStartTime}
 
 	return af
 }

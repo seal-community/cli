@@ -25,7 +25,7 @@ func DownloadMavenPackage(s api.Server, name string, version string) ([]byte, er
 	libraryData, statusCode, err := api.SendSealRequest[any](
 		s.Client,
 		"GET",
-		fmt.Sprintf("https://maven.sealsecurity.io/%s/%s/%s/%s", orgName, artifactName, version, filename),
+		fmt.Sprintf("%s/%s/%s/%s/%s", api.MavenServer, orgName, artifactName, version, filename),
 		nil,
 		[]api.StringPair{authHeader},
 		nil,
@@ -50,7 +50,7 @@ func DownloadMavenPackage(s api.Server, name string, version string) ([]byte, er
 	librarySha1, statusCode, err := api.SendSealRequest[any](
 		s.Client,
 		"GET",
-		fmt.Sprintf("https://maven.sealsecurity.io/%s/%s/%s/%s", orgName, artifactName, version, sha1Filename),
+		fmt.Sprintf("%s/%s/%s/%s/%s", api.MavenServer, orgName, artifactName, version, sha1Filename),
 		nil,
 		[]api.StringPair{authHeader},
 		nil,

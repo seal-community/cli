@@ -5,6 +5,7 @@ import (
 	"cli/internal/config"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/node/utils"
+	"cli/internal/ecosystem/shared"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -25,7 +26,8 @@ type NpmPackage struct {
 }
 
 type dependencyParser struct {
-	config *config.Config // in the future we might want to only pass the npm specific config object
+	config     *config.Config // in the future we might want to only pass the npm specific config object
+	normalizer shared.Normalizer
 }
 
 func (parser *dependencyParser) isWorkspace(root *NpmPackage, p *NpmPackage) bool {
@@ -111,7 +113,7 @@ func (parser *dependencyParser) parseDependencyNode(root *NpmPackage, node *NpmP
 			continue
 		}
 
-		current := addDepInstance(deps, p, keyName, parent, branch)
+		current := parser.addDepInstance(deps, p, keyName, parent, branch)
 		err := parser.parseDependencyNode(root, p, deps, depth+1, current, branch)
 		if err != nil {
 			return err
@@ -121,10 +123,11 @@ func (parser *dependencyParser) parseDependencyNode(root *NpmPackage, node *NpmP
 	return nil
 }
 
-func addDepInstance(deps common.DependencyMap, p *NpmPackage, keyName string, parent *common.Dependency, branch string) *common.Dependency {
+func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, p *NpmPackage, keyName string, parent *common.Dependency, branch string) *common.Dependency {
 	common.Trace("adding dep", "name", p.Name, "version", p.Version, "path", p.Path, "key", keyName, "branch", branch)
 	newDep := &common.Dependency{
 		Name:           p.Name,
+		NormalizedName: parser.normalizer.NormalizePackageName(p.Name),
 		Version:        p.Version,
 		PackageManager: mappings.NpmManager,
 		DiskPath:       p.Path,

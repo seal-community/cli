@@ -23,7 +23,7 @@ func TestParseKey(t *testing.T) {
 func getFixAndScanResult() []shared.DependnecyDescriptor {
 	scannedDjango := api.PackageVersion{
 		Version:                         "3.2.17+sp1",
-		Library:                         api.Package{Name: "Django", PackageManager: mappings.PythonManager},
+		Library:                         api.Package{NormalizedName: "django", Name: "Django", PackageManager: mappings.PythonManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "3.2.17+sp2",
 		OpenVulnerabilities: []api.Vulnerability{
@@ -39,7 +39,7 @@ func getFixAndScanResult() []shared.DependnecyDescriptor {
 
 	scannedGrpcio := api.PackageVersion{
 		Version:                         "1.52.0",
-		Library:                         api.Package{Name: "grpcio", PackageManager: mappings.PythonManager},
+		Library:                         api.Package{NormalizedName: "grpcio", Name: "grpcio", PackageManager: mappings.PythonManager},
 		RecommendedLibraryVersionId:     "222",
 		RecommendedLibraryVersionString: "1.52.0+sp1",
 		OpenVulnerabilities: []api.Vulnerability{
@@ -51,7 +51,7 @@ func getFixAndScanResult() []shared.DependnecyDescriptor {
 
 	scannedRequests := api.PackageVersion{
 		Version:                         "2.26.0",
-		Library:                         api.Package{Name: "requests", PackageManager: mappings.PythonManager},
+		Library:                         api.Package{NormalizedName: "requests", Name: "requests", PackageManager: mappings.PythonManager},
 		RecommendedLibraryVersionId:     "333",
 		RecommendedLibraryVersionString: "2.26.0+sp1",
 		OpenVulnerabilities: []api.Vulnerability{
@@ -62,7 +62,7 @@ func getFixAndScanResult() []shared.DependnecyDescriptor {
 
 	fixedDjango := api.PackageVersion{
 		Version: "3.2.17+sp2",
-		Library: api.Package{Name: "Django", PackageManager: mappings.PythonManager},
+		Library: api.Package{NormalizedName: "django", Name: "Django", PackageManager: mappings.PythonManager},
 		SealedVulnerabilities: []api.Vulnerability{
 			{CVE: "CVE-2024-27351"},
 			{CVE: "CVE-2023-46695"},
@@ -74,7 +74,7 @@ func getFixAndScanResult() []shared.DependnecyDescriptor {
 
 	fixedGrpcio := api.PackageVersion{
 		Version: "1.52.0+sp1",
-		Library: api.Package{Name: "grpcio", PackageManager: mappings.PythonManager},
+		Library: api.Package{NormalizedName: "grpcio", Name: "grpcio", PackageManager: mappings.PythonManager},
 		OpenVulnerabilities: []api.Vulnerability{
 			{CVE: "CVE-2023-1428"},
 		},
@@ -86,7 +86,7 @@ func getFixAndScanResult() []shared.DependnecyDescriptor {
 
 	fixedRequests := api.PackageVersion{
 		Version: "2.26.0+sp1",
-		Library: api.Package{Name: "requests", PackageManager: mappings.PythonManager},
+		Library: api.Package{NormalizedName: "requests", Name: "requests", PackageManager: mappings.PythonManager},
 		SealedVulnerabilities: []api.Vulnerability{
 			{CVE: "CVE-2023-32681"},
 		},

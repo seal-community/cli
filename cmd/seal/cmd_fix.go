@@ -15,7 +15,6 @@ import (
 	"slices"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/maps"
 )
 
 const summaryFlag = "summarize"
@@ -88,7 +87,7 @@ func loadActionsFile(actionsFilePath string) (*actions.ActionsFile, error) {
 	return actions.Load(f)
 }
 
-func filterVulnerablePackageForProject(vulnPackages []api.PackageVersion, projectSection actions.ProjectSection) []api.PackageVersion {
+func filterVulnerablePackageForOverrides(vulnPackages []api.PackageVersion, overrides map[string]api.PackageVersion) []api.PackageVersion {
 	overriddenPackages := make([]api.PackageVersion, 0, len(vulnPackages))
 
 	for _, vulnPackage := range vulnPackages {
@@ -97,30 +96,15 @@ func filterVulnerablePackageForProject(vulnPackages []api.PackageVersion, projec
 			slog.Debug("ignoring vulnerable package - does not have a sealed version", "packageId", vulnPackage.Id())
 			continue
 		}
-
-		ecosystem := vulnPackage.Ecosystem()
-		if ecosystem != projectSection.Manager.Ecosystem {
-			slog.Debug("ignoring vulnerable package - different ecosystem", "package-ecosystem", ecosystem, "project-ecosystem", projectSection.Manager.Ecosystem)
-			continue
-		}
-
-		versionMap, ok := projectSection.Overrides[vulnPackage.Library.Name]
-		if !ok {
-			slog.Debug("ignoring vulnerable package - not in allowed overrides", "name", vulnPackage.Library.Name)
-			continue
-		}
-		override, ok := versionMap[vulnPackage.Version]
+		override, ok := overrides[vulnPackage.Id()]
 		if !ok {
 			slog.Debug("ignoring vulnerable package version, not in allowed overrides", "name", vulnPackage.Library.Name, "version", vulnPackage.Version)
 			continue
 		}
 
 		slog.Debug("overriding package", "from", fmt.Sprintf("%s@%s", vulnPackage.Library.Name, vulnPackage.Version), "to", fmt.Sprintf("%s@%s", override.Library, override.Version))
-		vulnPackage.RecommendedLibraryVersionString = override.Version
+		vulnPackage.RecommendedLibraryVersionString = override.RecommendedLibraryVersionString
 		// keeping RecommendedLibraryVersionId as it is used to filter out non fixable packages; we will need to update this from BE
-		if override.Library != "" {
-			vulnPackage.Library.Name = override.Library
-		}
 
 		overriddenPackages = append(overriddenPackages, vulnPackage) // will be copied, needs to keep all the other information like vulnerabilities
 	}
@@ -129,32 +113,18 @@ func filterVulnerablePackageForProject(vulnPackages []api.PackageVersion, projec
 	return overriddenPackages
 }
 
-func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFilePath string) error {
-	actionsFile, err := loadActionsFile(actionsFilePath)
+func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFilePath string, normalizer shared.Normalizer) error {
+	overrides, err := getExistingConfigOverrides(actionsFilePath, normalizer)
 	if err != nil {
 		slog.Error("failed opening actions file for fix", "err", err)
 		return common.FallbackPrintableMsg(err, "failed loading actions file")
 	}
 
-	if actionsFile == nil {
-		slog.Error("actions file not found or empty", "path", actionsFilePath)
-		return common.NewPrintableError("actions file not found")
-	}
-
 	// replace existing slice
 	slog.Info("limiting results according to actions file", "before", len(result.Vulnerable))
 
-	if len(actionsFile.Projects) > 1 {
-		// should be prevented by the validator when loading
-		slog.Error("found more than 1 project in actions file - using first", "count", len(actionsFile.Projects))
-	}
-
-	projectId := maps.Keys(actionsFile.Projects)[0]
-	projectSection := actionsFile.Projects[projectId]
-	slog.Info("filtering according to overrides in project", "id", projectId)
-
 	// even if we have 0 after filtering, so we don't fix anything
-	result.Vulnerable = filterVulnerablePackageForProject(result.Vulnerable, projectSection)
+	result.Vulnerable = filterVulnerablePackageForOverrides(result.Vulnerable, overrides)
 	slog.Info("total available vulnerable after overriding", "count", len(result.Vulnerable))
 
 	return nil
@@ -245,7 +215,7 @@ func fixCommand() *cobra.Command {
 
 			if fixModeUsed == phase.FixModeLocal {
 				slog.Info("trying to load actions file", "path", actionsFilePath)
-				if err := updateScanResultAccordingToActionsFile(result, actionsFilePath); err != nil {
+				if err := updateScanResultAccordingToActionsFile(result, actionsFilePath, fixPhase.Manager); err != nil {
 					return common.FallbackPrintableMsg(err, "failed using actions file")
 				}
 			}

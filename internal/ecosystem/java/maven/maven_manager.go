@@ -103,12 +103,22 @@ func NewMavenManager(config *config.Config, javaFile string, targetDir string) *
 	return m
 }
 
-func (m *MavenPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	return listPackages(targetDir)
-}
+func (m *MavenPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
+	result, ok := listPackages(targetDir)
+	if !ok {
+		slog.Error("failed running package manager in the current dir", "name", m.Name())
+		return nil, shared.ManagerProcessFailed
+	}
 
-func (m *MavenPackageManager) GetParser() shared.ResultParser {
-	return &dependencyParser{config: m.Config, cacheDir: m.cacheDir}
+	parser := &dependencyParser{config: m.Config, cacheDir: m.cacheDir, normalizer: m}
+	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	if err != nil {
+		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
+		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
+		return nil, shared.FailedParsingManagerOutput
+	}
+
+	return dependencyMap, nil
 }
 
 func (m *MavenPackageManager) GetProjectName(dir string) string {
@@ -259,4 +269,11 @@ func setCacheDir(projectDir string, newCacheDir string) error {
 	}
 
 	return nil
+}
+
+// all maven packages are supposed to be lower case according to
+// https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html
+// However, there are some packages that doesn't follow this rule and the current behavior is case sensitive
+func (m *MavenPackageManager) NormalizePackageName(name string) string {
+	return name
 }

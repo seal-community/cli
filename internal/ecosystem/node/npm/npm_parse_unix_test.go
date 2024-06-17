@@ -31,7 +31,7 @@ func getTestFile(name string) string {
 // the following tests could be ported to windows too with appropriate paths
 func TestEmptyDepObject(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 	deps, err := parser.Parse(getTestFile("empty_dep.json"),
 		defaultTestProjectDir)
 	if err != nil {
@@ -46,7 +46,7 @@ func TestEmptyDepObject(t *testing.T) {
 
 func TestDupVersionInTree(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 	deps, err := parser.Parse(getTestFile("dup_versions.json"),
 		defaultTestProjectDir)
 	if err != nil {
@@ -68,7 +68,7 @@ func TestDupVersionInTree(t *testing.T) {
 
 func TestAliasDependency(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 	deps, err := parser.Parse(getTestFile("6.14.18_alias_dep.json"),
 		"/test/alias_test")
 	if err != nil {
@@ -94,7 +94,7 @@ func TestAliasDependency(t *testing.T) {
 
 func TestExtraneousDepNotIgnored(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 	deps, err := parser.Parse(getTestFile("9.9.0_extraneous.json"),
 		"/test/output/extraneous_test")
 	if err != nil {
@@ -123,7 +123,7 @@ func TestExtraneousDepNotIgnored(t *testing.T) {
 func TestExtraneousDepSkipped(t *testing.T) {
 	conf, _ := config.New(nil)
 	conf.Npm.IgnoreExtraneous = true
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 	deps, err := parser.Parse(getTestFile("9.9.0_extraneous.json"),
 		"/test/output/extraneous_test")
 	if err != nil {
@@ -138,7 +138,7 @@ func TestExtraneousDepSkipped(t *testing.T) {
 func TestLocalFolderPackageInstallLinks(t *testing.T) {
 	// Test parsing installation with --install-links is parsed correctly, even though running npm ll returns an error
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 	dependencies, err := parser.Parse(getTestFile("10.2.0_folder_dep.json"),
 		"/test/output/folder_test")
 	if err != nil {

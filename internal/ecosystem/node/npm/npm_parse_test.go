@@ -15,9 +15,15 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+type fakeNormalizer struct{}
+
+func (f fakeNormalizer) NormalizePackageName(name string) string {
+	return name
+}
+
 func TestParseNoDeps(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("no_deps.json"),
 		defaultTestProjectDir)
@@ -32,7 +38,7 @@ func TestParseNoDeps(t *testing.T) {
 
 func TestParseSingleDependency(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("single_dep.json"),
 		defaultTestProjectDir)
@@ -66,7 +72,7 @@ func TestParseSingleDependency(t *testing.T) {
 
 func TestParseSameDependencyMultipleVersions(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("multiple_versions.json"),
 		defaultTestProjectDir)
@@ -119,7 +125,7 @@ func TestParseSameDependencyMultipleVersions(t *testing.T) {
 
 func TestParseSingleDependencyNamespace(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("namespace_dep.json"),
 		defaultTestProjectDir)
@@ -148,7 +154,7 @@ func TestParseSingleDependencyNamespace(t *testing.T) {
 
 func TestWrongCWD(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	_, err := parser.Parse(getTestFile("wrong_proj_dir.json"),
 		"/Users/mococo/somefolder")
@@ -160,7 +166,7 @@ func TestWrongCWD(t *testing.T) {
 func TestSymlinkSkipped(t *testing.T) {
 	// testing without npm output file since we're performing os.Lstat and needs to be created on disk
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	// create link: .../test_syml_{random} -> .../test_seal_cli_{random}
 	target, err := os.MkdirTemp("", "test_seal_cli_*")
@@ -202,7 +208,7 @@ func TestSymlinkSkipped(t *testing.T) {
 func TestWorkspaceIsNotSkipped(t *testing.T) {
 	// testing without npm output file since we're performing os.Lstat and needs to be created on disk
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	target, err := os.MkdirTemp("", "test_seal_cli_*")
 	if err != nil {

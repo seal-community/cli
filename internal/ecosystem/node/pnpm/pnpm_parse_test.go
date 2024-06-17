@@ -2,6 +2,7 @@ package pnpm
 
 import (
 	"bufio"
+	"cli/internal/config"
 	"cli/internal/ecosystem/mappings"
 	"io"
 	"strings"
@@ -9,6 +10,12 @@ import (
 )
 
 const projectPath = "/Users/mococo/proj"
+
+type fakeNormalizer struct{}
+
+func (f fakeNormalizer) NormalizePackageName(name string) string {
+	return name
+}
 
 func TestPnpmOutputSkipping(t *testing.T) {
 	before := ""
@@ -78,7 +85,9 @@ func TestPnpmOutputSkippingInvalidCR(t *testing.T) {
 }
 
 func TestPnpmLineParse(t *testing.T) {
-	d := parseLine("/Users/mococo/proj/node_modules/.pnpm/zod@3.22.4/node_modules/zod:zod@3.22.4", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("/Users/mococo/proj/node_modules/.pnpm/zod@3.22.4/node_modules/zod:zod@3.22.4", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -105,7 +114,9 @@ func TestPnpmLineParse(t *testing.T) {
 }
 
 func TestPnpmLineParseWindowsPath(t *testing.T) {
-	d := parseLine("C:\\Users\\mococo\\proj\\node_modules\\.pnpm\\zod@3.22.4\\node_modules\\zod:zod@3.22.4", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("C:\\Users\\mococo\\proj\\node_modules\\.pnpm\\zod@3.22.4\\node_modules\\zod:zod@3.22.4", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -132,7 +143,9 @@ func TestPnpmLineParseWindowsPath(t *testing.T) {
 }
 
 func TestPnpmLineParseScoped(t *testing.T) {
-	d := parseLine("/Users/mococo/proj/node_modules/.pnpm/@typescript-eslint+types@6.21.0/node_modules/@typescript-eslint/types:@typescript-eslint/types@6.21.0", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("/Users/mococo/proj/node_modules/.pnpm/@typescript-eslint+types@6.21.0/node_modules/@typescript-eslint/types:@typescript-eslint/types@6.21.0", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -159,7 +172,9 @@ func TestPnpmLineParseScoped(t *testing.T) {
 }
 
 func TestPnpmLineParseExtraAtLink(t *testing.T) {
-	d := parseLine("/Users/mococo/mylib:@scope/libname@extra@link:../mylib", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("/Users/mococo/mylib:@scope/libname@extra@link:../mylib", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -170,8 +185,10 @@ func TestPnpmLineParseExtraAtLink(t *testing.T) {
 }
 
 func TestPnpmLineParseExtraA(t *testing.T) {
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
 	// fake edge case, can happen locally with link, maybe also in registry
-	d := parseLine("/Users/mococo/proj/node_modules/.pnpm/@scope/libname@extra@1.2.3:@scope/libname@extra@1.2.3", projectPath)
+	d := parser.parseLine("/Users/mococo/proj/node_modules/.pnpm/@scope/libname@extra@1.2.3:@scope/libname@extra@1.2.3", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -198,7 +215,9 @@ func TestPnpmLineParseExtraA(t *testing.T) {
 }
 
 func TestPnpmLineParseLinkDirutsideProjDir(t *testing.T) {
-	d := parseLine("/Users/mococo/mylib:libname@link:../mylib", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("/Users/mococo/mylib:libname@link:../mylib", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -209,7 +228,9 @@ func TestPnpmLineParseLinkDirutsideProjDir(t *testing.T) {
 }
 
 func TestPnpmLineParseLinkDirWithinProjDir(t *testing.T) {
-	d := parseLine("/Users/mococo/proj/inner_proj:mylib@link:inner_proj", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("/Users/mococo/proj/inner_proj:mylib@link:inner_proj", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -220,7 +241,9 @@ func TestPnpmLineParseLinkDirWithinProjDir(t *testing.T) {
 }
 
 func TestPnpmLineParseScopedWindowsPath(t *testing.T) {
-	d := parseLine("C:\\Users\\mococo\\proj\\node_modules\\.pnpm\\@typescript-eslint+types@6.21.0\\node_modules\\@typescript-eslint\\types:@typescript-eslint\\types@6.21.0", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("C:\\Users\\mococo\\proj\\node_modules\\.pnpm\\@typescript-eslint+types@6.21.0\\node_modules\\@typescript-eslint\\types:@typescript-eslint\\types@6.21.0", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -246,7 +269,9 @@ func TestPnpmLineParseGitInstall(t *testing.T) {
 	// from docs: https://pnpm.io/cli/add
 	// pnpm add kevva/is-positive#97edff6f525f192a3f83cea1944765f769ae2678
 
-	d := parseLine("/Users/mococo/proj/node_modules/.pnpm/github.com+kevva+is-positive@97edff6f525f192a3f83cea1944765f769ae2678/node_modules/is-positive:is-positive@3.1.0", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("/Users/mococo/proj/node_modules/.pnpm/github.com+kevva+is-positive@97edff6f525f192a3f83cea1944765f769ae2678/node_modules/is-positive:is-positive@3.1.0", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}
@@ -277,7 +302,9 @@ func TestPnpmLineParseLocalTgz(t *testing.T) {
 	//  	curl -L https://registry.npmjs.org/node-forge/-/node-forge-0.10.0.tgz > z.tgz
 	// 		pnpm add ./z.tgz
 
-	d := parseLine("/Users/mococo/proj/node_modules/.pnpm/file+z.tgz/node_modules/node-forge:node-forge@0.10.0", projectPath)
+	conf, _ := config.New(nil)
+	parser := pnpmDependencyParser{conf, fakeNormalizer{}}
+	d := parser.parseLine("/Users/mococo/proj/node_modules/.pnpm/file+z.tgz/node_modules/node-forge:node-forge@0.10.0", projectPath)
 	if d == nil {
 		t.Fatalf("failed parsing line")
 	}

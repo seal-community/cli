@@ -19,21 +19,21 @@ func TestLockfileUpdateV1Formatting(t *testing.T) {
 	expectedJsonAfter := string(_readf("5.10.0.nested.after.package-lock.json"))
 	minimist1 := api.PackageVersion{
 		Version:                         "0.0.8",
-		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "minimist", Name: "minimist", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "0.0.8-sp1",
 	}
 
 	minimist2 := api.PackageVersion{
 		Version:                         "1.2.0",
-		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "minimist", Name: "minimist", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.0-sp1",
 	}
 
 	lodash := api.PackageVersion{
 		Version:                         "4.17.11",
-		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "4.17.11-sp1",
 	}
@@ -75,21 +75,21 @@ func TestLockfileUpdateV2Formatting(t *testing.T) {
 	expectedJsonAfter := string(_readf("7.24.2.complex.after.package-lock.json"))
 	merge := api.PackageVersion{
 		Version:                         "1.2.1",
-		Library:                         api.Package{Name: "merge", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "merge", Name: "merge", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.1-sp1",
 	}
 
 	minimist := api.PackageVersion{
 		Version:                         "1.2.0",
-		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "minimist", Name: "minimist", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.0-sp1",
 	}
 
 	lodash := api.PackageVersion{
 		Version:                         "4.17.11",
-		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "4.17.11-sp1",
 	}
@@ -131,35 +131,35 @@ func TestLockfileUpdateV3Formatting(t *testing.T) {
 	expectedJsonAfter := string(_readf("10.1.0.multi-versions.after.package-lock.json"))
 	merge := api.PackageVersion{
 		Version:                         "1.2.1",
-		Library:                         api.Package{Name: "merge", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "merge", Name: "merge", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.1-sp1",
 	}
 
 	minimist := api.PackageVersion{
 		Version:                         "1.2.0",
-		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "minimist", Name: "minimist", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "1.2.0-sp1",
 	}
 
 	minimist2 := api.PackageVersion{
 		Version:                         "0.0.8",
-		Library:                         api.Package{Name: "minimist", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "minimist", Name: "minimist", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "0.0.8-sp1",
 	}
 
 	lodash := api.PackageVersion{
 		Version:                         "4.17.11",
-		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "4.17.11-sp1",
 	}
 
 	lodash2 := api.PackageVersion{
 		Version:                         "4.17.5",
-		Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
 		RecommendedLibraryVersionId:     "111",
 		RecommendedLibraryVersionString: "4.17.5-sp1",
 	}

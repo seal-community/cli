@@ -28,6 +28,7 @@ func getTestVulns() []api.PackageVersion {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
+				NormalizedName: "lodash",
 				PackageManager: mappings.NpmManager,
 			},
 			RecommendedLibraryVersionId:     "123123",
@@ -93,19 +94,21 @@ func TestOverrideMergeSanitySamePackage(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
+				NormalizedName: "lodash",
 				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.2.3",
-			Library: api.Package{
-				Name:           "lodash",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.2.3-sp1",
-		},
+	p := api.PackageVersion{
+		Version: "1.2.3",
+		Library: api.Package{
+			Name:           "lodash",
+			NormalizedName: "lodash",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p.Id()] = p
 
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	if len(combined) != 1 {
@@ -127,15 +130,17 @@ func TestOverrideMergeSanityFixedLocal(t *testing.T) {
 		"NPM|lodash@1.2.3-sp1": nil,
 	}
 	remotePackages := []api.PackageVersion{}
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.2.3",
-			Library: api.Package{
-				Name:           "lodash",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.2.3-sp1",
-		},
+	p := api.PackageVersion{
+		Version: "1.2.3",
+		Library: api.Package{
+			Name:           "lodash",
+			NormalizedName: "lodash",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p.Id()] = p
+
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	if len(combined) != 1 {
 		t.Fatalf("wrong number of combined overrides %d", len(combined))
@@ -160,19 +165,22 @@ func TestOverrideMergeSanityNoRecommended(t *testing.T) {
 			Version: "1.2.3-sp1",
 			Library: api.Package{
 				Name:           "lodash",
+				NormalizedName: "lodash",
 				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "", // no fix available
 		},
 	}
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.2.3",
-			Library: api.Package{
-				Name:           "lodash",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.2.3-sp1",
-		},
+	p := api.PackageVersion{
+		Version: "1.2.3",
+		Library: api.Package{
+			Name:           "lodash",
+			NormalizedName: "lodash",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p.Id()] = p
+
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	if len(combined) != 1 {
 		t.Fatalf("wrong number of combined overrides %d", len(combined))
@@ -197,19 +205,21 @@ func TestOverrideMergeSanityNewSp2(t *testing.T) {
 			Version: "1.2.3-sp1",
 			Library: api.Package{
 				Name:           "lodash",
+				NormalizedName: "lodash",
 				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp2",
 		},
 	}
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.2.3",
-			Library: api.Package{
-				Name:           "lodash",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.2.3-sp1",
-		},
+	p := api.PackageVersion{
+		Version: "1.2.3",
+		Library: api.Package{
+			Name:           "lodash",
+			NormalizedName: "lodash",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p.Id()] = p
 
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	if len(combined) != 1 {
@@ -235,19 +245,22 @@ func TestOverrideMergeOverrideRemovedIfNotInLocal(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
+				NormalizedName: "lodash",
 				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.0.0",
-			Library: api.Package{
-				Name:           "semver-regex",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.0.0-sp1",
-		},
+	p := api.PackageVersion{
+
+		Version: "1.0.0",
+		Library: api.Package{
+			Name:           "semver-regex",
+			NormalizedName: "semver-regex",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.0.0-sp1",
 	}
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p.Id()] = p
 
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	if len(combined) != 1 {
@@ -274,6 +287,7 @@ func TestOverrideMergeRemoteAddsNewOverride(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
+				NormalizedName: "lodash",
 				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
@@ -281,20 +295,22 @@ func TestOverrideMergeRemoteAddsNewOverride(t *testing.T) {
 			Version: "1.0.0",
 			Library: api.Package{
 				Name:           "semver-regex",
+				NormalizedName: "semver-regex",
 				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.0.0-sp1",
 		},
 	}
 
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.2.3",
-			Library: api.Package{
-				Name:           "lodash",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.2.3-sp1",
-		},
+	p := api.PackageVersion{
+		Version: "1.2.3",
+		Library: api.Package{
+			Name:           "lodash",
+			NormalizedName: "lodash",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p.Id()] = p
 
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	slices.SortFunc(combined, func(a, b api.PackageVersion) int { return strings.Compare(a.Id(), b.Id()) })
@@ -332,20 +348,23 @@ func TestOverrideMergeRemoteAddsNewOverrideAfterFix(t *testing.T) {
 			Version: "1.2.3",
 			Library: api.Package{
 				Name:           "lodash",
+				NormalizedName: "lodash",
 				PackageManager: mappings.NpmManager},
 			RecommendedLibraryVersionString: "1.2.3-sp1",
 		},
 	}
 
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.0.0",
-			Library: api.Package{
-				Name:           "semver-regex",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.0.0-sp1",
-		},
+	p := api.PackageVersion{
+		Version: "1.0.0",
+		Library: api.Package{
+			Name:           "semver-regex",
+			NormalizedName: "semver-regex",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.0.0-sp1",
 	}
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p.Id()] = p
+
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	slices.SortFunc(combined, func(a, b api.PackageVersion) int { return strings.Compare(a.Id(), b.Id()) })
 
@@ -375,15 +394,17 @@ func TestOverrideMergeRemoteAddsNewOverrideAfterFix(t *testing.T) {
 func TestOverrideMergeNoLocalDeps(t *testing.T) {
 	localDeps := common.DependencyMap{}
 	remotePackages := []api.PackageVersion{}
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.2.3",
-			Library: api.Package{
-				Name:           "lodash",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.2.3-sp1",
-		},
+	p := api.PackageVersion{
+
+		Version: "1.2.3",
+		Library: api.Package{
+			Name:           "lodash",
+			NormalizedName: "lodash",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p.Id()] = p
 
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	if len(combined) != 0 {
@@ -409,19 +430,20 @@ func TestConvertingOverrideToPackageVersion(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, &shared.FakePackageManager{})
 
 	expected := api.PackageVersion{
 		Version: "2.7.4",
 		Library: api.Package{
 			Name:           "ejs",
+			NormalizedName: "ejs",
 			PackageManager: "NPM",
 		},
 		RecommendedLibraryVersionString: "2.7.4-sp1",
 	}
 
-	converted := packages[0]
-	if expected.Version != converted.Version {
+	converted, ok := packages[expected.Id()]
+	if !ok || expected.Version != converted.Version {
 		t.Fatalf("wrong version %s", converted.Version)
 	}
 
@@ -444,22 +466,27 @@ func TestOverrideMergeMultipleOverrides(t *testing.T) {
 		"NPM|semver-regex@1.0.0-sp1": nil,
 	}
 	remotePackages := []api.PackageVersion{}
-	overrides := []api.PackageVersion{
-		{
-			Version: "1.2.3",
-			Library: api.Package{
-				Name:           "lodash",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.2.3-sp1",
-		},
-		{
-			Version: "1.0.0",
-			Library: api.Package{
-				Name:           "semver-regex",
-				PackageManager: mappings.NpmManager},
-			RecommendedLibraryVersionString: "1.0.0-sp1",
-		},
+	p1 := api.PackageVersion{
+		Version: "1.2.3",
+		Library: api.Package{
+			Name:           "lodash",
+			NormalizedName: "lodash",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.2.3-sp1",
 	}
+	p2 := api.PackageVersion{
+		Version: "1.0.0",
+		Library: api.Package{
+			Name:           "semver-regex",
+			NormalizedName: "semver-regex",
+			PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionString: "1.0.0-sp1",
+	}
+
+	overrides := make(map[string]api.PackageVersion)
+	overrides[p1.Id()] = p1
+	overrides[p2.Id()] = p2
+
 	combined := getMergedOverride(localDeps, remotePackages, overrides)
 	slices.SortFunc(combined, func(a, b api.PackageVersion) int { return strings.Compare(a.Id(), b.Id()) })
 

@@ -91,12 +91,22 @@ func (m *PipPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *PipPackageManager) ListDependencies(targetDir string) (*common.ProcessResult, bool) {
-	return listPackages(targetDir)
-}
+func (m *PipPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
+	result, ok := listPackages(targetDir)
+	if !ok {
+		slog.Error("failed running package manager in the current dir", "name", m.Name())
+		return nil, shared.ManagerProcessFailed
+	}
 
-func (m *PipPackageManager) GetParser() shared.ResultParser {
-	return &dependencyParser{config: m.Config}
+	parser := &dependencyParser{config: m.Config, normalizer: m}
+	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	if err != nil {
+		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
+		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
+		return nil, shared.FailedParsingManagerOutput
+	}
+
+	return dependencyMap, nil
 }
 
 func (m *PipPackageManager) GetProjectName(projectDir string) string {
@@ -291,4 +301,9 @@ func (m *PipPackageManager) DownloadPackage(server api.Server, descriptor shared
 
 func (m *PipPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 	return nil
+}
+
+// pip is case insensitive and doesn't distinguish between hyphens and underscores.
+func (m *PipPackageManager) NormalizePackageName(name string) string {
+	return strings.Replace(strings.ToLower(name), "_", "-", -1)
 }

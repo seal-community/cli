@@ -14,6 +14,12 @@ import (
 
 const defaultTestProjectDir = "/Users/fuwawa/proj"
 
+type fakeNormalizer struct{}
+
+func (f fakeNormalizer) NormalizePackageName(name string) string {
+	return strings.ToLower(name)
+}
+
 func getTestFile(name string) string {
 	// fetch file from current package's testdata folder
 	// ref: https://pkg.go.dev/cmd/go/internal/test
@@ -28,7 +34,7 @@ func getTestFile(name string) string {
 
 func TestParseDefaultDependencies(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("deps_default.json"), defaultTestProjectDir)
 	if err != nil {
@@ -81,7 +87,7 @@ func TestParseDefaultDependencies(t *testing.T) {
 
 func TestParseEmptyDependenciesDependencies(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("deps_empty.json"), defaultTestProjectDir)
 	if err != nil {
@@ -95,7 +101,7 @@ func TestParseEmptyDependenciesDependencies(t *testing.T) {
 
 func TestParseWithoutRestoreDependencies(t *testing.T) {
 	conf, _ := config.New(nil)
-	parser := dependencyParser{conf}
+	parser := dependencyParser{conf, fakeNormalizer{}}
 
 	dependencies, err := parser.Parse(getTestFile("deps_no_restore.json"), defaultTestProjectDir)
 	if err == nil {

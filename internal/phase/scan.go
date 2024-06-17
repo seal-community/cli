@@ -3,7 +3,6 @@ package phase
 import (
 	"cli/internal/api"
 	"cli/internal/common"
-	"errors"
 	"fmt"
 	"log/slog"
 )
@@ -26,9 +25,6 @@ func NewScanPhase(target string, configPath string, showProgress bool) (*scanPha
 	}, nil
 
 }
-
-var ManagerProcessFailed = common.NewPrintableError("failed running package manager")
-var FailedParsingManagerOutput = common.NewPrintableError("failed parsing package manager output")
 
 type PackageManagerMetadata struct {
 	Version string `json:"version"`
@@ -63,22 +59,11 @@ func (sp *scanPhase) Collect() (common.DependencyMap, error) {
 
 	slog.Info("collecting packages", "manager_version", packageManager.GetVersion(targetDir))
 
-	result, ok := packageManager.ListDependencies(targetDir)
-	if !ok {
-		slog.Error("failed running package manager in the current dir", "name", packageManager.Name())
-		// propagate error message
-		return nil, ManagerProcessFailed
-	}
-
-	slog.Debug("going to parse output", "code", result.Code, "stderr", result.Stderr)
-	parser := packageManager.GetParser()
-	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
-
+	dependencyMap, err := packageManager.ListDependencies(targetDir)
 	if err != nil {
-		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
-		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
+		slog.Error("failed parsing package manager output", "err", err)
 		// general error, might be caused due to return code
-		return nil, errors.Join(err, FailedParsingManagerOutput)
+		return nil, common.FallbackPrintableMsg(err, "failed parsing project dependencies")
 
 	}
 

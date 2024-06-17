@@ -40,7 +40,7 @@ func findRule(target api.PackageVersion, existingOverrides []api.PackageVersion)
 	// finds the first rule that has the same origin package and version
 	// NOTE: assumes same manager
 	for i, pv := range existingOverrides {
-		if pv.Library.Name != target.Library.Name {
+		if pv.Library.NormalizedName != target.Library.NormalizedName {
 			continue
 		}
 
@@ -136,16 +136,21 @@ func addCommand() *cobra.Command {
 				actionsFilePath = filepath.Join(targetDir, actions.ActionFileName)
 			}
 
-			existingOverrides, err := getExistingConfigOverrides(actionsFilePath)
+			existingOverrides, err := getExistingConfigOverrides(actionsFilePath, addPhase.Manager)
 			if err != nil {
 				return common.FallbackPrintableMsg(err, "failed getting existing actions file")
 			}
 
 			if existingOverrides == nil {
-				existingOverrides = make([]api.PackageVersion, 0, 1) // at least for the new rule
+				existingOverrides = make(map[string]api.PackageVersion)
 			}
 
-			newOverride, modifedOverrides, foundInActionsFile := upsertRule(*resolved, &existingOverrides) // returns if we modified the slice
+			existingOverridesArray := make([]api.PackageVersion, 0, len(existingOverrides))
+			for _, v := range existingOverrides {
+				existingOverridesArray = append(existingOverridesArray, v)
+			}
+
+			newOverride, modifedOverrides, foundInActionsFile := upsertRule(*resolved, &existingOverridesArray) // returns if we modified the slice
 			slog.Debug("collecting")
 			depMap, err := addPhase.Collect() // calling collect instead of scan because we only want what's on disk, no need to send request to BE
 			if err != nil {
@@ -162,7 +167,7 @@ func addCommand() *cobra.Command {
 			added := false
 			if modifedOverrides {
 				slog.Info("updating actions file with new rule")
-				if err = recreateActionsFile(actionsFilePath, existingOverrides, addPhase.Manager, addPhase.Config.Project, addPhase.ProjectDir); err != nil {
+				if err = recreateActionsFile(actionsFilePath, existingOverridesArray, addPhase.Manager, addPhase.Config.Project, addPhase.ProjectDir); err != nil {
 					return err // only a wrapper func, logged from withing
 				}
 				added = true

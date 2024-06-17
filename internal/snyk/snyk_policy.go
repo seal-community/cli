@@ -277,7 +277,7 @@ func decodeSnykFile(r io.Reader) (*PolicyFile, error) {
 		issues:     issues,
 		ignore:     ignore,
 		newRules:   make(map[string]bool),
-		createTime: time.Now().UTC(), // same as outputted by snyk when generated from commandline
+		createTime: common.CliStartTime, // same as outputted by snyk when generated from commandline
 	}
 
 	return &pf, nil

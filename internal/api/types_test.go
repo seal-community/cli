@@ -17,6 +17,7 @@ func TestIsMalicious(t *testing.T) {
 		Version:             "1.2.3",
 		Library: Package{
 			Name:           "ejs",
+			NormalizedName: "ejs",
 			PackageManager: "NPM",
 		},
 	}
@@ -38,6 +39,7 @@ func TestIsNotMalicious(t *testing.T) {
 		Version:             "1.2.3",
 		Library: Package{
 			Name:           "ejs",
+			NormalizedName: "ejs",
 			PackageManager: "NPM",
 		},
 	}
@@ -114,8 +116,9 @@ func TestOriginId(t *testing.T) {
 	pv := PackageVersion{
 		VersionId: "1111",
 		Library: Package{
-			PackageManager: mappings.NpmManager,
-			Name:           "library",
+			PackageManager: mappings.NugetManager,
+			Name:           "Library",
+			NormalizedName: "library",
 		},
 		Version:                         "version",
 		RecommendedLibraryVersionId:     "2222",
@@ -124,7 +127,7 @@ func TestOriginId(t *testing.T) {
 		OriginVersionString:             "origin",
 	}
 
-	if oid := pv.OriginId(); oid != "NPM|library@origin" {
+	if oid := pv.OriginId(); oid != "NuGet|library@origin" {
 		t.Fatalf("got %s", oid)
 	}
 }
@@ -133,8 +136,9 @@ func TestRecommendedId(t *testing.T) {
 	pv := PackageVersion{
 		VersionId: "1111",
 		Library: Package{
-			PackageManager: mappings.NpmManager,
-			Name:           "library",
+			PackageManager: mappings.NugetManager,
+			Name:           "Library",
+			NormalizedName: "library",
 		},
 		Version:                         "version",
 		RecommendedLibraryVersionId:     "2222",
@@ -143,7 +147,7 @@ func TestRecommendedId(t *testing.T) {
 		OriginVersionString:             "origin",
 	}
 
-	if rid := pv.RecommendedId(); rid != "NPM|library@recommended" {
+	if rid := pv.RecommendedId(); rid != "NuGet|library@recommended" {
 		t.Fatalf("got %s", rid)
 	}
 }
@@ -152,15 +156,16 @@ func TestOriginIdForOrigin(t *testing.T) {
 	pv := PackageVersion{
 		VersionId: "1111",
 		Library: Package{
-			PackageManager: mappings.NpmManager,
-			Name:           "library",
+			PackageManager: mappings.NugetManager,
+			Name:           "Library",
+			NormalizedName: "library",
 		},
 		Version:                         "version",
 		RecommendedLibraryVersionId:     "2222",
 		RecommendedLibraryVersionString: "recommended",
 	}
 
-	if oid := pv.OriginId(); oid != "NPM|library@version" {
+	if oid := pv.OriginId(); oid != "NuGet|library@version" {
 		t.Fatalf("got %s", oid)
 	}
 }
@@ -169,8 +174,9 @@ func TestVersionId(t *testing.T) {
 	pv := PackageVersion{
 		VersionId: "1111",
 		Library: Package{
-			PackageManager: mappings.NpmManager,
-			Name:           "library",
+			PackageManager: mappings.NugetManager,
+			Name:           "Library",
+			NormalizedName: "library",
 		},
 		Version:                         "version",
 		RecommendedLibraryVersionId:     "2222",
@@ -179,7 +185,7 @@ func TestVersionId(t *testing.T) {
 		OriginVersionString:             "origin",
 	}
 
-	if vid := pv.Id(); vid != "NPM|library@version" {
+	if vid := pv.Id(); vid != "NuGet|library@version" {
 		t.Fatalf("got %s", vid)
 	}
 }
