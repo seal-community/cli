@@ -26,7 +26,13 @@ func GetVersion(targetDir string) string {
 }
 
 func parseMavenVersion(mavenVersionOutput string) string {
-	versionWithSuffix := strings.TrimPrefix(mavenVersionOutput, "Apache Maven ")
+	splitted := strings.Split(mavenVersionOutput, " Maven ")
+	if len(splitted) < 2 {
+		slog.Error("failed parsing maven version", "output", mavenVersionOutput)
+		return ""
+	}
+
+	versionWithSuffix := splitted[1]
 	spaceIndex := strings.Index(versionWithSuffix, " ")
 	version := versionWithSuffix[:spaceIndex]
 	return version
