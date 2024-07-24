@@ -2,6 +2,7 @@ package utils
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
@@ -16,6 +17,7 @@ import (
 )
 
 const recordFilename = "RECORD"
+const installedFilesFilename = "installed-files.txt"
 
 var distRecordPath = fmt.Sprintf(".dist-info/%s", recordFilename)
 
@@ -112,18 +114,35 @@ func parseRecordFile(recordFile io.Reader) ([]string, error) {
 	return files, nil
 }
 
-// We use RECORD file to know what to move back when rolling back
-// It is a CSV file where the first column includes the file path
-// It includes all the files in the .whl package, including the .dist-info directory
-func readRecordFile(path string) ([]string, error) {
-	recordFile, err := os.Open(filepath.Join(path, recordFilename))
-	if err != nil {
-		slog.Error("failed reading RECORD file", "err", err)
-		return nil, err
-	}
-	defer recordFile.Close()
+// installed-files.txt is a simple text file where each line is a file path
+// that the package installed.
+// We need to convert these paths to relative paths to the the
+// site-packages directory like the RECORD file.
+// The function receives the installed-files.txt io.Reader
+// and basePath which is the install location (egg-info directory)
+// since the paths in the file are originally relative to it.
+// It returns the list of relative paths to the site-packages directory
+func parseInstalledFilesFile(installedFilesFile io.Reader, basePath string) ([]string, error) {
+	files := make([]string, 0)
+	scanner := bufio.NewScanner(installedFilesFile)
 
-	return parseRecordFile(recordFile)
+	for scanner.Scan() {
+		path := scanner.Text()
+		absPath, err := filepath.Abs(filepath.Join(basePath, path))
+		if err != nil {
+			slog.Error("failed converting to absolute path", "err", err, "path", path)
+			return nil, err
+		}
+
+		relPath, err := filepath.Rel(filepath.Dir(basePath), absPath)
+		if err != nil {
+			slog.Error("failed converting to relative path", "err", err, "path", absPath)
+			return nil, err
+		}
+		files = append(files, relPath)
+	}
+
+	return files, nil
 }
 
 func backupDependency(dep common.Dependency, src string, dst string, files []string) error {
@@ -145,7 +164,7 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 		}
 
 		if err := os.Rename(orig, tmp); err != nil {
-			slog.Error("failed moving original to temp dir", "err", err, "original", dep.DiskPath, "tmp-path", dst)
+			slog.Error("failed moving original to temp dir", "err", err, "original", orig, "tmp-path", dst)
 			return fmt.Errorf("failed backing up package %s", dep.PrintableName())
 		}
 	}
@@ -181,14 +200,77 @@ func (f *fixer) Prepare() error {
 	return nil
 }
 
-// Will fix the dependency, assuming payload is a .whl file
-func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
-	recordPaths, err := readRecordFile(dep.DiskPath)
-	if err != nil {
-		return false, fmt.Errorf("failed reading RECORD file for package %s", dep.PrintableName())
+// We use RECORD/installed-files file to know what to move back when rolling back
+// RECORD is a CSV file where the first column includes the file path
+// installed-files is a txt file where each line is a file path
+// both includes all the files in the .whl package
+func getBackupPaths(path string) ([]string, error) {
+	recordFile, err := os.Open(filepath.Join(path, recordFilename))
+	if err == nil {
+		defer recordFile.Close()
+		slog.Info("reading RECORD file", "path", path)
+		return parseRecordFile(recordFile)
 	}
 
-	recordPaths, dotdotPaths := splitDotdotPaths(recordPaths)
+	slog.Info("failed to find RECORD file, trying installed-files.txt file", "err", err)
+
+	installedFiles, err := os.Open(filepath.Join(path, installedFilesFilename))
+	if err == nil {
+		defer installedFiles.Close()
+		slog.Info("reading installed-files.txt file", "path", path)
+		return parseInstalledFilesFile(installedFiles, path)
+	}
+
+	slog.Error("failed reading RECORD and installed-files.txt files for path", "path", path, "err", err)
+	return nil, fmt.Errorf("failed reading RECORD and installed-files.txt files for path %s", path)
+}
+
+// Since a python dependency defaults to the dist-info disk path, we need to check if it exists
+// and in the low chance it doesn't, and there's an egg-info instead, we should replace
+// the disk path value to the egg-info path.
+func fixDiskPathIfNeeded(dep *common.Dependency) error {
+	sitePackages := filepath.Dir(dep.DiskPath)
+	tmpPath := filepath.Join(sitePackages, DistInfoPath(dep.Name, dep.Version))
+	diskPath := ""
+	if exists, err := common.PathExists(tmpPath); err == nil && exists {
+		diskPath = tmpPath
+	} else if err != nil {
+		slog.Error("failed checking disk path", "err", err, "name", dep.Name, "version", dep.Version)
+		return err
+	}
+
+	tmpPath = FindEggInfoPath(sitePackages, dep.Name, dep.Version)
+	if exists, err := common.PathExists(tmpPath); err == nil && exists {
+		diskPath = tmpPath
+	} else if err != nil {
+		slog.Error("failed checking disk path", "err", err, "name", dep.Name, "version", dep.Version)
+		return err
+	}
+
+	if diskPath == "" {
+		slog.Error("failed finding disk path", "name", dep.Name, "version", dep.Version)
+		return common.NewPrintableError("failed finding disk path for %s", dep.PrintableName())
+	}
+
+	dep.DiskPath = diskPath
+	return nil
+}
+
+// Will fix the dependency, assuming payload is a .whl file
+func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+	// update the diskpath in case the package was installed without wheel using a tgz file
+	// to use the egg-info directory instead
+	if err := fixDiskPathIfNeeded(dep); err != nil {
+		return false, err
+	}
+
+	backupPaths, err := getBackupPaths(dep.DiskPath)
+	if err != nil {
+		slog.Error("failed getting backup paths", "err", err)
+		return false, err
+	}
+
+	backupPaths, dotdotPaths := splitDotdotPaths(backupPaths)
 
 	// Create a temporary directory for the dependency
 	tmpName := filepath.Join(f.workdir, "site-packages", dep.Name)
@@ -199,7 +281,7 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 	}
 
 	sitePackages := filepath.Dir(dep.DiskPath)
-	err = backupDependency(*dep, sitePackages, tmpName, recordPaths)
+	err = backupDependency(*dep, sitePackages, tmpName, backupPaths)
 	if err != nil {
 		return false, err
 	}

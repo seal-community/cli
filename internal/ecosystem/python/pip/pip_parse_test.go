@@ -41,7 +41,7 @@ func TestParseDefaultDependencies(t *testing.T) {
 	dependencies, err := parser.Parse(getTestFile("24.0_default_deps"),
 		defaultTestProjectDir)
 	if err != nil {
-		t.Fatalf("parse failed ")
+		t.Fatalf("parse failed")
 	}
 
 	if len(dependencies) != 3 {
