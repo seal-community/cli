@@ -26,14 +26,13 @@ func GetVersion(targetDir string) string {
 	return version
 }
 
-// "3.6.3\x1b[m\nMaven"
 func parseMavenVersion(mavenVersionOutput string) string {
 	r := bufio.NewReader(strings.NewReader(mavenVersionOutput))
 
 	scanner := bufio.NewScanner(r) // handles line-endings correctly per os
 	scanner.Scan()
 	line := scanner.Text()
-	line = strings.Split(line, "\r")[0] // in case for some reason we parase windows output on non windows machine
+	line = strings.Split(line, "\r")[0] // in case for some reason we parse windows output on non windows machine
 	splitted := strings.Split(line, " Maven ")
 
 	if len(splitted) < 2 {
@@ -44,6 +43,7 @@ func parseMavenVersion(mavenVersionOutput string) string {
 	versionWithSuffix := splitted[1]
 
 	// strip color escape code if exists https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+	// example: // "3.6.3\x1b[m\nMaven"
 	if colorIdx := strings.Index(versionWithSuffix, "\x1b"); colorIdx != -1 {
 		// color code escape character
 		versionWithSuffix = versionWithSuffix[:colorIdx]
