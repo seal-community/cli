@@ -7,6 +7,7 @@ import (
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/python/utils"
 	"cli/internal/ecosystem/shared"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -275,19 +276,31 @@ func (m *PipPackageManager) getPackageCompatibleTags(name string, version string
 }
 
 // Finds the compatible tags to use when choosing a .whl file to download.
-// Takes the tags of the existing installation if available.
-// If not, takes the tags of the host based on pip debug.
+// Tries to get the tags of the existing installation + the compatible tags from the host in this order.
+// If one fails, the other is used. If both faield, fail.
 func (m *PipPackageManager) getCompatibleTags(name string, version string) ([]string, error) {
 	slog.Info("getting package compatible tags", "name", name, "version", version)
-	compatibleTags, err := m.getPackageCompatibleTags(name, version)
-	if err == nil {
-		return compatibleTags, nil
+	compatibleTags, err1 := m.getPackageCompatibleTags(name, version)
+	pipCompatibleTags, err2 := m.getHostCompatibleTags()
+
+	res := make([]string, 0)
+	if err1 == nil {
+		res = append(res, compatibleTags...)
+	} else {
+		slog.Warn("failed getting package compatible tags", "err", err1)
 	}
 
-	// In the rare case we failed parsing tags, don't fail the whole process.
-	slog.Warn("failed getting package compatible tags, using host compatible tags", "err", err)
+	if err2 == nil {
+		res = append(res, pipCompatibleTags...)
+	} else {
+		slog.Warn("failed getting host compatible tags", "err", err2)
+	}
 
-	return m.getHostCompatibleTags()
+	if len(res) == 0 {
+		return nil, errors.Join(err1, err2)
+	}
+
+	return res, nil
 }
 
 func (m *PipPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {

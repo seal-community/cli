@@ -16,6 +16,7 @@ import (
 
 func getVersionUrl(libraryInfo []byte, version string, compatibleTags []string) (url.URL, error) {
 	infoHtml := html.NewTokenizer(bytes.NewReader(libraryInfo))
+	wheelUrls := make([]url.URL, 0)
 	for {
 		tokenType := infoHtml.Next()
 		if tokenType == html.ErrorToken {
@@ -45,13 +46,18 @@ func getVersionUrl(libraryInfo []byte, version string, compatibleTags []string) 
 				continue
 			}
 
-			for _, tag := range compatibleTags {
-				if strings.Contains(u.Path, tag) {
-					return *u, nil
-				}
+			wheelUrls = append(wheelUrls, *u)
+		}
+	}
+
+	for _, tag := range compatibleTags {
+		for _, u := range wheelUrls {
+			if strings.Contains(u.Path, tag) {
+				return u, nil
 			}
 		}
 	}
+
 	return url.URL{}, fmt.Errorf("failed finding version url")
 }
 

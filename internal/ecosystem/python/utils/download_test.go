@@ -26,6 +26,7 @@ const multiplePythonMultipartResponse = `<html><head>
 </head>
 <body>
 <h1>Links for python-multipart</h1>
+<a href="https://pypi.sealsecurity.io/simple/python-multipart/python_multipart-0.0.6+sp1-py32-none-any.whl" data-requires-python=">=3.7" data-dist-info-metadata="sha256=2785907fdf571d24a0fc40c6edf1a0246a2d4bf1e9ed5882b69638ad0d8e8323" data-core-metadata="sha256=2785907fdf571d24a0fc40c6edf1a0246a2d4bf1e9ed5882b69638ad0d8e8323">python_multipart-0.0.6+sp1-py32-none-any.whl</a><br>
 <a href="https://pypi.sealsecurity.io/simple/python-multipart/python_multipart-0.0.6+sp1-py3-none-any.whl" data-requires-python=">=3.7" data-dist-info-metadata="sha256=2785907fdf571d24a0fc40c6edf1a0246a2d4bf1e9ed5882b69638ad0d8e8323" data-core-metadata="sha256=2785907fdf571d24a0fc40c6edf1a0246a2d4bf1e9ed5882b69638ad0d8e8323">python_multipart-0.0.6+sp1-py3-none-any.whl</a><br>
 <a href="https://pypi.sealsecurity.io/simple/python-multipart/python_multipart-0.0.6+sp1.tar.gz" data-requires-python=">=3.7">python_multipart-0.0.6+sp1.tar.gz</a><br>
 <a href="https://files.pythonhosted.org/packages/94/35/142fff3d85da49377ada6936ad9b776263549ab22656969b2fcd0bdb10f7/python_multipart-0.0.7-py3-none-any.whl#sha256=b1fef9a53b74c795e2347daac8c54b252d9e0df9c619712691c1cc8021bd3c49" data-requires-python=">=3.7" data-dist-info-metadata="sha256=57c902c68d6038600c5f1947c451cdca5e8cae7edbfddcc75322806dff9efbcc" data-core-metadata="sha256=57c902c68d6038600c5f1947c451cdca5e8cae7edbfddcc75322806dff9efbcc">python_multipart-0.0.7-py3-none-any.whl</a><br>
@@ -134,5 +135,15 @@ func TestGetVersionUrlNoTagMatch(t *testing.T) {
 	_, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags)
 	if err == nil {
 		t.Fatalf("expected error")
+	}
+}
+
+func TestGetVersionUrlFirstTagMatch(t *testing.T) {
+	version := "0.0.6+sp1"
+	tags := []string{"py3-none-any", "py32-none-any"}
+	u, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags)
+	expected, _ := url.Parse("https://pypi.sealsecurity.io/simple/python-multipart/python_multipart-0.0.6+sp1-py3-none-any.whl")
+	if err != nil || u != *expected {
+		t.Fatalf("got %s, expected %s", u.String(), expected)
 	}
 }
