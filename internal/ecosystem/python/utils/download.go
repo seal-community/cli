@@ -14,9 +14,15 @@ import (
 	"golang.org/x/net/html"
 )
 
-func getVersionUrl(libraryInfo []byte, version string, compatibleTags []string) (url.URL, error) {
+type urlCandidates struct {
+	whls   []url.URL
+	targzs []url.URL
+}
+
+func getVersionUrlCandiates(libraryInfo []byte, version string) (urlCandidates, error) {
 	infoHtml := html.NewTokenizer(bytes.NewReader(libraryInfo))
-	wheelUrls := make([]url.URL, 0)
+	whls := make([]url.URL, 0)
+	targzs := make([]url.URL, 0)
 	for {
 		tokenType := infoHtml.Next()
 		if tokenType == html.ErrorToken {
@@ -42,26 +48,54 @@ func getVersionUrl(libraryInfo []byte, version string, compatibleTags []string) 
 			if !strings.Contains(u.Path, version) {
 				continue
 			}
-			if !strings.HasSuffix(u.Path, ".whl") {
-				continue
-			}
 
-			wheelUrls = append(wheelUrls, *u)
-		}
-	}
-
-	for _, tag := range compatibleTags {
-		for _, u := range wheelUrls {
-			if strings.Contains(u.Path, tag) {
-				return u, nil
+			switch {
+			case strings.HasSuffix(u.Path, ".whl"):
+				whls = append(whls, *u)
+			case strings.HasSuffix(u.Path, ".tar.gz"):
+				targzs = append(targzs, *u)
 			}
 		}
 	}
-
-	return url.URL{}, fmt.Errorf("failed finding version url")
+	return urlCandidates{
+		whls:   whls,
+		targzs: targzs,
+	}, nil
 }
 
-func DownloadPythonPackage(s api.Server, name string, version string, compatibleTags []string) ([]byte, error) {
+func getVersionUrl(libraryInfo []byte, version string, compatibleTags []string, OnlyBinary bool) (*url.URL, error) {
+	candidates, err := getVersionUrlCandiates(libraryInfo, version)
+	if err != nil {
+		return nil, err
+	}
+
+	// most fitting wheel comes first
+	for _, tag := range compatibleTags {
+		for _, u := range candidates.whls {
+			if strings.Contains(u.Path, tag) {
+				return &u, nil
+			}
+		}
+	}
+
+	slog.Debug("no compatible wheel found", "version", version, "tags", compatibleTags)
+
+	if OnlyBinary {
+		return nil, common.NewPrintableError("no compatible wheel found and configuration is set to only install wheels")
+	}
+
+	if len(candidates.targzs) == 0 {
+		return nil, fmt.Errorf("no tar.gz files found")
+	}
+	if len(candidates.targzs) > 1 {
+		slog.Warn("multiple tar.gz files found", "version", version, "tags", compatibleTags)
+		return nil, fmt.Errorf("multiple tar.gz files found")
+	}
+
+	return &candidates.targzs[0], nil
+}
+
+func DownloadPythonPackage(s api.Server, name string, version string, compatibleTags []string, OnlyBinary bool) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
 	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
@@ -89,7 +123,7 @@ func DownloadPythonPackage(s api.Server, name string, version string, compatible
 		return nil, fmt.Errorf("no data from server: %d", statusCode)
 	}
 
-	versionDownloadUrl, err := getVersionUrl(libraryInfo, version, compatibleTags)
+	versionDownloadUrl, err := getVersionUrl(libraryInfo, version, compatibleTags, OnlyBinary)
 	if err != nil {
 		slog.Error("failed finding version url", "err", err, "name", name, "version", version, "tags", compatibleTags)
 		return nil, err

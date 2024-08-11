@@ -64,7 +64,7 @@ func TestDownloadPython(t *testing.T) {
 	client := http.Client{Transport: transparentRoundTripper}
 	server := api.Server{Client: client}
 
-	data, err := DownloadPythonPackage(server, name, version, []string{"py3-none-any"})
+	data, err := DownloadPythonPackage(server, name, version, []string{"py3-none-any"}, false)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -101,7 +101,7 @@ func TestDownloadPythonNoTag(t *testing.T) {
 	client := http.Client{Transport: transparentRoundTripper}
 	server := api.Server{Client: client}
 
-	_, err := DownloadPythonPackage(server, name, version, []string{"py2-none-any"})
+	_, err := DownloadPythonPackage(server, name, version, []string{"py2-none-any"}, false)
 	if err == nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -114,8 +114,8 @@ func TestGetVersionUrl(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed parsing url %v", err)
 	}
-	url, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags)
-	if err != nil || url != *expected {
+	url, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags, false)
+	if err != nil || *url != *expected {
 		t.Fatalf("got %s, expected %s", url.String(), expected)
 	}
 }
@@ -123,16 +123,16 @@ func TestGetVersionUrl(t *testing.T) {
 func TestGetVersionUrlNoVersionMatch(t *testing.T) {
 	version := "0.0.7+sp1"
 	tags := []string{"py3-none-any"}
-	_, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags)
+	_, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags, false)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestGetVersionUrlNoTagMatch(t *testing.T) {
+func TestGetVersionUrlNoTagMatchWhl(t *testing.T) {
 	version := "0.0.6+sp1"
 	tags := []string{"py2-none-any"}
-	_, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags)
+	_, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags, true)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -141,9 +141,9 @@ func TestGetVersionUrlNoTagMatch(t *testing.T) {
 func TestGetVersionUrlFirstTagMatch(t *testing.T) {
 	version := "0.0.6+sp1"
 	tags := []string{"py3-none-any", "py32-none-any"}
-	u, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags)
+	u, err := getVersionUrl([]byte(multiplePythonMultipartResponse), version, tags, false)
 	expected, _ := url.Parse("https://pypi.sealsecurity.io/simple/python-multipart/python_multipart-0.0.6+sp1-py3-none-any.whl")
-	if err != nil || u != *expected {
+	if err != nil || *u != *expected {
 		t.Fatalf("got %s, expected %s", u.String(), expected)
 	}
 }

@@ -1,16 +1,19 @@
 package utils
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"bufio"
 	"bytes"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
+	"compress/gzip"
 	"encoding/csv"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -38,7 +41,7 @@ type fixer struct {
 // The function will append any dot-dot paths found in the original RECORD file to the new RECORD file
 // dot-dot paths in the original RECORD are paths created during installation of the original package, such that their content can't be overriden by the sealed package
 // They should be kept as is
-func (f *fixer) extractPackage(sitePackagesPath string, payload []byte, dotdotPaths []string) (string, error) {
+func (f *fixer) extractWhlPackage(sitePackagesPath string, payload []byte, dotdotPaths []string) (string, error) {
 	// Open zipfile in memory
 	r, err := zip.NewReader(bytes.NewReader(payload), int64(len(payload)))
 	if err != nil {
@@ -92,6 +95,140 @@ func (f *fixer) extractPackage(sitePackagesPath string, payload []byte, dotdotPa
 	}
 
 	return distInfoPath, nil
+}
+
+// Given a payload of a .tar.gz source package, return it's package name with version
+// The payload is a tar.gz file, which contains a directory with the package name
+// All source packages follow this tree structure in the tar:
+// <package-name>-<version>/
+// <package-name>-<version>/...
+func getSourceName(payload []byte) (string, error) {
+	gzipReader, err := gzip.NewReader(bytes.NewReader(payload))
+	if err != nil {
+		slog.Error("Error creating gzip reader", "err", err)
+		return "", err
+	}
+	defer gzipReader.Close()
+
+	r := tar.NewReader(gzipReader)
+	header, err := r.Next()
+	if err != nil {
+		slog.Error("failed reading tar header", "err", err)
+		return "", err
+	}
+
+	if header.Typeflag != tar.TypeDir {
+		slog.Error("expected directory in tar", "type", header.Typeflag)
+		return "", fmt.Errorf("expected directory in tar")
+	}
+
+	return strings.TrimSuffix(header.Name, "/"), nil
+}
+
+// Given a site-packages directory and the source package name, find the dist-info or egg-info directory
+func findSitePackagesInfo(sitePackagesPath string, srcName string) (string, error) {
+	distInfoCandidates, err := os.ReadDir(sitePackagesPath)
+	if err != nil {
+		slog.Error("failed reading site-packages", "err", err)
+		return "", err
+	}
+
+	distInfoPath := ""
+	for _, d := range distInfoCandidates {
+		fname := d.Name()
+		ext := path.Ext(fname)
+
+		if strings.HasPrefix(fname, srcName) && (ext == ".dist-info" || ext == ".egg-info") {
+			distInfoPath = fname
+			break
+		}
+	}
+	slog.Debug("found dist-info directory", "path", distInfoPath)
+
+	if distInfoPath == "" {
+		slog.Error("failed finding dist-info directory", "name", srcName)
+		return "", fmt.Errorf("failed finding dist-info directory")
+	}
+
+	return distInfoPath, nil
+}
+
+func writePipOutput(output string) (string, error) {
+	// write the pip output to a file and do not remove it, so user can inspect it
+	pipOutput, err := os.CreateTemp("", "seal-pip-output-*.log")
+	if err != nil {
+		slog.Error("failed creating pip output file", "err", err)
+		return "", err
+	}
+	defer pipOutput.Close()
+
+	err = os.WriteFile(pipOutput.Name(), []byte(output), os.ModePerm)
+	if err != nil {
+		slog.Error("failed writing pip output to file", "err", err)
+		return "", err
+	}
+	slog.Error("pip failed to install source package", "err", err, "pipOutput", pipOutput.Name())
+
+	return pipOutput.Name(), nil
+}
+
+func (f *fixer) extractSourcePackage(sitePackagesPath string, payload []byte) (string, error) {
+	srcName, err := getSourceName(payload)
+	if err != nil {
+		slog.Error("failed getting source name", "err", err)
+		return "", err
+	}
+	slog.Debug("source package name", "name", srcName)
+
+	tmpDir, err := os.MkdirTemp("", "seal-source-package-*")
+	if err != nil {
+		slog.Error("failed creating temp dir", "err", err)
+		return "", err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	tmpPath := filepath.Join(tmpDir, fmt.Sprintf("%s.tar.gz", srcName))
+	err = os.WriteFile(tmpPath, payload, os.ModePerm)
+	if err != nil {
+		slog.Error("failed writing source package to temp file", "err", err)
+		return "", err
+	}
+	defer os.Remove(tmpPath)
+
+	// run pip install on the temporary file
+	slog.Info("installing source package via pip", "path", tmpPath)
+	pr, err := common.RunCmdWithArgsCombinedOutput(f.workdir, "pip", "install", tmpPath)
+	if err != nil {
+		slog.Error("failed to run pip install", "err", err)
+		return "", err
+	}
+	if pr.Code != 0 {
+		pipOutput, err := writePipOutput(pr.Stdout)
+		if err != nil {
+			// log the error to not lose it in case of double failure
+			slog.Error("failed writing pip output", "err", err, "output", pr.Stdout)
+			return "", err
+		}
+		return "", common.NewPrintableError("failed installing %s from source, this is probably an issue with pip, check its output at %s", srcName, pipOutput)
+	}
+
+	distInfoPath, err := findSitePackagesInfo(sitePackagesPath, srcName)
+	if err != nil {
+		return "", err
+	}
+
+	f.rollbackRemove = append(f.rollbackRemove, filepath.Join(sitePackagesPath, distInfoPath))
+
+	return distInfoPath, nil
+}
+
+func (f *fixer) extractPackage(sitePackagesPath string, payload []byte, dotdotPaths []string) (string, error) {
+	// check if the payload is a zip file, which means it's a wheel
+	if bytes.Equal(payload[:4], []byte{'P', 'K', 3, 4}) {
+		return f.extractWhlPackage(sitePackagesPath, payload, dotdotPaths)
+	}
+
+	return f.extractSourcePackage(sitePackagesPath, payload)
 }
 
 func parseRecordFile(recordFile io.Reader) ([]string, error) {
@@ -301,7 +438,7 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 	distInfoPath, err := f.extractPackage(sitePackages, packageData, dotdotPaths)
 	if err != nil {
 		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(packageData))
-		return false, fmt.Errorf("failed applying fix for package %s", dep.PrintableName())
+		return false, common.FallbackPrintableMsg(err, "failed applying fix for package %s", dep.PrintableName())
 	}
 
 	// Update diskPath so that fix summary will show a real path

@@ -12,17 +12,7 @@ type ProcessResult struct {
 	Code   int
 }
 
-func RunCmdWithArgs(targetDir string, exe string, args ...string) (*ProcessResult, error) {
-	cmd := exec.Command(exe, args...)
-	cmd.Dir = targetDir
-	var errBuffer strings.Builder
-	cmd.Stderr = &errBuffer
-	result := &ProcessResult{}
-	output, err := cmd.Output()
-
-	result.Stdout = string(output)
-	result.Stderr = errBuffer.String()
-
+func handleProcessResult(args []string, result *ProcessResult, err error) (*ProcessResult, error) {
 	if err != nil {
 		exitError, ok := err.(*exec.ExitError)
 		if !ok {
@@ -39,4 +29,31 @@ func RunCmdWithArgs(targetDir string, exe string, args ...string) (*ProcessResul
 	}
 
 	return result, nil
+}
+
+func RunCmdWithArgs(targetDir string, exe string, args ...string) (*ProcessResult, error) {
+	cmd := exec.Command(exe, args...)
+	cmd.Dir = targetDir
+	var errBuffer strings.Builder
+	cmd.Stderr = &errBuffer
+	result := &ProcessResult{}
+	output, err := cmd.Output()
+
+	result.Stdout = string(output)
+	result.Stderr = errBuffer.String()
+
+	return handleProcessResult(args, result, err)
+}
+
+// Runs a command with arguments and returns the combined output
+func RunCmdWithArgsCombinedOutput(targetDir string, exe string, args ...string) (*ProcessResult, error) {
+	cmd := exec.Command(exe, args...)
+	cmd.Dir = targetDir
+	result := &ProcessResult{}
+	output, err := cmd.CombinedOutput()
+
+	result.Stdout = string(output)
+	result.Stderr = result.Stdout
+
+	return handleProcessResult(args, result, err)
 }

@@ -33,6 +33,10 @@ type MavenConfig struct {
 	CachePath    string `yaml:"cache-path" env:"CACHE_PATH"` // since maven uses global cache, we need to set a new cache folder so we can override packages as we please
 }
 
+type PythonConfig struct {
+	OnlyBinary bool `yaml:"only-binary" env:"ONLY_BINARY"` // only install whl artifacts, no source artifacts
+}
+
 type BlackDuckConfig struct {
 	Url         string `yaml:"blackduck-url"                       env:"URL"`
 	Token       string `yaml:"blackduck-token"                     env:"TOKEN"`
@@ -45,11 +49,12 @@ type ProjectInfo struct {
 }
 
 type Config struct {
-	Token   string      `yaml:"token"            env:"TOKEN"`
-	Project string      `yaml:"project"          env:"PROJECT"`
-	Npm     NpmConfig   `yaml:"npm"              envPrefix:"NPM_"`
-	Pnpm    PnpmConfig  `yaml:"pnpm"             envPrefix:"PNPM_"`
-	Maven   MavenConfig `yaml:"maven"            envPrefix:"MAVEN_"`
+	Token   string       `yaml:"token"            env:"TOKEN"`
+	Project string       `yaml:"project"          env:"PROJECT"`
+	Npm     NpmConfig    `yaml:"npm"              envPrefix:"NPM_"`
+	Pnpm    PnpmConfig   `yaml:"pnpm"             envPrefix:"PNPM_"`
+	Maven   MavenConfig  `yaml:"maven"            envPrefix:"MAVEN_"`
+	Python  PythonConfig `yaml:"python"           envPrefix:"PYTHON_"`
 
 	BlackDuck BlackDuckConfig `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
 

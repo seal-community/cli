@@ -309,7 +309,7 @@ func (m *PipPackageManager) DownloadPackage(server api.Server, descriptor shared
 		return nil, err
 	}
 
-	return utils.DownloadPythonPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, compatibleTags)
+	return utils.DownloadPythonPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, compatibleTags, m.Config.Python.OnlyBinary)
 }
 
 func (m *PipPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
