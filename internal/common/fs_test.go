@@ -113,3 +113,39 @@ func TestUnzipFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestIsDirEmpty(t *testing.T) {
+	target, err := os.MkdirTemp("", "test_seal_cli_*")
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.Remove(target)
+
+	res, err := IsDirEmpty(target)
+	if err != nil {
+		t.Fatalf("had error %v", err)
+	}
+
+	if !res {
+		t.Fatalf("expected %v to be empty", target)
+	}
+
+	// create a file in target
+	p := filepath.Join(target, "file.txt")
+	f, err := os.Create(p)
+	if err != nil {
+		panic(err)
+	}
+
+	f.Close()
+
+	res, err = IsDirEmpty(target)
+	if err != nil {
+		t.Fatalf("had error %v", err)
+	}
+
+	if res {
+		t.Fatalf("expected %v to not be empty", target)
+	}
+}

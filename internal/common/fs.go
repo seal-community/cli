@@ -1,6 +1,7 @@
 package common
 
 import (
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -129,4 +130,18 @@ func CopyDir(src string, dst string) error {
 		return NewPrintableError("failed copying directory %s to %s", src, dst)
 	}
 	return nil
+}
+
+func IsDirEmpty(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	_, err = f.Readdir(1)
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err
 }

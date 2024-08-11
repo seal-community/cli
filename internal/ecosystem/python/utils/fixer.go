@@ -171,6 +171,16 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 
 	// Remove directories from site-packages, since os.Rename for files did not remove them
 	for _, dir := range dirs {
+		isEmpty, err := common.IsDirEmpty(dir)
+		if err != nil {
+			slog.Error("failed checking if dir is empty", "err", err, "dir", dir)
+			return fmt.Errorf("failed checking if directory %s is empty", dir)
+		}
+
+		if !isEmpty {
+			slog.Debug("dir not empty, skipping removal", "dir", dir)
+			continue
+		}
 		common.Trace("removing dir", "dir", dir)
 		if err := os.RemoveAll(dir); err != nil {
 			slog.Error("failed removing dir", "err", err, "dir", dir)
