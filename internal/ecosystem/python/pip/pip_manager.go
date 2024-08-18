@@ -20,7 +20,7 @@ const pipExeName = "pip"
 const PipManagerName = "pip"
 
 // Ordered by priority
-var pythonIndicators = []string{"poetry.lock", "pipfile.lock", "requirements.txt", "pyproject.toml", "pipfile"}
+var pythonIndicators = []string{"poetry.lock", "pipfile.lock", "Pipfile.lock", "requirements.txt", "pyproject.toml", "pipfile", "Pipfile"}
 
 const versionFlag = "--version"
 const pipResultSeparator = "~-~-~-~"

@@ -124,17 +124,17 @@ func shouldSkipPackage(entry shared.DependnecyDescriptor) bool {
 	p := entry.VulnerablePackage
 	packageId := p.Id()
 	if len(p.OpenVulnerabilities) == 0 {
-		slog.Warn("package has no open vulnerabilities", "id", packageId)
+		slog.Warn("skipping, package has no open vulnerabilities", "id", packageId)
 		return true
 	}
 
 	if !p.CanBeFixed() {
-		slog.Debug("no fix available for package", "id", packageId)
+		slog.Debug("skipping, no fix available for package", "id", packageId)
 		return true
 	}
 
 	if len(entry.Locations) == 0 {
-		slog.Warn("package not found in discovered deps", "package", p)
+		slog.Warn("skipping, package not found in discovered deps", "package", p)
 		return true
 	}
 

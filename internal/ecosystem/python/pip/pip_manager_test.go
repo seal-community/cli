@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -48,7 +49,7 @@ func TestPipManagerDetectionRequirementsFile(t *testing.T) {
 				t.Fatalf("had error %v", err)
 			}
 
-			if found != indicator {
+			if !strings.EqualFold(found, indicator) {
 				t.Fatalf("did not detect pip %v, found %v", indicator, found)
 			}
 		}()

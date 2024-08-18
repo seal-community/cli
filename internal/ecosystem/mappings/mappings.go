@@ -11,6 +11,7 @@ const (
 	PythonManager = "PyPI"
 	NugetManager  = "NuGet"
 	MavenManger   = "Maven"
+	GolangManager = "GO"
 )
 
 const (
@@ -18,6 +19,7 @@ const (
 	PythonEcosystem = "python"
 	DotnetEcosystem = ".NET"
 	JavaEcosystem   = "java"
+	GolangEcosystem = "golang"
 )
 
 func BackendManagerToEcosystem(bem string) string {
@@ -30,6 +32,8 @@ func BackendManagerToEcosystem(bem string) string {
 		return DotnetEcosystem
 	case MavenManger:
 		return JavaEcosystem
+	case GolangManager:
+		return GolangEcosystem
 	default:
 		slog.Warn("unsupported manager", "manager", bem)
 		return ""
@@ -46,6 +50,8 @@ func EcosystemToBackendManager(es string) string {
 		return NugetManager
 	case JavaEcosystem:
 		return MavenManger
+	case GolangEcosystem:
+		return GolangManager
 	default:
 		slog.Warn("unsupported ecosystem", "value", es)
 		return ""

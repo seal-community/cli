@@ -20,9 +20,12 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/otiai10/copy v1.14.0
+require (
+	github.com/otiai10/copy v1.14.0
+	golang.org/x/mod v0.14.0
+)
 
-require github.com/hashicorp/go-version v1.6.0 // indirect
+require github.com/hashicorp/go-version v1.6.0
 
 require (
 	github.com/BurntSushi/toml v1.3.2

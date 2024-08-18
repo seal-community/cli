@@ -132,7 +132,7 @@ func (sp *scanPhase) Scan(generateActivity bool) (*ScanResult, error) {
 	sp.advanceStep("Scanning local dependencies")
 
 	dependencyMap, err := sp.Collect()
-	slog.Debug("done collecting npm dependencies")
+	slog.Debug("done collecting dependencies")
 	if err != nil {
 		return nil, common.FallbackPrintableMsg(err, "failed collecting dependencies")
 	}

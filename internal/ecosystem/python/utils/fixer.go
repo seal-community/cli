@@ -86,7 +86,6 @@ func (f *fixer) extractWhlPackage(sitePackagesPath string, payload []byte, dotdo
 	}
 	defer recordFile.Close()
 
-	// append dot-dot paths to the new RECORD file
 	for _, p := range dotdotPaths {
 		if _, err := recordFile.WriteString(p + ",,\r\n"); err != nil {
 			slog.Error("failed writing to RECORD file", "err", err)
@@ -403,7 +402,6 @@ func fixDiskPathIfNeeded(dep *common.Dependency) error {
 	return nil
 }
 
-// Will fix the dependency, assuming payload is a .whl file
 func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	// update the diskpath in case the package was installed without wheel using a tgz file
 	// to use the egg-info directory instead
