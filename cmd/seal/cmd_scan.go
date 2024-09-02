@@ -2,11 +2,13 @@ package main
 
 import (
 	"cli/cmd/seal/output"
+	"cli/cmd/seal/output/scanners"
 	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
+	"cli/internal/grype"
 	"cli/internal/phase"
 	"cli/internal/snyk"
 	"fmt"
@@ -24,6 +26,7 @@ const csvFlag = "csv"
 const actionFlag = "generate-local-config"
 const actionFlagNew = "generate-actions-file"
 const snykPolicyFlag = "generate-snyk-policy"
+const grypePolicyFlag = "generate-grype-policy"
 const manifestFile = "manifest"
 
 func initResultHandler(cmd *cobra.Command) (ResultHandler, error) {
@@ -273,9 +276,11 @@ func scanCommand() *cobra.Command {
 					return err
 				}
 
-				genSnykPolicy := getArgBool(cmd, snykPolicyFlag) // only available if we are generating actions file
-				snykUpdated := false
-				if genSnykPolicy && len(configOverrides) > 0 {
+				// only available if we are generating actions file
+				genSnykPolicy, genGrypePolicy := getArgBool(cmd, snykPolicyFlag), getArgBool(cmd, grypePolicyFlag)
+				snykUpdated, grypeUpdated := false, false
+
+				if (genSnykPolicy || genGrypePolicy) && len(configOverrides) > 0 {
 					availableFixes, err := scanPhase.QueryRecommendedPackages(configOverrides)
 					if err != nil {
 						slog.Error("failed querying fixes", "err", err)
@@ -283,18 +288,34 @@ func scanCommand() *cobra.Command {
 					}
 
 					if len(availableFixes) > 0 {
-						slog.Info("generating snyk policy")
-						policyFilePath := filepath.Join(targetDir, snyk.PolicyFileName)
 						// using overridden packages with versions from actions file too
-						if snykUpdated, err = output.EditSnykPolicyFile(policyFilePath, configOverrides, availableFixes); err != nil {
-							return err // err already logged from func
+						// errs are logged from scanner funcs
+						if genSnykPolicy {
+							slog.Info("generating snyk policy")
+							policyFilePath := filepath.Join(targetDir, snyk.PolicyFileName)
+							if snykUpdated, err = scanners.EditSnykPolicyFile(policyFilePath, configOverrides, availableFixes); err != nil {
+								return err
+							}
+						}
+
+						if genGrypePolicy {
+							slog.Info("generating grype policy") // may be printed after snyk
+							policyFilePath := filepath.Join(targetDir, grype.PolicyFileName)
+							if grypeUpdated, err = scanners.EditGrypePolicyFile(policyFilePath, configOverrides, availableFixes); err != nil {
+								return err
+							}
 						}
 					}
 				}
 
 				if genSnykPolicy && !snykUpdated {
 					slog.Info("no available fixes, skipping snyk")
-					fmt.Println(common.Colorize("Nothing to add to .snyk file", common.AnsiDarkGrey)) // Print to screen
+					fmt.Println(common.Colorize(fmt.Sprintf("Nothing to add to %s file", snyk.PolicyFileName), common.AnsiDarkGrey)) // Print to screen
+				}
+
+				if genGrypePolicy && !grypeUpdated {
+					slog.Info("no available fixes, skipping grype")
+					fmt.Println(common.Colorize(fmt.Sprintf("Nothing to add to %s file", grype.PolicyFileName), common.AnsiDarkGrey)) // Print to screen
 				}
 			}
 
@@ -319,6 +340,7 @@ func scanCommand() *cobra.Command {
 	cmd.Flags().String(csvFlag, "", "output results as csv to path")
 	cmd.Flags().Bool(actionFlagNew, false, "generate a new seal actions file")
 	cmd.Flags().Bool(snykPolicyFlag, false, fmt.Sprintf("generate or update the .snyk file (can only be used with --%s)", actionFlagNew))
+	cmd.Flags().Bool(grypePolicyFlag, false, fmt.Sprintf("generate or update the .grype.yaml file (can only be used with --%s)", actionFlagNew))
 
 	return cmd
 }

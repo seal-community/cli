@@ -1,10 +1,11 @@
 package main
 
 import (
-	"cli/cmd/seal/output"
+	"cli/cmd/seal/output/scanners"
 	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/grype"
 	"cli/internal/phase"
 	"cli/internal/snyk"
 	"fmt"
@@ -104,6 +105,7 @@ func addCommand() *cobra.Command {
 
 			verbosity := getArgCount(cmd, verboseFlagKey)
 			outputSnykPolicy := getArgBool(cmd, snykPolicyFlag)
+			outputGrypePolicy := getArgBool(cmd, grypePolicyFlag)
 			target := getArgString(cmd, manifestFile)
 			targetDir := common.GetAbsDirPath(target)
 			configPath := getArgString(cmd, configFileKey)
@@ -173,15 +175,24 @@ func addCommand() *cobra.Command {
 				added = true
 			}
 
+			// dup in policies should be handled by our editing code
+			// using the newOverride var because it holds id/strings of recommended that were changed to match the resolvedTo package data (NOTE: important for editing policy logic, for now)
 			if outputSnykPolicy {
-				// dup should be handled by our snyk editing code
-				// using the newOverride var because it holds id/strings of recommended that were changed to match the resolvedTo package data (NOTE: important for snyk editing policy logic, for now)
 				slog.Info("generating snyk policy")
-				addedSnyk, err := output.EditSnykPolicyFile(filepath.Join(targetDir, snyk.PolicyFileName), []api.PackageVersion{newOverride}, []api.PackageVersion{*resolved.To})
+				addedSnyk, err := scanners.EditSnykPolicyFile(filepath.Join(targetDir, snyk.PolicyFileName), []api.PackageVersion{newOverride}, []api.PackageVersion{*resolved.To})
 				if err != nil {
 					return err // err already logged from func
 				}
 				added = added || addedSnyk
+			}
+
+			if outputGrypePolicy {
+				slog.Info("generating grype policy")
+				addedGrype, err := scanners.EditGrypePolicyFile(filepath.Join(targetDir, grype.PolicyFileName), []api.PackageVersion{newOverride}, []api.PackageVersion{*resolved.To})
+				if err != nil {
+					return err // err already logged from func
+				}
+				added = added || addedGrype
 			}
 
 			if !added {
@@ -199,7 +210,8 @@ func addCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(snykPolicyFlag, false, "generate or update the .snyk file")
+	cmd.Flags().Bool(snykPolicyFlag, false, fmt.Sprintf("generate or update the %s file", snyk.PolicyFileName))
+	cmd.Flags().Bool(grypePolicyFlag, false, fmt.Sprintf("generate or update the %s file", grype.PolicyFileName))
 	cmd.Flags().String(manifestFile, "", "path to the manifest file to use")
 	return cmd
 }

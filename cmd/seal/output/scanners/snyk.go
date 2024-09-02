@@ -1,4 +1,4 @@
-package output
+package scanners
 
 import (
 	"cli/internal/api"
@@ -11,25 +11,8 @@ import (
 // currently there is no support for removing old entries
 func EditSnykPolicyFile(policyFilePath string, vulnerable []api.PackageVersion, fixed []api.PackageVersion) (bool, error) {
 	slog.Info("working on snyk policy file", "path", policyFilePath)
-	recommendedToVulnerable := make(map[string]api.PackageVersion)
+	recommendedToVulnerable := buildRecommendedToVulnMap(vulnerable)
 	addedRules := false
-
-	// building map of fixes to their respective vulnerable package
-	for _, vulnPackage := range vulnerable {
-		if vulnPackage.RecommendedLibraryVersionString == "" {
-			// could happen if we have 'fake' packages specificed in the actions file
-			slog.Warn("empty recommended version, skipping", "vulnpackage", vulnPackage)
-			continue
-		}
-
-		if _, exists := recommendedToVulnerable[vulnPackage.RecommendedId()]; exists {
-			// should not happen as the inputs are already deduped
-			slog.Warn("dup recommended version, skipping", "vulnpackage", vulnPackage)
-			continue
-		}
-
-		recommendedToVulnerable[vulnPackage.RecommendedId()] = vulnPackage
-	}
 
 	f, err := common.OpenFile(policyFilePath)
 	if err != nil {
