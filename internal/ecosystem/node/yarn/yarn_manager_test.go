@@ -27,7 +27,7 @@ func TestIndicatorMatches(t *testing.T) {
 
 func TestNormalizePackageNames(t *testing.T) {
 	c, _ := config.New(nil)
-	manager := NewYarnManager(c)
+	manager := NewYarnManager(c, "")
 	names := []string{
 		"aaaaa",
 		"aaAAa",

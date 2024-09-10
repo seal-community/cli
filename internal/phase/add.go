@@ -77,7 +77,7 @@ func (ap *addPhase) resolveOverride(manager string, o actions.Override, qt api.P
 }
 
 func (ap *addPhase) Resolve(rule AddRule) (*ResolvedRule, error) {
-	slog.Info("starting rule resolution", "target", ap.ProjectDir)
+	slog.Info("starting rule resolution", "target", ap.BaseDir)
 
 	ap.Bar.Describe("Checking package version")
 

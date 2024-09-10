@@ -15,7 +15,7 @@ type FakePackageManager struct {
 	Ecosystem        string
 	Version          string
 	VersionSupported bool
-	ProjetName       string
+	ProjectName      string
 	Fixer            DependencyFixer
 	ScanTargets      []string
 }
@@ -28,7 +28,7 @@ func (m *FakePackageManager) GetEcosystem() string {
 	return m.Ecosystem
 }
 
-func (m *FakePackageManager) GetVersion(targetDir string) string {
+func (m *FakePackageManager) GetVersion() string {
 	return m.Version
 }
 
@@ -36,11 +36,11 @@ func (m *FakePackageManager) IsVersionSupported(version string) bool {
 	return m.VersionSupported
 }
 
-func (m *FakePackageManager) GetProjectName(projectDir string) string {
-	return m.ProjetName
+func (m *FakePackageManager) GetProjectName() string {
+	return m.ProjectName
 }
 
-func (m *FakePackageManager) GetFixer(projectDir string, workdir string) DependencyFixer {
+func (m *FakePackageManager) GetFixer(workdir string) DependencyFixer {
 	return m.Fixer
 }
 
@@ -48,7 +48,7 @@ func (m *FakePackageManager) GetScanTargets() []string {
 	return m.ScanTargets
 }
 
-func (m *FakePackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
+func (m *FakePackageManager) ListDependencies() (common.DependencyMap, error) {
 	return nil, *new(error)
 }
 
@@ -56,7 +56,7 @@ func (m *FakePackageManager) DownloadPackage(server api.Server, descriptor Depen
 	return nil, nil
 }
 
-func (m *FakePackageManager) HandleFixes(projectDir string, fixes []DependnecyDescriptor) error {
+func (m *FakePackageManager) HandleFixes(fixes []DependnecyDescriptor) error {
 	return nil
 }
 

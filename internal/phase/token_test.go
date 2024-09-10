@@ -1,7 +1,6 @@
 package phase
 
 import (
-	"cli/internal/config"
 	b64 "encoding/base64"
 	"fmt"
 	"testing"
@@ -10,7 +9,7 @@ import (
 func TestBuildToken(t *testing.T) {
 	token := "abc"
 	project := "123"
-	builtToken := buildAuthToken(&config.Config{Token: token, Project: project})
+	builtToken := buildAuthToken(token, project)
 	buffer, err := b64.StdEncoding.DecodeString(builtToken)
 	if err != nil {
 		t.Fatalf("failed decoding built token from base64 err:%s b64:%s", err, builtToken)
@@ -25,12 +24,12 @@ func TestBuildToken(t *testing.T) {
 func TestBuildTokenMissingFields(t *testing.T) {
 	token := "abc"
 	project := "123"
-	builtToken := buildAuthToken(&config.Config{Project: project})
+	builtToken := buildAuthToken(project, "")
 	if builtToken != "" {
 		t.Fatalf("should have failed building auth from missing token :%s", builtToken)
 	}
 
-	builtToken = buildAuthToken(&config.Config{Token: token})
+	builtToken = buildAuthToken("", token)
 	if builtToken != "" {
 		t.Fatalf("should have failed building auth from missing project :%s", builtToken)
 	}

@@ -43,14 +43,14 @@ type Normalizer interface {
 
 type PackageManager interface {
 	Name() string
-	GetVersion(targetDir string) string
+	GetVersion() string
 	IsVersionSupported(version string) bool
-	ListDependencies(targetDir string) (common.DependencyMap, error)
-	GetProjectName(dir string) string // empty string means failure
-	GetFixer(projectDir string, workdir string) DependencyFixer
+	ListDependencies() (common.DependencyMap, error)
+	GetProjectName() string // empty string means failure
+	GetFixer(workdir string) DependencyFixer
 	GetEcosystem() string
 	GetScanTargets() []string
 	DownloadPackage(server api.Server, descriptor DependnecyDescriptor) ([]byte, error)
-	HandleFixes(projectDir string, fixes []DependnecyDescriptor) error
+	HandleFixes(fixes []DependnecyDescriptor) error
 	NormalizePackageName(name string) string
 }

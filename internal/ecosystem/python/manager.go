@@ -9,9 +9,11 @@ import (
 )
 
 func GetPackageManager(config *config.Config, targetDir string, targetFile string) (shared.PackageManager, error) {
+	slog.Debug("checking provided target for python indicator", "file", targetFile, "dir", targetDir)
+
 	if targetFile != "" {
-		slog.Debug("checking package manager for target file")
 		if pip.IsPythonIndicatorFile(targetFile) {
+			slog.Debug("python manager supports target", "target-file", targetFile, "target-dir", targetDir)
 			return pip.NewPipManager(config, targetFile, targetDir), nil
 		}
 
@@ -24,5 +26,6 @@ func GetPackageManager(config *config.Config, targetDir string, targetFile strin
 		return nil, fmt.Errorf("failed detecting python directory %w", err)
 	}
 
+	slog.Debug("python manager supports target", "target-file", targetFile, "target-dir", targetDir)
 	return pip.NewPipManager(config, pythonFile, targetDir), nil
 }

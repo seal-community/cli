@@ -26,21 +26,32 @@ const minimumMavenVersion = "3.3.1"
 
 type MavenPackageManager struct {
 	Config         *config.Config
-	workDir        string
+	targetDir      string
 	javaTargetFile string
 	mavenVersion   string
 	cacheDir       string
+}
+
+func NewMavenManager(config *config.Config, javaFile string, targetDir string) *MavenPackageManager {
+	cacheDir := config.Maven.CachePath
+	if cacheDir == "" {
+		slog.Debug("maven seal cache path is not set, setting to default value")
+		cacheDir = filepath.Join(targetDir, sealCacheName)
+	}
+
+	m := &MavenPackageManager{Config: config, javaTargetFile: javaFile, targetDir: targetDir, cacheDir: cacheDir}
+	return m
 }
 
 func (m *MavenPackageManager) Name() string {
 	return mavenManagerName
 }
 
-func (m *MavenPackageManager) GetVersion(targetDir string) string {
+func (m *MavenPackageManager) GetVersion() string {
 	if m.mavenVersion != "" {
 		return m.mavenVersion
 	}
-	version := utils.GetVersion(targetDir)
+	version := utils.GetVersion(m.targetDir)
 	if version == "" {
 		slog.Error("failed getting maven version")
 		return ""
@@ -92,26 +103,15 @@ func GetJavaIndicatorFile(path string) (string, error) {
 	return "", nil
 }
 
-func NewMavenManager(config *config.Config, javaFile string, targetDir string) *MavenPackageManager {
-	cacheDir := config.Maven.CachePath
-	if cacheDir == "" {
-		slog.Debug("maven seal cache path is not set, setting to default value")
-		cacheDir = filepath.Join(targetDir, sealCacheName)
-	}
-
-	m := &MavenPackageManager{Config: config, javaTargetFile: javaFile, workDir: targetDir, cacheDir: cacheDir}
-	return m
-}
-
-func (m *MavenPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
-	result, ok := listPackages(targetDir)
+func (m *MavenPackageManager) ListDependencies() (common.DependencyMap, error) {
+	result, ok := listPackages(m.targetDir)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())
 		return nil, shared.ManagerProcessFailed
 	}
 
 	parser := &dependencyParser{config: m.Config, cacheDir: m.cacheDir, normalizer: m}
-	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	dependencyMap, err := parser.Parse(result.Stdout, m.targetDir)
 	if err != nil {
 		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
 		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
@@ -121,9 +121,9 @@ func (m *MavenPackageManager) ListDependencies(targetDir string) (common.Depende
 	return dependencyMap, nil
 }
 
-func (m *MavenPackageManager) GetProjectName(dir string) string {
+func (m *MavenPackageManager) GetProjectName() string {
 	args := []string{"help:evaluate", "-Dexpression=project.name", "-q", "-DforceStdout"}
-	listResult, err := common.RunCmdWithArgs(dir, utils.MavenExeName, args...)
+	listResult, err := common.RunCmdWithArgs(m.targetDir, utils.MavenExeName, args...)
 	if err != nil || listResult.Code != 0 {
 		slog.Warn("failed to get maven project name")
 		return ""
@@ -132,8 +132,8 @@ func (m *MavenPackageManager) GetProjectName(dir string) string {
 	return listResult.Stdout
 }
 
-func (m *MavenPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
-	return utils.NewFixer(projectDir, filepath.Join(workdir, ".m2"), m.cacheDir)
+func (m *MavenPackageManager) GetFixer(workdir string) shared.DependencyFixer {
+	return utils.NewFixer(m.targetDir, filepath.Join(workdir, ".m2"), m.cacheDir)
 }
 
 func (m *MavenPackageManager) GetEcosystem() string {
@@ -149,7 +149,7 @@ func (m *MavenPackageManager) DownloadPackage(server api.Server, descriptor shar
 }
 
 // HandleFixes will create a metadata file for each package in the fixes map to indicate it was fixed
-func (m *MavenPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
+func (m *MavenPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
 	for _, fix := range fixes {
 		metadata := shared.SealPackageMetadata{SealedVersion: fix.AvailableFix.Version}
 		packageDirPath := utils.GetJavaPackagePath(m.cacheDir, fix.VulnerablePackage.Library.Name, fix.VulnerablePackage.Version)
@@ -168,7 +168,7 @@ func (m *MavenPackageManager) HandleFixes(projectDir string, fixes []shared.Depe
 		}
 	}
 
-	currCacheDir := utils.GetCacheDir(projectDir)
+	currCacheDir := utils.GetCacheDir(m.targetDir)
 	if currCacheDir == "" {
 		slog.Warn("failed getting maven cache dir")
 		return common.NewPrintableError("failed getting maven cache dir")
@@ -180,7 +180,7 @@ func (m *MavenPackageManager) HandleFixes(projectDir string, fixes []shared.Depe
 	}
 
 	slog.Info("setting maven cache dir", "dir", m.cacheDir)
-	err := setCacheDir(projectDir, m.cacheDir)
+	err := setCacheDir(m.targetDir, m.cacheDir)
 	if err != nil {
 		return common.NewPrintableError("failed setting maven cache dir")
 	}

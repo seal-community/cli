@@ -15,17 +15,20 @@ import (
 
 var MissingNodeModulesFolder = common.NewPrintableError("missing node_modules directory, please install dependencies before running")
 
-func getPackageManagerForTargetFile(config *config.Config, targetFile string) (shared.PackageManager, error) {
+func getPackageManagerForTargetFile(config *config.Config, targetFile string, targetDir string) (shared.PackageManager, error) {
 	if pnpm.IsPnpmIndicatorFile(targetFile) {
-		return pnpm.NewPnpmManager(config), nil
+		slog.Debug("pnpm manager supports target", "target-file", targetFile, "target-dir", targetDir)
+		return pnpm.NewPnpmManager(config, targetDir), nil
 	}
 
 	if yarn.IsYarnIndicatorFile(targetFile) {
-		return yarn.NewYarnManager(config), nil
+		slog.Debug("yarn manager supports target", "target-file", targetFile, "target-dir", targetDir)
+		return yarn.NewYarnManager(config, targetDir), nil
 	}
 
 	if npm.IsNpmIndicatorFile(targetFile) {
-		return npm.NewNpmManager(config), nil
+		slog.Debug("npm manager supports target", "target-file", targetFile, "target-dir", targetDir)
+		return npm.NewNpmManager(config, targetDir), nil
 	}
 
 	return nil, fmt.Errorf("failed detecting npm indicator for file %s", targetFile)
@@ -47,17 +50,18 @@ func getPackageManagerForTargetDir(config *config.Config, targetDir string) (sha
 	}
 
 	if pnpm.IsPnpmProjectDir(targetDir) {
-		return pnpm.NewPnpmManager(config), nil
+		return pnpm.NewPnpmManager(config, targetDir), nil
 	}
 
 	if yarn.IsYarnProjectDir(targetDir) {
-		return yarn.NewYarnManager(config), nil
+		return yarn.NewYarnManager(config, targetDir), nil
 	}
 
-	return npm.NewNpmManager(config), nil
+	return npm.NewNpmManager(config, targetDir), nil
 }
 
 func GetPackageManager(config *config.Config, targetDir string, targetFile string) (shared.PackageManager, error) {
+	slog.Debug("checking provided target for node indicator", "file", targetFile, "dir", targetDir)
 
 	if targetFile == "" || strings.HasSuffix(targetFile, utils.PackageJsonFile) {
 		// treat target file of `package.json` the same as dir, look for other manager indicators due to possible user error
@@ -65,6 +69,5 @@ func GetPackageManager(config *config.Config, targetDir string, targetFile strin
 		return getPackageManagerForTargetDir(config, targetDir)
 	}
 
-	slog.Debug("checking package manager for target file")
-	return getPackageManagerForTargetFile(config, targetFile)
+	return getPackageManagerForTargetFile(config, targetFile, targetDir)
 }

@@ -21,7 +21,13 @@ const yarnBaseCommand = "yarn"
 type YarnPackageManager struct {
 	Config     *config.Config
 	version    string
-	npmManager npm.NpmPackageManager // currently using npm for parsing installed content for yarn and wrapping it
+	targetDir  string
+	npmManager *npm.NpmPackageManager // currently using npm for parsing installed content for yarn and wrapping it
+}
+
+func NewYarnManager(config *config.Config, targetDir string) *YarnPackageManager {
+	y := &YarnPackageManager{Config: config, npmManager: npm.NewNpmManager(config, targetDir), targetDir: targetDir}
+	return y
 }
 
 func IsYarnProjectDir(path string) bool {
@@ -40,29 +46,24 @@ func IsYarnIndicatorFile(path string) bool {
 	return strings.HasSuffix(path, yarnLockFileName)
 }
 
-func NewYarnManager(config *config.Config) *YarnPackageManager {
-	y := &YarnPackageManager{Config: config, npmManager: npm.NpmPackageManager{Config: config}}
-	return y
-}
-
 func (m *YarnPackageManager) Name() string {
 	return YarnManagerName
 }
 
-func (m *YarnPackageManager) GetProjectName(projectDir string) string {
-	return utils.GetProjectName(projectDir)
+func (m *YarnPackageManager) GetProjectName() string {
+	return utils.GetProjectName(m.targetDir)
 }
 
-func (m *YarnPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
-	return m.npmManager.GetFixer(projectDir, workdir)
+func (m *YarnPackageManager) GetFixer(workdir string) shared.DependencyFixer {
+	return m.npmManager.GetFixer(workdir)
 }
 
-func (m *YarnPackageManager) GetVersion(targetDir string) string {
+func (m *YarnPackageManager) GetVersion() string {
 	if m.version == "" {
-		m.version, _ = getYarnVersion(targetDir)
+		m.version, _ = getYarnVersion(m.targetDir)
 	}
 
-	npmVersion := m.npmManager.GetVersion(targetDir)
+	npmVersion := m.npmManager.GetVersion()
 
 	return fmt.Sprintf("%s (npm %s)", m.version, npmVersion) // specifying both versions for metadata until we return a map here
 }
@@ -71,8 +72,8 @@ func (m *YarnPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *YarnPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
-	dependencyMap, err := m.npmManager.ListDependencies(targetDir)
+func (m *YarnPackageManager) ListDependencies() (common.DependencyMap, error) {
+	dependencyMap, err := m.npmManager.ListDependencies()
 	if err != nil {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())
 		return nil, shared.ManagerProcessFailed
@@ -108,7 +109,7 @@ func (m *YarnPackageManager) DownloadPackage(server api.Server, descriptor share
 	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *YarnPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
+func (m *YarnPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
 	return nil
 }
 

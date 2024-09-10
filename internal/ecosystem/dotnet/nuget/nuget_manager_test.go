@@ -20,12 +20,12 @@ func TestNugetManagerDetectionNoNugetFile(t *testing.T) {
 
 	defer os.Remove(target)
 
-	found, err := FindNugetIndicatorFile(target)
+	indctr, err := FindNugetIndicatorFile(target)
 	if err != nil {
 		t.Fatalf("had error %v", err)
 	}
 
-	if found {
+	if indctr != "" {
 		t.Fatal("detected nuget")
 	}
 }
@@ -47,12 +47,12 @@ func TestNugetManagerDetectionNugetFile(t *testing.T) {
 
 		f.Close()
 
-		found, err := FindNugetIndicatorFile(target)
+		indctr, err := FindNugetIndicatorFile(target)
 		if err != nil {
 			t.Fatalf("had error %v", err)
 		}
 
-		if !found {
+		if indctr == "" {
 			t.Fatal("failed to detect nuget")
 		}
 	}
@@ -178,7 +178,7 @@ func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
 
 func TestNormalizePackageNames(t *testing.T) {
 	c, _ := config.New(nil)
-	manager := NewNugetManager(c, "")
+	manager := NewNugetManager(c, "", "")
 	names := map[string]string{
 		"aaaaa": "aaaaa",
 		"aaAAa": "aaaaa",

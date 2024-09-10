@@ -37,3 +37,5 @@ test/*/output/
 requirements.txt
 mockserver/seal
 test/test.log
+
+cmd/playground/

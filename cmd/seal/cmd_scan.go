@@ -10,6 +10,7 @@ import (
 	"cli/internal/ecosystem/shared"
 	"cli/internal/grype"
 	"cli/internal/phase"
+	"cli/internal/project"
 	"cli/internal/snyk"
 	"fmt"
 	"log/slog"
@@ -44,14 +45,22 @@ func initResultHandler(cmd *cobra.Command) (ResultHandler, error) {
 	return output.CsvExporter{Writer: csv}, nil
 }
 
-func createActionsObject(packages []api.PackageVersion, manager shared.PackageManager, project string, projectDir string) *actions.ActionsFile {
+func createActionsObject(packages []api.PackageVersion, manager shared.PackageManager, projectTag string, projectDir string) *actions.ActionsFile {
+
+	// we need to normalize the names to not constantly change windows <-> linux paths
+	targets := manager.GetScanTargets()
+	normTargets := make([]string, 0, len(targets))
+	for _, target := range targets {
+		normTargets = append(normTargets, project.NormalizeTarget(target))
+	}
+
 	ps := actions.ProjectSection{
 		Manager: actions.ProjectManagerSection{
 			Ecosystem: manager.GetEcosystem(),
 			Name:      manager.Name(),
-			Version:   manager.GetVersion(projectDir),
+			Version:   manager.GetVersion(),
 		},
-		Targets:   manager.GetScanTargets(),
+		Targets:   normTargets,
 		Overrides: make(actions.LibraryOverrideMap),
 	}
 
@@ -69,7 +78,7 @@ func createActionsObject(packages []api.PackageVersion, manager shared.PackageMa
 	}
 
 	actionFile := actions.New()
-	actionFile.Projects = map[string]actions.ProjectSection{project: ps}
+	actionFile.Projects = map[string]actions.ProjectSection{projectTag: ps}
 
 	return actionFile
 }
@@ -241,7 +250,16 @@ func scanCommand() *cobra.Command {
 
 			defer scanPhase.HideProgress() // should be gone when this is over, hide just in case
 
+			// auth is optional for scaning purposes
+			if scanPhase.CanAuthenticate {
+				slog.Info("authenticating")
+				if err := scanPhase.InitRemoteProject(); err != nil {
+					return common.FallbackPrintableMsg(err, "failed initializing project from server")
+				}
+			}
+
 			result, err := scanPhase.Scan(uploadScanActivity)
+
 			if err != nil {
 				return common.FallbackPrintableMsg(err, "failed performing scan")
 			}
@@ -271,7 +289,7 @@ func scanCommand() *cobra.Command {
 				}
 
 				// Project name isn't validated when creating the actions file!
-				if err = recreateActionsFile(actionsFilePath, configOverrides, scanPhase.Manager, scanPhase.Config.Project, scanPhase.ProjectDir); err != nil {
+				if err = recreateActionsFile(actionsFilePath, configOverrides, scanPhase.Manager, scanPhase.Project.Tag, scanPhase.BaseDir); err != nil {
 					// only a wrapper func, logged from withing
 					return err
 				}
@@ -320,7 +338,7 @@ func scanCommand() *cobra.Command {
 			}
 
 			if len(result.Vulnerable) == 0 {
-				slog.Info("no vulnerable package found", "target", scanPhase.ProjectDir)
+				slog.Info("no vulnerable package found", "target", scanPhase.BaseDir)
 				fmt.Println("No vulnerabilities found") // Print to screen
 				return nil
 			}

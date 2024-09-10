@@ -8,6 +8,7 @@ import (
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"log/slog"
+	"sort"
 	"strings"
 )
 
@@ -31,14 +32,14 @@ type NugetMetadata struct {
 
 type NugetPackageManager struct {
 	Config          *config.Config
-	workDir         string
+	targetDir       string
 	nugetTargetFile string
 	metadata        *NugetMetadata
 }
 
-func NewNugetManager(config *config.Config, targetDir string) *NugetPackageManager {
-	m := &NugetPackageManager{Config: config, workDir: targetDir}
-	m.metadata = getNugetMetadata(targetDir)
+func NewNugetManager(config *config.Config, targetDir string, targetFile string) *NugetPackageManager {
+	metadata := getNugetMetadata(targetDir)
+	m := &NugetPackageManager{Config: config, targetDir: targetDir, metadata: metadata, nugetTargetFile: targetFile}
 
 	return m
 }
@@ -66,7 +67,7 @@ func getNugetMetadata(targetDir string) *NugetMetadata {
 	return metadata
 }
 
-func (m *NugetPackageManager) GetVersion(targetDir string) string {
+func (m *NugetPackageManager) GetVersion() string {
 	if m.metadata != nil {
 		return m.metadata.version
 	}
@@ -78,15 +79,15 @@ func (m *NugetPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *NugetPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
-	result, ok := listPackages(targetDir)
+func (m *NugetPackageManager) ListDependencies() (common.DependencyMap, error) {
+	result, ok := listPackages(m.targetDir)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())
 		return nil, shared.ManagerProcessFailed
 	}
 
 	parser := &dependencyParser{config: m.Config, normalizer: m}
-	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	dependencyMap, err := parser.Parse(result.Stdout, m.targetDir)
 	if err != nil {
 		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
 		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
@@ -96,12 +97,12 @@ func (m *NugetPackageManager) ListDependencies(targetDir string) (common.Depende
 	return dependencyMap, nil
 }
 
-func (m *NugetPackageManager) GetProjectName(projectDir string) string {
+func (m *NugetPackageManager) GetProjectName() string {
 	return "" // We might want to return the PackageId from the .csproj in the future
 }
 
-func (m *NugetPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
-	return utils.NewFixer(projectDir, workdir)
+func (m *NugetPackageManager) GetFixer(workdir string) shared.DependencyFixer {
+	return utils.NewFixer(m.targetDir, workdir)
 }
 
 func IsNugetIndicatorFile(path string) bool {
@@ -114,18 +115,23 @@ func IsNugetIndicatorFile(path string) bool {
 	return false
 }
 
-func FindNugetIndicatorFile(path string) (bool, error) {
+func FindNugetIndicatorFile(path string) (string, error) {
 	// This function seraches all the files, which isn't ideal
 	for _, suffixIndicator := range nugetSuffixIndicators {
 		files, err := common.FindPathsWithSuffix(path, suffixIndicator)
 		if err == nil && len(files) > 0 {
+			// sorting them because Walk returns DFS results and we prefer the top level files
+			sort.Slice(files, func(i, j int) bool {
+				return len(files[i]) < len(files[j])
+			})
+
 			slog.Info("found nuget indicator files", "files", files, "indicator", suffixIndicator)
-			return true, nil
+			return files[0], nil
 		}
 	}
 
 	slog.Debug("no file found with dotnet suffix", "path", path)
-	return false, nil
+	return "", nil
 }
 
 // runs: dotnet list package --include-transitive --format json
@@ -151,8 +157,8 @@ func (m *NugetPackageManager) DownloadPackage(server api.Server, descriptor shar
 	return DownloadNugetPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *NugetPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
-	return handleFixes(projectDir, fixes)
+func (m *NugetPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+	return handleFixes(m.targetDir, fixes)
 }
 
 func handleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {

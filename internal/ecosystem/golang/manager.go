@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"golang.org/x/mod/modfile"
@@ -24,21 +25,21 @@ const MinimalSupportedVersion = "1.17.0"
 
 type GolangPackageManager struct {
 	Config           *config.Config
-	workDir          string
 	golangTargetFile string
+	targetDir        string
 	goMod            *modfile.File
 }
 
-func NewGolangManager(config *config.Config, goModFile string, targetDir string) *GolangPackageManager {
-	return &GolangPackageManager{Config: config, golangTargetFile: goModFile, workDir: targetDir}
+func NewGolangManager(config *config.Config, targetFile string, targetDir string) *GolangPackageManager {
+	return &GolangPackageManager{Config: config, golangTargetFile: targetFile, targetDir: targetDir}
 }
 
 func (m *GolangPackageManager) Name() string {
 	return GolangManagerName
 }
 
-func (m *GolangPackageManager) GetVersion(targetDir string) string {
-	versionOutput, err := common.RunCmdWithArgs(targetDir, goExe, "version")
+func (m *GolangPackageManager) GetVersion() string {
+	versionOutput, err := common.RunCmdWithArgs(m.targetDir, goExe, "version")
 	if err != nil {
 		slog.Error("failed running go version", "err", err)
 		return ""
@@ -86,27 +87,26 @@ func (m *GolangPackageManager) parseGoMod(targetDir string) error {
 	return nil
 }
 
-func (m *GolangPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
-	err := m.parseGoMod(targetDir)
+func (m *GolangPackageManager) ListDependencies() (common.DependencyMap, error) {
+	err := m.parseGoMod(m.targetDir)
 	if err != nil {
 		return nil, err
 	}
 	return BuildDependencyMap(m.goMod), nil
 }
 
-func (m *GolangPackageManager) GetProjectName(projectDir string) string {
-	err := m.parseGoMod(projectDir)
+func (m *GolangPackageManager) GetProjectName() string {
+	err := m.parseGoMod(m.targetDir)
 	if err != nil {
 		slog.Warn("failed parsing go.mod file", "err", err)
 		return ""
 	}
 
-	normalized := common.NormalizeProjectName(m.goMod.Module.Mod.Path)
-	return normalized
+	return m.goMod.Module.Mod.Path
 }
 
-func (m *GolangPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
-	return NewFixer(projectDir, workdir)
+func (m *GolangPackageManager) GetFixer(workdir string) shared.DependencyFixer {
+	return NewFixer(m.targetDir, workdir)
 }
 
 func (m *GolangPackageManager) GetEcosystem() string {
@@ -121,7 +121,7 @@ func (m *GolangPackageManager) DownloadPackage(server api.Server, descriptor sha
 	return DownloadPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *GolangPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
+func (m *GolangPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
 	return nil
 }
 
@@ -129,9 +129,19 @@ func (m *GolangPackageManager) NormalizePackageName(name string) string {
 	return NormalizePackageName(name)
 }
 
+func IsGolangIndicatorFile(path string) bool {
+	return strings.HasSuffix(path, goModFilename)
+}
+
 func GetPackageManager(config *config.Config, targetDir string, targetFile string) (shared.PackageManager, error) {
+	slog.Debug("checking provided target for golang indicator", "file", targetFile, "dir", targetDir)
+
 	if targetFile == "" {
 		targetFile = filepath.Join(targetDir, goModFilename)
+	} else {
+		if !IsGolangIndicatorFile(targetFile) {
+			return nil, fmt.Errorf("not a golang file indicator: %s", targetFile)
+		}
 	}
 
 	slog.Debug("checking package manager for target file", "file", targetFile)
@@ -145,5 +155,6 @@ func GetPackageManager(config *config.Config, targetDir string, targetFile strin
 		return nil, fmt.Errorf("not a golang file indicator")
 	}
 
+	slog.Debug("golang manager supports target", "target-file", targetFile, "target-dir", targetDir)
 	return NewGolangManager(config, targetFile, targetDir), nil
 }

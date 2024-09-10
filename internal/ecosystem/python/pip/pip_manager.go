@@ -33,14 +33,14 @@ type pipMetadata struct {
 
 type PipPackageManager struct {
 	Config           *config.Config
-	workDir          string
+	targetDir        string
 	compatibleTags   []string
 	pythonTargetFile string
 	metadata         *pipMetadata
 }
 
 func NewPipManager(config *config.Config, pythonFile string, targetDir string) *PipPackageManager {
-	m := &PipPackageManager{Config: config, pythonTargetFile: pythonFile, workDir: targetDir}
+	m := &PipPackageManager{Config: config, pythonTargetFile: pythonFile, targetDir: targetDir}
 	m.metadata = getPipMetadata(targetDir)
 
 	return m
@@ -72,7 +72,7 @@ func getPipMetadata(targetDir string) *pipMetadata {
 	return metadata
 }
 
-func (m *PipPackageManager) GetVersion(targetDir string) string {
+func (m *PipPackageManager) GetVersion() string {
 	if m.metadata != nil {
 		return m.metadata.version
 	}
@@ -92,15 +92,15 @@ func (m *PipPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *PipPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
-	result, ok := listPackages(targetDir)
+func (m *PipPackageManager) ListDependencies() (common.DependencyMap, error) {
+	result, ok := listPackages(m.targetDir)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())
 		return nil, shared.ManagerProcessFailed
 	}
 
 	parser := &dependencyParser{config: m.Config, normalizer: m}
-	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	dependencyMap, err := parser.Parse(result.Stdout, m.targetDir)
 	if err != nil {
 		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
 		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
@@ -110,12 +110,12 @@ func (m *PipPackageManager) ListDependencies(targetDir string) (common.Dependenc
 	return dependencyMap, nil
 }
 
-func (m *PipPackageManager) GetProjectName(projectDir string) string {
-	return utils.GetPyprojectProjectName(projectDir)
+func (m *PipPackageManager) GetProjectName() string {
+	return utils.GetPyprojectProjectName(m.targetDir)
 }
 
-func (m *PipPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
-	return utils.NewFixer(projectDir, workdir)
+func (m *PipPackageManager) GetFixer(workdir string) shared.DependencyFixer {
+	return utils.NewFixer(m.targetDir, workdir)
 }
 
 func IsPythonIndicatorFile(path string) bool {
@@ -218,7 +218,7 @@ func (m *PipPackageManager) getHostCompatibleTags() ([]string, error) {
 		return m.compatibleTags, nil
 	}
 
-	result, err := common.RunCmdWithArgs(m.workDir, pipExeName, "debug", "--verbose")
+	result, err := common.RunCmdWithArgs(m.targetDir, pipExeName, "debug", "--verbose")
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +312,7 @@ func (m *PipPackageManager) DownloadPackage(server api.Server, descriptor shared
 	return utils.DownloadPythonPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, compatibleTags, m.Config.Python.OnlyBinary)
 }
 
-func (m *PipPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
+func (m *PipPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
 	return nil
 }
 

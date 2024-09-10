@@ -47,7 +47,7 @@ func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
 
 func TestNormalizePackageNames(t *testing.T) {
 	c, _ := config.New(nil)
-	manager := NewNpmManager(c)
+	manager := NewNpmManager(c, "")
 	names := []string{
 		"aaaaa",
 		"aaAAa",

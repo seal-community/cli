@@ -20,21 +20,22 @@ const NpmManagerName = "npm"
 const npmLockFileName = "package-lock.json"
 
 type NpmPackageManager struct {
-	Config  *config.Config
-	version string
+	Config    *config.Config
+	version   string
+	targetDir string
 }
 
-func NewNpmManager(config *config.Config) *NpmPackageManager {
-	return &NpmPackageManager{Config: config}
+func NewNpmManager(config *config.Config, targetDir string) *NpmPackageManager {
+	return &NpmPackageManager{Config: config, targetDir: targetDir}
 }
 
 func (m *NpmPackageManager) Name() string {
 	return NpmManagerName
 }
 
-func (m *NpmPackageManager) GetVersion(targetDir string) string {
+func (m *NpmPackageManager) GetVersion() string {
 	if m.version == "" {
-		m.version, _ = getNpmVersion(targetDir)
+		m.version, _ = getNpmVersion(m.targetDir)
 	}
 
 	return m.version
@@ -44,15 +45,15 @@ func (m *NpmPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *NpmPackageManager) ListDependencies(targetDir string) (common.DependencyMap, error) {
-	result, ok := listPackages(targetDir, m.GetVersion(targetDir), m.Config.Npm.ProdOnlyDeps)
+func (m *NpmPackageManager) ListDependencies() (common.DependencyMap, error) {
+	result, ok := listPackages(m.targetDir, m.GetVersion(), m.Config.Npm.ProdOnlyDeps)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())
 		return nil, shared.ManagerProcessFailed
 	}
 
 	parser := &dependencyParser{config: m.Config, normalizer: m}
-	dependencyMap, err := parser.Parse(result.Stdout, targetDir)
+	dependencyMap, err := parser.Parse(result.Stdout, m.targetDir)
 	if err != nil {
 		slog.Error("failed parsing package manager output", "err", err, "code", result.Code, "stderr", result.Stderr)
 		slog.Debug("manager output", "stdout", result.Stdout) // useful for debugging its output
@@ -62,12 +63,12 @@ func (m *NpmPackageManager) ListDependencies(targetDir string) (common.Dependenc
 	return dependencyMap, nil
 }
 
-func (m *NpmPackageManager) GetProjectName(projectDir string) string {
-	return utils.GetProjectName(projectDir)
+func (m *NpmPackageManager) GetProjectName() string {
+	return utils.GetProjectName(m.targetDir)
 }
 
-func (m *NpmPackageManager) GetFixer(projectDir string, workdir string) shared.DependencyFixer {
-	return utils.NewFixer(projectDir, workdir)
+func (m *NpmPackageManager) GetFixer(workdir string) shared.DependencyFixer {
+	return utils.NewFixer(m.targetDir, workdir)
 }
 
 func IsNpmProjectDir(path string) (bool, error) {
@@ -150,7 +151,7 @@ func (m *NpmPackageManager) GetEcosystem() string {
 }
 
 func (m *NpmPackageManager) GetScanTargets() []string {
-	return []string{utils.PackageJsonFile}
+	return []string{filepath.Join(m.targetDir, utils.PackageJsonFile)}
 }
 
 func (m *NpmPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
@@ -158,25 +159,25 @@ func (m *NpmPackageManager) DownloadPackage(server api.Server, descriptor shared
 }
 
 // according to config, update lock file with the seal prefix
-func (m *NpmPackageManager) HandleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
+func (m *NpmPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
 	if !m.Config.Npm.UpdatePackageNames {
 		slog.Debug("not updating package lock")
 		return nil
 	}
 
 	slog.Info("updating npm package lock file with fixes", "count", len(fixes))
-	lock := common.JsonLoad(filepath.Join(projectDir, npmLockFileName))
+	lock := common.JsonLoad(filepath.Join(m.targetDir, npmLockFileName))
 	if lock == nil {
-		slog.Error("failed loading lockfile in", "dir", projectDir)
+		slog.Error("failed loading lockfile in", "dir", m.targetDir)
 		return common.NewPrintableError("failed loading package-lock.json")
 	}
 
-	if err := UpdateLockfile(lock, fixes, projectDir); err != nil {
+	if err := UpdateLockfile(lock, fixes, m.targetDir); err != nil {
 		slog.Error("failed updating lockfile", "err", err)
 		return common.FallbackPrintableMsg(err, "failed updating package-lock.json")
 	}
 
-	if err := common.JsonSave(lock, filepath.Join(projectDir, npmLockFileName)); err != nil {
+	if err := common.JsonSave(lock, filepath.Join(m.targetDir, npmLockFileName)); err != nil {
 		slog.Error("failed saving updated lockfile", "err", err)
 		return common.FallbackPrintableMsg(err, "failed saving new package-lock.json")
 	}

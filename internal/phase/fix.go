@@ -13,7 +13,7 @@ import (
 )
 
 const ConcurrentDownloadCount = 10
-const FixSteps = 3
+const FixSteps = 2
 
 type fixPhase struct {
 	*scanPhase
@@ -42,13 +42,6 @@ func NewFixPhase(target string, configPath string, showProgress bool) (*fixPhase
 	sp.addToMax(FixSteps) // increase max to accomodate fix logic in progress bar
 	fp := &fixPhase{
 		scanPhase: sp,
-	}
-
-	// this phase requires authentication - must have valid project name
-	proj := fp.Config.Project
-	if reason := validateProjectName(proj); reason != "" {
-		slog.Error("invalid projcet name", "name", proj, "project-dir", fp.ProjectDir)
-		return nil, common.NewPrintableError("invalid project name `%s` - %s", proj, reason)
 	}
 
 	return fp, nil
@@ -105,19 +98,6 @@ func cleanWorkdir(fixer shared.DependencyFixer, err *error) {
 	}
 
 	// all sub folders should be restored due to rollback or by cleanup
-}
-
-func (fp *fixPhase) Authenticate() error {
-	fp.Bar.Describe("Checking authentication")
-	if fp.Config.Token == "" {
-		slog.Error("no auth token")
-		return common.NewPrintableError("missing authentication token")
-	}
-
-	err := fp.Server.CheckAuthenticationValid()
-	_ = fp.Bar.Add(1)
-
-	return err
 }
 
 func shouldSkipPackage(entry shared.DependnecyDescriptor) bool {
@@ -187,7 +167,7 @@ func (fp *fixPhase) HandleCallbacks(fixes []shared.DependnecyDescriptor, callbac
 		}
 
 		slog.Debug("Running callback")
-		if err := callback.HandleAppliedFixes(fp.ProjectDir, fixes); err != nil {
+		if err := callback.HandleAppliedFixes(fp.BaseDir, fixes); err != nil {
 			slog.Warn("callback failed", "err", err) // Failings here should show a warning, and not stop the process
 		}
 	}
@@ -224,9 +204,9 @@ func buildRemoteOverrideQuery(vulnerablePackages []api.PackageVersion) []api.Rem
 func (fp *fixPhase) queryRemoteConfigPackages(vulnerablePackages []api.PackageVersion, project string) ([]api.PackageVersion, error) {
 	queries := buildRemoteOverrideQuery(vulnerablePackages)
 
-	fixes, err := fp.Server.FetchOverriddenPackagesInfo(queries, fp.Config.Project, nil)
+	fixes, err := fp.Server.FetchOverriddenPackagesInfo(queries, fp.Project.Tag, nil)
 	if err != nil {
-		slog.Error("failed getting fixed versions per remote config", "err", err, "project", fp.Config.Project)
+		slog.Error("failed getting fixed versions per remote config", "err", err, "project", fp.Project.Tag)
 		return nil, common.FallbackPrintableMsg(err, "failed querying remote config")
 	}
 
@@ -295,7 +275,7 @@ func (fp *fixPhase) GetAvailableFixes(scanResult *ScanResult, mode FixMode) ([]s
 		overrideMethod = shared.OverriddenFromRemote
 		// fetch packages according to scan result's recommend
 		// if local was used the scan result should already be updated
-		fixedPackages, err = fp.queryRemoteConfigPackages(scanResult.Vulnerable, fp.Config.Project)
+		fixedPackages, err = fp.queryRemoteConfigPackages(scanResult.Vulnerable, fp.Project.Tag)
 	}
 
 	if err != nil {
@@ -310,7 +290,7 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []share
 	// assumes running from the directory of the project
 	// 		relies on dependencies being installed beforehand (e.g. `npm install`)
 	// returns a list of the fixed descriptors
-	fixer := fp.Manager.GetFixer(fp.ProjectDir, fp.Workdir)
+	fixer := fp.Manager.GetFixer(fp.Workdir)
 	defer cleanWorkdir(fixer, &err) // will rollback if encountered error
 
 	downloadResultsChannel := make(chan shared.PackageDownload, len(availableFixes))
@@ -368,7 +348,7 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []share
 
 	if len(fixed) > 0 {
 		slog.Debug("letting manager handle post fixes")
-		if err := fp.Manager.HandleFixes(fp.ProjectDir, fixed); err != nil {
+		if err := fp.Manager.HandleFixes(fixed); err != nil {
 			slog.Error("manager failed to handle fixes", "err", err)
 			return nil, err
 		}

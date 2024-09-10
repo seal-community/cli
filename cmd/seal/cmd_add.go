@@ -169,7 +169,7 @@ func addCommand() *cobra.Command {
 			added := false
 			if modifedOverrides {
 				slog.Info("updating actions file with new rule")
-				if err = recreateActionsFile(actionsFilePath, existingOverridesArray, addPhase.Manager, addPhase.Config.Project, addPhase.ProjectDir); err != nil {
+				if err = recreateActionsFile(actionsFilePath, existingOverridesArray, addPhase.Manager, addPhase.Project.Tag, addPhase.BaseDir); err != nil {
 					return err // only a wrapper func, logged from withing
 				}
 				added = true

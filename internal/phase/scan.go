@@ -35,7 +35,7 @@ func (sp *scanPhase) metadata() (*PackageManagerMetadata, error) {
 	packageManager := sp.Manager
 
 	name := packageManager.Name()
-	version := packageManager.GetVersion(sp.ProjectDir)
+	version := packageManager.GetVersion()
 	if version == "" {
 		slog.Error("failed getting version of manager", "name", name)
 		// IMPORTANT: in future we might want to return printable error here
@@ -55,11 +55,10 @@ func (sp *scanPhase) metadata() (*PackageManagerMetadata, error) {
 func (sp *scanPhase) Collect() (common.DependencyMap, error) {
 	defer common.ExecutionTimer().Log()
 	packageManager := sp.Manager
-	targetDir := sp.ProjectDir
 
-	slog.Info("collecting packages", "manager_version", packageManager.GetVersion(targetDir))
+	slog.Info("collecting packages", "manager_version", packageManager.GetVersion())
 
-	dependencyMap, err := packageManager.ListDependencies(targetDir)
+	dependencyMap, err := packageManager.ListDependencies()
 	if err != nil {
 		slog.Error("failed parsing package manager output", "err", err)
 		// general error, might be caused due to return code
@@ -96,15 +95,15 @@ func (sp *scanPhase) checkVulnerabilitiesInPackages(deps []common.Dependency, me
 		sp.addFinishedStep()
 	}
 
-	if generateActivity && (sp.Server.AuthToken == "" || sp.Config.Project == "") {
-		slog.Warn("bad input for generating scan acitivty", "hasToken", sp.Server.AuthToken == "", "project", sp.Config.Project)
+	if generateActivity && (sp.Server.AuthToken == "" || sp.Project.Tag == "") {
+		slog.Warn("bad input for generating scan acitivty", "hasToken", sp.Server.AuthToken == "", "project", sp.Project.Tag)
 		return nil, common.NewPrintableError("uploading scan results requires a valid token and project")
 	}
 
-	if sp.Server.AuthToken != "" && sp.Config.Project != "" {
-		slog.Debug("using authenticated package query", "uploadResults", generateActivity)
+	if sp.CanAuthenticate {
 		// if generateActivity is true we will store the vulnerable packages as activity
-		return sp.Server.FetchPackagesInfoAuth(deps, metadata, api.OnlyVulnerable, progressCb, sp.Config.Project, generateActivity)
+		// authentication check should have happend before hand
+		return sp.Server.FetchPackagesInfoAuth(deps, metadata, api.OnlyVulnerable, progressCb, sp.Project.Tag, generateActivity)
 	} else {
 		slog.Debug("using unauth package query")
 		return sp.Server.FetchPackagesInfo(deps, metadata, api.OnlyVulnerable, progressCb)
@@ -112,7 +111,7 @@ func (sp *scanPhase) checkVulnerabilitiesInPackages(deps []common.Dependency, me
 }
 
 func (sp *scanPhase) Scan(generateActivity bool) (*ScanResult, error) {
-	slog.Info("starting scan", "target", sp.ProjectDir)
+	slog.Info("starting scan", "target", sp.BaseDir)
 
 	metadata := sp.cliMetadata()
 
@@ -138,7 +137,7 @@ func (sp *scanPhase) Scan(generateActivity bool) (*ScanResult, error) {
 	}
 
 	if len(dependencyMap) == 0 {
-		slog.Warn("no dependencies found", "target", sp.ProjectDir)
+		slog.Warn("no dependencies found", "target", sp.BaseDir)
 		// return "No dependencies found", true
 		return &ScanResult{}, nil // empty result
 	}

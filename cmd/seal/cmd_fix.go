@@ -203,9 +203,8 @@ func fixCommand() *cobra.Command {
 
 			// auth check could be run in parallel with scan sub command to improve experience
 			slog.Info("authenticating")
-			if err := fixPhase.Authenticate(); err != nil {
-				slog.Error("auth failed", "err", err)
-				return common.FallbackPrintableMsg(err, "authentication issue")
+			if err := fixPhase.InitRemoteProject(); err != nil {
+				return common.FallbackPrintableMsg(err, "failed initializing project from server")
 			}
 
 			result, err := fixPhase.Scan(uploadScanActivity)
@@ -224,7 +223,7 @@ func fixCommand() *cobra.Command {
 				fixPhase.HideProgress() // make sure before printing
 				slog.Info("no vulnerable package found", "target", target)
 
-				err = dumpSummary(output.NewSummary(fixPhase.ProjectDir, nil), summaryPath) // output summary even if no fixes are relvant, so could be processed by 3rd-party
+				err = dumpSummary(output.NewSummary(fixPhase.BaseDir, nil), summaryPath) // output summary even if no fixes are relvant, so could be processed by 3rd-party
 				if err != nil {
 					return err
 				}
@@ -254,7 +253,7 @@ func fixCommand() *cobra.Command {
 			}
 
 			fixPhase.HideProgress() // should be gone here, but before handling summary make sure it gone
-			return outputSummary(summaryPath, fixes, fixPhase.ProjectDir)
+			return outputSummary(summaryPath, fixes, fixPhase.BaseDir)
 		},
 	}
 

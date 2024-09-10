@@ -27,7 +27,7 @@ func TestIndicatorMatches(t *testing.T) {
 
 func TestNormalizePackageNames(t *testing.T) {
 	c, _ := config.New(nil)
-	manager := NewPnpmManager(c)
+	manager := NewPnpmManager(c, "")
 	names := []string{
 		"aaaaa",
 		"aaAAa",
