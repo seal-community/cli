@@ -1,8 +1,10 @@
 package maven
 
 import (
+	"cli/internal/common"
 	"cli/internal/config"
 	"fmt"
+	"path/filepath"
 	"testing"
 )
 
@@ -60,5 +62,24 @@ func TestNormalizePackageNames(t *testing.T) {
 				t.Fatalf("failed to normalize `%s`", n)
 			}
 		})
+	}
+}
+
+func TestGetJavaIndicatorFileAbsPath(t *testing.T) {
+	tmp := t.TempDir()
+	dst := filepath.Join(tmp, "pom.xml")
+	fi, err := common.CreateFile(dst)
+	if fi == nil || err != nil {
+		t.Fatalf("faile: %v %v", fi, err)
+	}
+	defer fi.Close()
+
+	p, err := GetJavaIndicatorFile(tmp)
+	if err != nil {
+		t.Fatalf("failed getting indicator %v", err)
+	}
+
+	if p != dst {
+		t.Fatalf("excepted %s; got %s", dst, p)
 	}
 }

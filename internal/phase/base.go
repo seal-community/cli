@@ -125,17 +125,20 @@ func (p *basePhase) findTargetFileFromManager() (string, error) {
 
 	f := targets[0]
 
-	// manager should return it as abs path, but just in case
-	// make sure this returns abs path to the file
-	// to conform to the normal flow
-	absFile := getTargetFileAbs(f)
-	if absFile == "" {
+	if !filepath.IsAbs(f) {
+		// manager should return it as abs path; but make sure
+		// abs will use CWD if the path is not absolute
+		slog.Debug("manager passed non-abs path", "target", f)
+		f = filepath.Join(p.BaseDir, f)
+	}
+
+	if exists, _ := common.PathExists(f); !exists {
 		// must exist
-		slog.Error("failed finding scan target from manager")
+		slog.Error("failed finding scan target from manager", "final-path", f, "scan-target", targets[0])
 		return "", fmt.Errorf("failed finding scan target file")
 	}
 
-	return absFile, nil
+	return f, nil
 }
 
 // inits project id, prints warning message if generates new id
