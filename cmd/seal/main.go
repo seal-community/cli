@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime"
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
@@ -59,7 +60,16 @@ func rootCmd() *cobra.Command {
 			logfile := cmd.Context().Value(logfileKey).(*os.File) // will panic if misconfigured in code
 
 			setupLogging(logfile, verbosity)
-			slog.Info("cli started", "version", common.CliVersion, "sessionId", common.SessionId, "logfile", logfile.Name(), "startTime", common.CliStartTime)
+			slog.Info("cli started",
+				"version", common.CliVersion,
+				"sessionId", common.SessionId,
+				"logfile", logfile.Name(),
+				"startTime", common.CliStartTime,
+				"num-cpu", runtime.NumCPU(),
+				"max-procs", runtime.GOMAXPROCS(0),
+				"os", runtime.GOOS,
+				"arch", runtime.GOARCH,
+			)
 
 			return nil
 		},

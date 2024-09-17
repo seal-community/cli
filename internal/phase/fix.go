@@ -318,7 +318,9 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []share
 	close(downloadJobsChannel) // to signal workers to stop
 	go func() {
 		// wait for all workers to finish, then close the results channel to signal the main thread
-		_ = g.Wait()
+		common.Trace("starting wait on downloader group")
+		err := g.Wait()
+		common.Trace("downloader group finished", "err", err)
 		close(downloadResultsChannel)
 	}()
 
