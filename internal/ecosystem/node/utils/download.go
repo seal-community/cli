@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"net/url"
 )
 
 type npmLibraryInfo struct {
@@ -18,17 +19,15 @@ type npmLibraryInfo struct {
 	} `json:"versions"`
 }
 
-func DownloadNPMPackage(s api.Server, name string, version string) ([]byte, error) {
+func DownloadNPMPackage(s api.ArtifactServer, name string, version string) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
+	var libraryInfo npmLibraryInfo
 
-	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
-	libraryInfo, statusCode, err := api.SendSealRequestJson[any, npmLibraryInfo](
-		s.Client,
-		"GET",
-		fmt.Sprintf("%s/%s/", api.NpmServer, name),
+	statusCode, err := s.GetJsonObject(
+		fmt.Sprintf("%s/", name),
 		nil,
-		[]api.StringPair{authHeader},
-		[]api.StringPair{},
+		nil,
+		&libraryInfo,
 	)
 
 	if err != nil {
@@ -41,24 +40,21 @@ func DownloadNPMPackage(s api.Server, name string, version string) ([]byte, erro
 		return nil, fmt.Errorf("bad status code for npm info: %d", statusCode)
 	}
 
-	if libraryInfo == nil {
-		slog.Error("no content for package description", "status", statusCode)
-		return nil, fmt.Errorf("no data from server: %d", statusCode)
-	}
-
 	versionInfo, ok := libraryInfo.Versions[version]
 	if !ok {
 		slog.Error("failed finding fixed package")
 		return nil, fmt.Errorf("could not find version %s in package info %s", version, name)
 	}
 
-	url := versionInfo.Distribution.Tarball
-	libraryData, statusCode, err := api.SendSealRequest[any](
-		s.Client,
-		"GET",
-		url,
+	tarUrl, err := url.Parse(versionInfo.Distribution.Tarball)
+	if err != nil {
+		slog.Error("failed parsing tarball url", "raw", versionInfo.Distribution.Tarball)
+		return nil, fmt.Errorf("could not parse package url: %s", versionInfo.Distribution.Tarball)
+	}
+
+	libraryData, statusCode, err := s.Get(
+		tarUrl.RequestURI(), // has to be relative to the artifact server base
 		nil,
-		[]api.StringPair{authHeader},
 		nil,
 	)
 
@@ -80,7 +76,7 @@ func DownloadNPMPackage(s api.Server, name string, version string) ([]byte, erro
 	shaBytes := sha1.Sum(libraryData)
 	calcSha1 := hex.EncodeToString(shaBytes[:])
 	if calcSha1 != versionInfo.Distribution.Sha1sum {
-		return nil, fmt.Errorf("wrong checksum for package; expected: %s ; got %s", calcSha1, versionInfo.Distribution.Sha1sum)
+		return nil, fmt.Errorf("wrong checksum for package; expected: %s ; got %s", versionInfo.Distribution.Sha1sum, calcSha1)
 	}
 
 	return libraryData, nil

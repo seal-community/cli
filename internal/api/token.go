@@ -1,9 +1,8 @@
-package phase
+package api
 
 import (
-	"fmt"
-
 	b64 "encoding/base64"
+	"fmt"
 )
 
 func buildAuthToken(token string, projectTag string) string {
@@ -11,9 +10,7 @@ func buildAuthToken(token string, projectTag string) string {
 		return ""
 	}
 
-	raw := fmt.Sprintf("%s:%s",
-		projectTag,
-		token)
+	raw := fmt.Sprintf("%s:%s", projectTag, token)
 
 	return b64.StdEncoding.EncodeToString([]byte(raw))
 }

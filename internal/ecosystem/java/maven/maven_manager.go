@@ -145,7 +145,7 @@ func (m *MavenPackageManager) GetScanTargets() []string {
 	return []string{m.javaTargetFile}
 }
 
-func (m *MavenPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *MavenPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
 	return utils.DownloadMavenPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 

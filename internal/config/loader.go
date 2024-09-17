@@ -75,8 +75,7 @@ type EnvMap map[string]string
 
 type EnvLookupFunc func(string) (string, bool)
 
-func setDefaults(conf *Config) {
-}
+func setDefaults(conf *Config) {}
 
 func New(environment EnvMap) (*Config, error) {
 	return Load(strings.NewReader(""), environment)

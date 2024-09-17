@@ -52,7 +52,7 @@ func (m *FakePackageManager) ListDependencies() (common.DependencyMap, error) {
 	return nil, *new(error)
 }
 
-func (m *FakePackageManager) DownloadPackage(server api.Server, descriptor DependnecyDescriptor) ([]byte, error) {
+func (m *FakePackageManager) DownloadPackage(server api.ArtifactServer, descriptor DependnecyDescriptor) ([]byte, error) {
 	return nil, nil
 }
 

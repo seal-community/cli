@@ -47,7 +47,7 @@ func NewFixPhase(target string, configPath string, showProgress bool) (*fixPhase
 	return fp, nil
 }
 
-func packageDownloadWorker(ctx context.Context, server api.Server, manager shared.PackageManager, downloadJobsChannel chan shared.DependnecyDescriptor, downloadResultsChannel chan shared.PackageDownload) (err error) {
+func packageDownloadWorker(ctx context.Context, artifactServer api.ArtifactServer, manager shared.PackageManager, downloadJobsChannel chan shared.DependnecyDescriptor, downloadResultsChannel chan shared.PackageDownload) (err error) {
 	defer func() {
 		if panicObj := recover(); panicObj != nil {
 			slog.Error("panic caught", "err", panicObj, "trace", string(debug.Stack()))
@@ -69,7 +69,7 @@ func packageDownloadWorker(ctx context.Context, server api.Server, manager share
 
 			fixedPackage := *descriptor.AvailableFix
 			slog.Debug("downloading package", "id", fixedPackage.Id())
-			data, err := manager.DownloadPackage(server, descriptor)
+			data, err := manager.DownloadPackage(artifactServer, descriptor)
 			if err != nil {
 				slog.Error("failed downloading package", "err", err)
 				return common.NewPrintableError("failed downloading package %s", fixedPackage.RecommendedDescriptor())
@@ -204,7 +204,7 @@ func buildRemoteOverrideQuery(vulnerablePackages []api.PackageVersion) []api.Rem
 func (fp *fixPhase) queryRemoteConfigPackages(vulnerablePackages []api.PackageVersion, project string) ([]api.PackageVersion, error) {
 	queries := buildRemoteOverrideQuery(vulnerablePackages)
 
-	fixes, err := fp.Server.FetchOverriddenPackagesInfo(queries, fp.Project.Tag, nil)
+	fixes, err := fetchOverriddenPackagesInfo(fp.Backend, queries, nil)
 	if err != nil {
 		slog.Error("failed getting fixed versions per remote config", "err", err, "project", fp.Project.Tag)
 		return nil, common.FallbackPrintableMsg(err, "failed querying remote config")
@@ -300,7 +300,7 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []share
 	// start workers
 	for i := 0; i < ConcurrentDownloadCount; i++ {
 		g.Go(func() (err error) {
-			return packageDownloadWorker(ctx, fp.Server, fp.Manager, downloadJobsChannel, downloadResultsChannel)
+			return packageDownloadWorker(ctx, fp.ArtifactServer, fp.Manager, downloadJobsChannel, downloadResultsChannel)
 		})
 	}
 

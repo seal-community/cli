@@ -12,6 +12,8 @@ func TestDownloadNpm(t *testing.T) {
 	name := "lodash"
 	version := "123-sp1"
 	fakePackageContent := `asdf` // sha1(asdf) -> 3da541559918a808c2402bba5012f6c60b27661c
+	token := "this-a-token"
+	project := "this-a-proj"
 	transparentRoundTripper := api.TransparentRoundTripper{Callback: func(req *http.Request) *http.Response {
 
 		uri := req.URL.Path
@@ -43,7 +45,7 @@ func TestDownloadNpm(t *testing.T) {
 	}}
 
 	client := http.Client{Transport: transparentRoundTripper}
-	server := api.Server{Client: client}
+	server := api.NewArtifactServer("http://baseurl.com", token, project, client)
 
 	data, err := DownloadNPMPackage(server, name, version)
 	if err != nil {

@@ -10,14 +10,14 @@ import (
 
 type requestValidatorCallback func(*http.Request)
 
-type fakeRoundTripper struct {
+type FakeRoundTripper struct {
 	// data to return for request
 	jsonContent string
 	statusCode  int
 	Validator   requestValidatorCallback
 }
 
-func (f fakeRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (f FakeRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp := new(http.Response)
 	content := f.jsonContent
 	resp.Body = io.NopCloser(strings.NewReader(content))
@@ -35,12 +35,12 @@ func TestEmpty(t *testing.T) {
 	request := BulkCheckRequest{
 		Entries: []common.Dependency{},
 	}
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, jsonContent: `{"items":[],"total":0,"limit":1,"offset":0}`}
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, jsonContent: `{"items":[],"total":0,"limit":1,"offset":0}`}
 	client := http.Client{Transport: fakeRoundTripper}
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := SendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := sendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -68,7 +68,7 @@ func TestSanity(t *testing.T) {
 		Entries: []common.Dependency{dependency},
 	}
 
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, jsonContent: `
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, jsonContent: `
         {
 			"items": [
 				{
@@ -138,7 +138,7 @@ func TestSanity(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := SendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := sendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -214,7 +214,7 @@ func TestMalicious(t *testing.T) {
 		Entries: []common.Dependency{dependency},
 	}
 
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, jsonContent: `{
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, jsonContent: `{
         "items": [
             {
                 "id": "6f7a8ea8-c536-4e22-9d5d-69a25ac57899",
@@ -249,7 +249,7 @@ func TestMalicious(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	result, statusCode, err := SendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
+	result, statusCode, err := sendSealRequestJson[BulkCheckRequest, Page[PackageVersion]](client, method, url, &request, nil, nil)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
@@ -275,7 +275,7 @@ func TestMalicious(t *testing.T) {
 
 func TestCustomHeaderCliVersion(t *testing.T) {
 	// IMPORTANT: this will fail if run from vs code, see .vscode/settings.json
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
 		versionValues := req.Header.Values(SealVersionHeader)
 		if len(versionValues) == 0 {
 			t.Fatalf("no cli version header")
@@ -299,12 +299,12 @@ func TestCustomHeaderCliVersion(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendSealRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = sendSealRequestJson[any, any](client, method, url, nil, nil, nil)
 }
 
 func TestSessionIdHeaderAdded(t *testing.T) {
 	// IMPORTANT: this will fail if run from vs code, see .vscode/settings.json
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
 		sessionValues := req.Header.Values(SealSessionIdHeader)
 		if len(sessionValues) == 0 {
 			t.Fatalf("no session session header")
@@ -329,12 +329,12 @@ func TestSessionIdHeaderAdded(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendSealRequestJson[any, any](client, method, url, nil, nil, nil)
-	_, _, _ = SendSealRequestJson[any, any](client, method, url, nil, nil, nil) // check twice is using the same one
+	_, _, _ = sendSealRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = sendSealRequestJson[any, any](client, method, url, nil, nil, nil) // check twice is using the same one
 }
 
 func TestHeaderUserAgent(t *testing.T) {
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
 		userAgentValues := req.Header.Values("User-Agent")
 		if len(userAgentValues) == 0 {
 			t.Fatalf("no user-agent header")
@@ -359,13 +359,13 @@ func TestHeaderUserAgent(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendSealRequestJson[any, any](client, method, url, nil, nil, nil)
+	_, _, _ = sendSealRequestJson[any, any](client, method, url, nil, nil, nil)
 }
 
 func TestExtraHeaderAdded(t *testing.T) {
 	headerName := "Fake-Header"
 	headerValue := "headervalue"
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
 		vals := req.Header.Values(headerName)
 		if len(vals) == 0 {
 			t.Fatalf("extra header not added to request")
@@ -385,7 +385,7 @@ func TestExtraHeaderAdded(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendSealRequestJson[any, any](client,
+	_, _, _ = sendSealRequestJson[any, any](client,
 		method,
 		url,
 		nil,
@@ -397,7 +397,7 @@ func TestExtraHeaderAdded(t *testing.T) {
 func TestQueryParamsAdded(t *testing.T) {
 	paramName := "fake-param"
 	paramValue := "paramvalue"
-	fakeRoundTripper := fakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
 		query := req.URL.Query()
 		if len(query) == 0 {
 			t.Fatalf("param not added to request")
@@ -413,7 +413,7 @@ func TestQueryParamsAdded(t *testing.T) {
 	method := "POST"
 	url := "https://seal/a/url/endpoint"
 
-	_, _, _ = SendSealRequestJson[any, any](client,
+	_, _, _ = sendSealRequestJson[any, any](client,
 		method,
 		url,
 		nil,

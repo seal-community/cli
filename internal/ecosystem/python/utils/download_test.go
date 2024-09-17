@@ -39,6 +39,8 @@ const multiplePythonMultipartResponse = `<html><head>
 func TestDownloadPython(t *testing.T) {
 	name := "python-multipart"
 	version := "0.0.6+sp1"
+	token := "this-a-token"
+	project := "this-a-proj"
 	fakePackageContent := `asdf` // sha256(asdf) -> f0e4c2f76c58916ec258f246851bea091d14d4247a2fc3e18694461b1816e13b
 	transparentRoundTripper := api.TransparentRoundTripper{Callback: func(req *http.Request) *http.Response {
 
@@ -62,7 +64,7 @@ func TestDownloadPython(t *testing.T) {
 	}}
 
 	client := http.Client{Transport: transparentRoundTripper}
-	server := api.Server{Client: client}
+	server := api.NewArtifactServer("http://baseurl.com", token, project, client)
 
 	data, err := DownloadPythonPackage(server, name, version, []string{"py3-none-any"}, false)
 	if err != nil {
@@ -76,6 +78,8 @@ func TestDownloadPython(t *testing.T) {
 func TestDownloadPythonNoTag(t *testing.T) {
 	name := "python-multipart"
 	version := "0.0.6+sp1"
+	token := "this-a-token"
+	project := "this-a-proj"
 	fakePackageContent := `asdf` // sha256(asdf) -> f0e4c2f76c58916ec258f246851bea091d14d4247a2fc3e18694461b1816e13b
 	transparentRoundTripper := api.TransparentRoundTripper{Callback: func(req *http.Request) *http.Response {
 
@@ -99,7 +103,7 @@ func TestDownloadPythonNoTag(t *testing.T) {
 	}}
 
 	client := http.Client{Transport: transparentRoundTripper}
-	server := api.Server{Client: client}
+	server := api.NewArtifactServer("http://baseurl.com", token, project, client)
 
 	_, err := DownloadPythonPackage(server, name, version, []string{"py2-none-any"}, false)
 	if err == nil {

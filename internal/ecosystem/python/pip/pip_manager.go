@@ -303,7 +303,7 @@ func (m *PipPackageManager) getCompatibleTags(name string, version string) ([]st
 	return res, nil
 }
 
-func (m *PipPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *PipPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
 	compatibleTags, err := m.getCompatibleTags(descriptor.VulnerablePackage.Library.Name, descriptor.VulnerablePackage.Version)
 	if err != nil {
 		return nil, err

@@ -23,20 +23,14 @@ func buildUri(name string, version string) string {
 	return fmt.Sprintf("%s/@v/v%s.zip", caseEncode(name), caseEncode(version))
 }
 
-func DownloadPackage(s api.Server, name string, version string) ([]byte, error) {
+func DownloadPackage(s api.ArtifactServer, name string, version string) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
 	uri := buildUri(name, version)
-	url := fmt.Sprintf("%s/%s", api.GolangServer, uri)
 
-	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
-	libraryData, statusCode, err := api.SendSealRequest[any](
-		s.Client,
-		"GET",
-		url,
-		nil,
-		[]api.StringPair{authHeader},
-		nil,
+	libraryData, statusCode, err := s.Get(
+		uri,
+		nil, nil,
 	)
 
 	if err != nil {

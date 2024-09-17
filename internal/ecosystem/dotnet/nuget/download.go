@@ -7,17 +7,13 @@ import (
 	"log/slog"
 )
 
-func DownloadNugetPackage(s api.Server, name string, version string) ([]byte, error) {
+func DownloadNugetPackage(s api.ArtifactServer, name string, version string) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
-	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
 	packageName := fmt.Sprintf("%s.%s.nupkg", name, version)
-	libraryData, statusCode, err := api.SendSealRequest[any](
-		s.Client,
-		"GET",
-		fmt.Sprintf("%s/v3-flatcontainer/%s/%s/%s", api.NugetServer, name, version, packageName),
+	libraryData, statusCode, err := s.Get(
+		fmt.Sprintf("v3-flatcontainer/%s/%s/%s", name, version, packageName),
 		nil,
-		[]api.StringPair{authHeader},
 		nil,
 	)
 

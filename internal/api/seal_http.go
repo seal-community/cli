@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 )
 
 const SealVersionHeader = "X-Seal-Version"
@@ -18,21 +17,10 @@ func FormatUserAgent() string {
 	return fmt.Sprintf("seal-cli/%s", common.CliVersion)
 }
 
-func sendSealApiRequest[RequestType any, ResponseType any](client http.Client, method string, path string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
-	reqUrl, err := url.JoinPath(BaseURL, path)
-
-	if err != nil {
-		slog.Error("failed joining url path", "err", err)
-		return nil, 0, err
-	}
-
-	return SendSealRequestJson[RequestType, ResponseType](client, method, reqUrl, body, headers, params)
-}
-
-func SendSealRequestJson[RequestType any, ResponseType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
+func sendSealRequestJson[RequestType any, ResponseType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) (*ResponseType, int, error) {
 	var responseObject ResponseType
 
-	responseData, statusCode, err := SendSealRequest[RequestType](client, method, url, body, headers, params)
+	responseData, statusCode, err := sendSealRequest[RequestType](client, method, url, body, headers, params)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -52,7 +40,7 @@ func SendSealRequestJson[RequestType any, ResponseType any](client http.Client, 
 	return &responseObject, statusCode, nil
 }
 
-func SendSealRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
+func sendSealRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {
 	baseHeaders := []StringPair{
 		{Name: "Accept", Value: "application/json"},
 		{Name: "Content-Type", Value: "application/json"},

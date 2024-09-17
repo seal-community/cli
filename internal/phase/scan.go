@@ -95,18 +95,18 @@ func (sp *scanPhase) checkVulnerabilitiesInPackages(deps []common.Dependency, me
 		sp.addFinishedStep()
 	}
 
-	if generateActivity && (sp.Server.AuthToken == "" || sp.Project.Tag == "") {
-		slog.Warn("bad input for generating scan acitivty", "hasToken", sp.Server.AuthToken == "", "project", sp.Project.Tag)
+	if generateActivity && !sp.CanAuthenticate {
+		slog.Warn("bad input for generating scan acitivty", "project", sp.Project.Tag)
 		return nil, common.NewPrintableError("uploading scan results requires a valid token and project")
 	}
 
 	if sp.CanAuthenticate {
 		// if generateActivity is true we will store the vulnerable packages as activity
 		// authentication check should have happend before hand
-		return sp.Server.FetchPackagesInfoAuth(deps, metadata, api.OnlyVulnerable, progressCb, sp.Project.Tag, generateActivity)
+		return fetchPackagesInfoAuth(sp.Backend, deps, metadata, api.OnlyVulnerable, progressCb, generateActivity)
 	} else {
 		slog.Debug("using unauth package query")
-		return sp.Server.FetchPackagesInfo(deps, metadata, api.OnlyVulnerable, progressCb)
+		return fetchPackagesInfo(sp.Backend, deps, metadata, api.OnlyVulnerable, progressCb)
 	}
 }
 

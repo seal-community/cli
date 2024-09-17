@@ -50,7 +50,7 @@ type PackageManager interface {
 	GetFixer(workdir string) DependencyFixer
 	GetEcosystem() string
 	GetScanTargets() []string
-	DownloadPackage(server api.Server, descriptor DependnecyDescriptor) ([]byte, error)
+	DownloadPackage(server api.ArtifactServer, descriptor DependnecyDescriptor) ([]byte, error)
 	HandleFixes(fixes []DependnecyDescriptor) error
 	NormalizePackageName(name string) string
 }

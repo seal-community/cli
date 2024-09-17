@@ -95,16 +95,12 @@ func getVersionUrl(libraryInfo []byte, version string, compatibleTags []string, 
 	return &candidates.targzs[0], nil
 }
 
-func DownloadPythonPackage(s api.Server, name string, version string, compatibleTags []string, OnlyBinary bool) ([]byte, error) {
+func DownloadPythonPackage(s api.ArtifactServer, name string, version string, compatibleTags []string, OnlyBinary bool) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
-	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
-	libraryInfo, statusCode, err := api.SendSealRequest[any](
-		s.Client,
-		"GET",
-		fmt.Sprintf("%s/simple/%s/", api.PypiServer, name),
+	libraryInfo, statusCode, err := s.Get(
+		fmt.Sprintf("simple/%s/", name),
 		nil,
-		[]api.StringPair{authHeader},
 		nil,
 	)
 
@@ -118,7 +114,7 @@ func DownloadPythonPackage(s api.Server, name string, version string, compatible
 		return nil, fmt.Errorf("bad status code for pypi info: %d", statusCode)
 	}
 
-	if libraryInfo == nil {
+	if len(libraryInfo) == 0 {
 		slog.Error("no content for package description", "status", statusCode)
 		return nil, fmt.Errorf("no data from server: %d", statusCode)
 	}
@@ -130,12 +126,9 @@ func DownloadPythonPackage(s api.Server, name string, version string, compatible
 	}
 	slog.Info("found version url", "url", versionDownloadUrl.String())
 
-	libraryData, statusCode, err := api.SendSealRequest[any](
-		s.Client,
-		"GET",
-		versionDownloadUrl.String(),
+	libraryData, statusCode, err := s.Get(
+		versionDownloadUrl.RequestURI(), // must be relative, in case we use different server
 		nil,
-		[]api.StringPair{authHeader},
 		nil,
 	)
 
@@ -160,7 +153,7 @@ func DownloadPythonPackage(s api.Server, name string, version string, compatible
 	expectedSha256 := strings.TrimPrefix(versionDownloadUrl.Fragment, "sha256=")
 
 	if calcSha256 != expectedSha256 {
-		return nil, fmt.Errorf("wrong checksum for package; expected: %s ; got %s", calcSha256, expectedSha256)
+		return nil, fmt.Errorf("wrong checksum for package; expected: %s ; got %s", expectedSha256, calcSha256)
 	}
 
 	return libraryData, nil

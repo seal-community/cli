@@ -11,7 +11,6 @@ import (
 	"cli/internal/ecosystem/python"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/project"
-	"cli/internal/repository"
 	"fmt"
 	"log/slog"
 	"math"
@@ -49,18 +48,20 @@ func getTargetFileAbs(p string) string {
 }
 
 type basePhase struct {
+	Config  *config.Config
+	Workdir string // .seal internal work dir
+
 	Project project.ProjectInfo
 
 	BaseDir    string
 	TargetFile string
 
-	Workdir string // .seal internal work dir
-	Server  api.Server
-	Config  *config.Config
+	ArtifactServer api.ArtifactServer
+	Backend        api.Backend
+	Manager        shared.PackageManager
+
 	Bar     *progressbar.ProgressBar
 	showBar bool // required because can't access progressbar unexported state
-	Manager shared.PackageManager
-	Fixer   shared.DependencyFixer
 
 	CanAuthenticate bool
 }
@@ -141,41 +142,6 @@ func (p *basePhase) findTargetFileFromManager() (string, error) {
 	return f, nil
 }
 
-// inits project id, prints warning message if generates new id
-// assumes we already have target file
-func (p *basePhase) initLocalProject(projectDir string, targetFile string) error {
-
-	relTarget, err := filepath.Rel(projectDir, targetFile)
-	// must be a subpath within project dir, so not allowed to have relative dir traversal; unlikely
-	if err != nil || strings.Contains(relTarget, "..") {
-		slog.Error("failed getting relative path for target file ", "err", err, "dir", projectDir, "file", targetFile)
-		return common.NewPrintableError("cannot use file %s and target dir %s", targetFile, projectDir)
-	}
-
-	remoteUrl, err := repository.FindGitRemoteUrl(projectDir) // remote url can be empty string if not relevant to target dir
-	if err != nil {
-		// continue best-effort in case remote url repo logic failed
-		slog.Warn("error finding remote url - continuing to use fallback", "err", err)
-	}
-
-	projId, found, err := project.ChooseProjectId(p.Manager, projectDir, relTarget, p.Config.Project, p.Config.ProjectMap, remoteUrl)
-	if err != nil {
-		return err
-	}
-
-	slog.Info("using project", "id", projId, "found", found)
-
-	p.Project.Tag = projId
-	p.Project.FoundLocally = found
-
-	slog.Info("generating display name candidate")
-	p.Project.NameCandidate = project.GenerateProjectDisplayName(p.Manager, projectDir)
-
-	slog.Debug("initialized project", "project", p.Project)
-
-	return nil
-}
-
 // used to print message despite having a progress bar running
 // will used \r to start from the beginning of the line
 // and overwrite the existing line, padding until the terminal's width to clear remaining
@@ -208,7 +174,7 @@ func (p *basePhase) InitRemoteProject() error {
 
 	p.Bar.Describe("Getting project information")
 
-	projDesc, err := p.Server.InitializeProject(p.Project.Tag, p.Project.NameCandidate)
+	projDesc, err := p.InitializeProject()
 	if err != nil {
 		slog.Error("failed initializing project", "err", err, "tag", p.Project.Tag, "name-candidate", p.Project.NameCandidate)
 		return common.FallbackPrintableMsg(err, "failed querying project from server")
@@ -236,93 +202,6 @@ func (p *basePhase) InitRemoteProject() error {
 	slog.Info("received remote project information", "tag", projDesc.Tag, "name", projDesc.Name, "is-new", projDesc.New)
 
 	p.addFinishedStep() // since this was unexpected in scan flow
-
-	return nil
-}
-
-// prints warning to console if this is a new project
-func (p *basePhase) init(targetPath string, configPath string, showProgress bool) error {
-	var err error
-
-	// using locals until we initialize the manager, then we can use the Phase.Project struct
-	projectDir := getProjectDirAbs(targetPath)
-	targetFile := getTargetFileAbs(targetPath) // will be empty if a directory was provided
-
-	if projectDir == "" {
-		return common.NewPrintableError("bad project directory path: %s", targetPath)
-	}
-
-	p.BaseDir = projectDir
-	p.TargetFile = targetFile
-
-	confFilePath := configPath
-	if confFilePath == "" {
-		slog.Debug("loading config from project folder", "dir", projectDir)
-		confFilePath = filepath.Join(projectDir, config.ConfigFileName)
-	}
-
-	slog.Info("initialized project paths", "project-dir", projectDir, "target", targetFile, "provided-path", targetPath, "config", confFilePath)
-
-	p.Config, err = InitConfiguration(confFilePath)
-	if err != nil {
-		return err
-	}
-
-	slog.Info("initiated config", "has-token", p.Config.Token != "")
-
-	p.Manager, err = findPackageManager(p.Config, projectDir, targetFile)
-	if err != nil {
-		return err
-	}
-
-	if targetFile == "" {
-		// reaching here means we already found an indicator and have a package manager associated with the project dir
-		// use target file according to manager until scanning directory is deprecated
-		slog.Warn("looking up indicator in project dir since target file not provided", "project-dir", projectDir)
-
-		target, err := p.findTargetFileFromManager()
-		if err != nil || target == "" {
-			// unlikely as we already found an indicator file in the manager
-			slog.Error("failed finding target file using the manager", "err", err, "target", target)
-			return common.NewPrintableError("could not find a scannable target in %s", projectDir)
-		}
-
-		targetFile = target
-	}
-
-	// use p.Project.{} after here
-	if err := p.initLocalProject(projectDir, targetFile); err != nil {
-		return err
-	}
-
-	// validate project, regardless of phase
-	if reason := project.ValidateProjectId(p.Project.Tag); reason != "" {
-		slog.Error("invalid projcet name", "name", p.Project.Tag, "project-dir", p.BaseDir)
-		return common.NewPrintableError("invalid project name `%s` - %s", p.Project.Tag, reason)
-	}
-
-	if !p.Project.FoundLocally {
-		// IMPORTANT: can technically print here, as it is part of the init of the phase that comes before the progress bar is initialized
-		slog.Info("generated project id is new", "tag", p.Project.Tag, "display-name", p.Project.NameCandidate)
-		fmt.Printf("\n%s: %s\n", common.Colorize("using project-id", common.AnsiDarkGrey), p.Project.Tag)
-	}
-
-	p.Workdir, err = createInternalSealFolder(p.BaseDir)
-	if err != nil {
-		slog.Error("failed creating seal temp dir in project", "project-path", p.BaseDir)
-		return common.NewPrintableError("failed creating temporary folder under %s", p.BaseDir)
-	}
-
-	if p.Config.Token != "" {
-		p.CanAuthenticate = true
-	}
-
-	p.Server = api.Server{AuthToken: buildAuthToken(p.Config.Token, p.Project.Tag)}
-
-	p.Bar = common.NewProgressBar(showProgress, 0) // no steps, should be configured by actual phase
-	p.showBar = showProgress                       // bar should not be changed directly
-
-	slog.Info("initialized", "project-id", p.Project.Tag, "manager", p.Manager.Name(), "project-dir", p.BaseDir, "target", p.TargetFile, "tmp-workdir", p.Workdir)
 
 	return nil
 }
@@ -381,7 +260,7 @@ func (p *basePhase) QueryRecommendedPackages(vulnerablePackages []api.PackageVer
 		})
 	}
 
-	available, err := p.Server.FetchPackagesInfo(deps, nil, api.OnlyFixed, nil)
+	available, err := fetchPackagesInfo(p.Backend, deps, nil, api.OnlyFixed, nil)
 	if err != nil {
 		slog.Error("failed getting fixed versions info", "err", err)
 		return nil, common.NewPrintableError("failed querying recommended fixes")
@@ -400,8 +279,78 @@ func (p *basePhase) ValidateAuth() error {
 		return common.NewPrintableError("missing authentication token")
 	}
 
-	err := p.Server.CheckAuthenticationValid()
+	err := p.Backend.CheckAuthenticationValid()
 	p.addFinishedStep() // treating this as unexpected step (scan flow)
 
 	return err
+}
+
+func (p basePhase) InitializeProject() (*api.ProjectDescriptor, error) {
+	return p.Backend.InitializeProject(p.Project.NameCandidate)
+}
+
+func fetchPackagesInfo(server api.Backend, deps []common.Dependency, metadata api.Metadata, queryType api.PackageQueryType, chunkDone api.ChunkDownloadedCallback) (*[]api.PackageVersion, error) {
+	allVersions := make([]api.PackageVersion, 0, len(deps))
+	chunkSize := server.GetPackageChunkSize()
+
+	err := common.ConcurrentChunks(deps, chunkSize,
+		func(chunk []common.Dependency, chunkIdx int) (*api.Page[api.PackageVersion], error) {
+			return server.QueryPackages(&api.BulkCheckRequest{
+				Metadata: metadata,
+				Entries:  chunk,
+			}, queryType)
+		},
+		func(data *api.Page[api.PackageVersion], chunkIdx int) error {
+			// safe to perform, run from inside mutex
+			allVersions = append(allVersions, data.Items...)
+			if chunkDone != nil {
+				chunkDone(data.Items, chunkIdx)
+			}
+			return nil
+		})
+
+	return &allVersions, err
+}
+
+func fetchPackagesInfoAuth(server api.Backend, deps []common.Dependency, metadata api.Metadata, queryType api.PackageQueryType, chunkDone api.ChunkDownloadedCallback, generateActivity bool) (*[]api.PackageVersion, error) {
+	allVersions := make([]api.PackageVersion, 0, len(deps))
+	chunkSize := server.GetPackageChunkSize()
+
+	err := common.ConcurrentChunks(deps, chunkSize,
+		func(chunk []common.Dependency, chunkIdx int) (*api.Page[api.PackageVersion], error) {
+			return server.QueryPackagesAuth(&api.BulkCheckRequest{
+				Metadata: metadata,
+				Entries:  chunk,
+			}, queryType, generateActivity)
+		},
+		func(data *api.Page[api.PackageVersion], chunkIdx int) error {
+			// safe to perform, run from inside mutex
+			allVersions = append(allVersions, data.Items...)
+			if chunkDone != nil {
+				chunkDone(data.Items, chunkIdx)
+			}
+			return nil
+		})
+
+	return &allVersions, err
+}
+
+func fetchOverriddenPackagesInfo(server api.Backend, query []api.RemoteOverrideQuery, chunkDone api.ChunkDownloadedCallback) (*[]api.PackageVersion, error) {
+	allVersions := make([]api.PackageVersion, 0, len(query))
+	chunkSize := server.GetRemoteConfigChunkSize()
+
+	err := common.ConcurrentChunks(query, chunkSize,
+		func(chunk []api.RemoteOverrideQuery, chunkIdx int) (*api.Page[api.PackageVersion], error) {
+			return server.QueryRemoteConfig(chunk)
+		},
+		func(data *api.Page[api.PackageVersion], chunkIdx int) error {
+			// safe to perform, run from inside mutex
+			allVersions = append(allVersions, data.Items...)
+			if chunkDone != nil {
+				chunkDone(data.Items, chunkIdx)
+			}
+			return nil
+		})
+
+	return &allVersions, err
 }

@@ -154,7 +154,7 @@ func (m *NpmPackageManager) GetScanTargets() []string {
 	return []string{filepath.Join(m.targetDir, utils.PackageJsonFile)}
 }
 
-func (m *NpmPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *NpmPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
 	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 

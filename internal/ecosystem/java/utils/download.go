@@ -9,7 +9,7 @@ import (
 	"log/slog"
 )
 
-func DownloadMavenPackage(s api.Server, name string, version string) ([]byte, error) {
+func DownloadMavenPackage(s api.ArtifactServer, name string, version string) ([]byte, error) {
 	defer common.ExecutionTimer().Log()
 
 	orgName, artifactName, err := SplitJavaPackageName(name)
@@ -21,14 +21,9 @@ func DownloadMavenPackage(s api.Server, name string, version string) ([]byte, er
 	filename := GetPackageFileName(artifactName, version)
 	sha1Filename := fmt.Sprintf("%s.sha1", filename)
 
-	authHeader := api.BuildBasicAuthHeader(s.AuthToken)
-	libraryData, statusCode, err := api.SendSealRequest[any](
-		s.Client,
-		"GET",
-		fmt.Sprintf("%s/%s/%s/%s/%s", api.MavenServer, orgName, artifactName, version, filename),
-		nil,
-		[]api.StringPair{authHeader},
-		nil,
+	libraryData, statusCode, err := s.Get(
+		fmt.Sprintf("%s/%s/%s/%s", orgName, artifactName, version, filename),
+		nil, nil,
 	)
 
 	if err != nil {
@@ -47,13 +42,10 @@ func DownloadMavenPackage(s api.Server, name string, version string) ([]byte, er
 	}
 
 	// Check sha1sum
-	librarySha1, statusCode, err := api.SendSealRequest[any](
-		s.Client,
-		"GET",
-		fmt.Sprintf("%s/%s/%s/%s/%s", api.MavenServer, orgName, artifactName, version, sha1Filename),
-		nil,
-		[]api.StringPair{authHeader},
-		nil,
+
+	librarySha1, statusCode, err := s.Get(
+		fmt.Sprintf("%s/%s/%s/%s", orgName, artifactName, version, sha1Filename),
+		nil, nil,
 	)
 
 	if err != nil {
@@ -74,7 +66,7 @@ func DownloadMavenPackage(s api.Server, name string, version string) ([]byte, er
 	shaBytes := sha1.Sum(libraryData)
 	calcSha1 := hex.EncodeToString(shaBytes[:])
 	if calcSha1 != string(librarySha1) {
-		return nil, fmt.Errorf("wrong checksum for package; expected: %s ; got %s", calcSha1, librarySha1)
+		return nil, fmt.Errorf("wrong checksum for package; expected: %s ; got %s", librarySha1, calcSha1)
 	}
 
 	return libraryData, nil

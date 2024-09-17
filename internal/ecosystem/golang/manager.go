@@ -117,7 +117,7 @@ func (m *GolangPackageManager) GetScanTargets() []string {
 	return []string{m.golangTargetFile}
 }
 
-func (m *GolangPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *GolangPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
 	return DownloadPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 

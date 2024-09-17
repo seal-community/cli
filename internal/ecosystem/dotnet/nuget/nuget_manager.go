@@ -153,7 +153,7 @@ func (m *NugetPackageManager) GetScanTargets() []string {
 	return []string{m.nugetTargetFile}
 }
 
-func (m *NugetPackageManager) DownloadPackage(server api.Server, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *NugetPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
 	return DownloadNugetPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 

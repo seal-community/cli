@@ -1,7 +1,10 @@
 package phase
 
 import (
+	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/mappings"
+	"cli/internal/ecosystem/shared"
 	"cli/internal/project"
 	"fmt"
 	"os"
@@ -73,5 +76,28 @@ func TestGetProjectDirFromFile(t *testing.T) {
 func TestGetProjectDirEmpty(t *testing.T) {
 	if projDir := getProjectDirAbs(""); projDir != common.CliCWD {
 		t.Fatalf("got %s instead of %s for file %s", projDir, "", common.CliCWD)
+	}
+}
+
+func TestGetArtifactServerUrl(t *testing.T) {
+	tests := []struct {
+		ecosystem   string
+		expectedUrl string
+	}{
+		{mappings.PythonEcosystem, api.PypiServer},
+		{mappings.NodeEcosystem, api.NpmServer},
+		{mappings.DotnetEcosystem, api.NugetServer},
+		{mappings.JavaEcosystem, api.MavenServer},
+		{mappings.NodeEcosystem, api.NpmServer},
+		{mappings.GolangEcosystem, api.GolangServer},
+		{"bad123", ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.ecosystem, func(t *testing.T) {
+			if url := getArtifactServerUrl(&shared.FakePackageManager{Ecosystem: test.ecosystem}, nil); url != test.expectedUrl {
+				t.Fatalf("expected %s for ecosystem %s; got %s", test.expectedUrl, test.ecosystem, url)
+			}
+		})
 	}
 }
