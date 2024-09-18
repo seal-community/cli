@@ -17,6 +17,8 @@ type fixer struct {
 }
 
 func prepareCacheDir(newCacheDir string, oldCacheDir string) error {
+	defer common.ExecutionTimer().Log()
+
 	// Clean the new cache dir
 	err := os.RemoveAll(newCacheDir)
 	if err != nil {
