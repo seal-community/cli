@@ -25,7 +25,7 @@ func FindEggInfoPath(sitePackages string, name string, version string) string {
 		return ""
 	}
 	for _, entry := range entries {
-		if isEggInfoPath(entry.Name(), name, version) {
+		if isEggInfoPath(entry.Name(), EscapePackageName(name), version) {
 			return filepath.Join(sitePackages, entry.Name())
 		}
 	}

@@ -126,6 +126,7 @@ func getSourceName(payload []byte) (string, error) {
 
 // Given a site-packages directory and the source package name, find the dist-info or egg-info directory
 func findSitePackagesInfo(sitePackagesPath string, srcName string) (string, error) {
+	slog.Info("finding dist-info directory", "site-packages", sitePackagesPath, "src-name", srcName)
 	distInfoCandidates, err := os.ReadDir(sitePackagesPath)
 	if err != nil {
 		slog.Error("failed reading site-packages", "err", err)
@@ -136,8 +137,8 @@ func findSitePackagesInfo(sitePackagesPath string, srcName string) (string, erro
 	for _, d := range distInfoCandidates {
 		fname := d.Name()
 		ext := path.Ext(fname)
-
-		if strings.HasPrefix(fname, srcName) && (ext == ".dist-info" || ext == ".egg-info") {
+		slog.Info("checking file", "file", fname, "ext", ext)
+		if strings.HasPrefix(EscapePackageName(fname), EscapePackageName(srcName)) && (ext == ".dist-info" || ext == ".egg-info") {
 			distInfoPath = fname
 			break
 		}
