@@ -46,9 +46,10 @@ func GetCacheDir(projectDir string) string {
 
 	if result.Code != 0 {
 		// maven outputs errors to stdout
-		slog.Error("getting cache dir using maven command failed", "err", result.Stderr, "out", result.Stdout)
+		slog.Error("getting cache dir using maven command failed", "err", result.Stderr, "out", result.Stdout, "exitcode", result.Code)
 		return ""
 	}
+
 	slog.Info("maven cache dir: ", "dir", result.Stdout)
 	return result.Stdout
 }

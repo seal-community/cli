@@ -126,9 +126,10 @@ func (m *MavenPackageManager) GetProjectName() string {
 	args := []string{"help:evaluate", "-Dexpression=project.name", "-q", "-DforceStdout"}
 	listResult, err := common.RunCmdWithArgs(m.targetDir, utils.MavenExeName, args...)
 	if err != nil || listResult.Code != 0 {
-		slog.Warn("failed to get maven project name")
+		slog.Warn("failed to get maven project name", "err", err, "exitcode", listResult.Code)
 		return ""
 	}
+
 	slog.Info("maven project name: ", "name", listResult.Stdout)
 	return listResult.Stdout
 }

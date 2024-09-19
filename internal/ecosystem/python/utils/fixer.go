@@ -201,13 +201,17 @@ func (f *fixer) extractSourcePackage(sitePackagesPath string, payload []byte) (s
 		slog.Error("failed to run pip install", "err", err)
 		return "", err
 	}
+
 	if pr.Code != 0 {
+		slog.Error("pip failed installing source package", "exitcode", pr.Code, "path", tmpPath)
+
 		pipOutput, err := writePipOutput(pr.Stdout)
 		if err != nil {
 			// log the error to not lose it in case of double failure
 			slog.Error("failed writing pip output", "err", err, "output", pr.Stdout)
 			return "", err
 		}
+
 		return "", common.NewPrintableError("failed installing %s from source, this is probably an issue with pip, check its output at %s", srcName, pipOutput)
 	}
 

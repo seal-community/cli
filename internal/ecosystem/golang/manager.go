@@ -44,8 +44,9 @@ func (m *GolangPackageManager) GetVersion() string {
 		slog.Error("failed running go version", "err", err)
 		return ""
 	}
+
 	if versionOutput.Code != 0 {
-		slog.Error("running go version returned non-zero", "result", versionOutput)
+		slog.Error("running go version returned non-zero", "result", versionOutput, "exitcode", versionOutput.Code)
 		return ""
 	}
 

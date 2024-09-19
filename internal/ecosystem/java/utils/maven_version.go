@@ -16,9 +16,10 @@ func GetVersion(targetDir string) string {
 		slog.Error("failed running maven version", "err", err)
 		return ""
 	}
+
 	if result.Code != 0 {
 		// maven outputs the error to stdout
-		slog.Error("running maven version returned non-zero", "err", result.Stderr, "out", result.Stdout)
+		slog.Error("running maven version returned non-zero", "err", result.Stderr, "out", result.Stdout, "exitcode", result.Code)
 		return ""
 	}
 

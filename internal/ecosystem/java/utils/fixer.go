@@ -4,9 +4,12 @@ import (
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/otiai10/copy"
 )
 
 type fixer struct {
@@ -16,20 +19,98 @@ type fixer struct {
 	cacheDir   string
 }
 
+func copyTreeLinks(root string, targetRoot string) error {
+	defer common.ExecutionTimer().Log()
+	err := filepath.WalkDir(root, func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			slog.Error("failed walkdir", "root", root, "path", path, "err", err)
+			return err
+		}
+
+		if root == path {
+			// is the root of the entire tree
+			return nil
+		}
+
+		info, err := de.Info()
+		if err != nil {
+			slog.Error("failed getting info", "entry", de)
+			return err
+		}
+
+		ft := de.Type()
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			slog.Error("failed getting rel path", "root", root, "path", path)
+			return err
+		}
+
+		target := filepath.Join(targetRoot, rel)
+
+		if info.Mode()&os.ModeSymlink != 0 {
+			slog.Warn("found symlink - copyin as is", "path", path, "target", target)
+
+			opts := copy.Options{
+				PreserveTimes: true,
+				PreserveOwner: true,
+				OnSymlink: func(src string) copy.SymlinkAction {
+					return copy.Shallow
+				}}
+
+			if err := copy.Copy(path, target, opts); err != nil {
+				slog.Error("failed copying rel path", "target", target, "path", path)
+				return err
+			}
+
+			return nil
+		}
+
+		if ft.IsDir() {
+			if err := os.Mkdir(target, os.ModePerm); err != nil {
+				slog.Error("failed making dir in target", "target", target)
+				return err
+			}
+
+			return nil
+		}
+
+		if ft.IsRegular() {
+			// file - link it
+			if err := os.Symlink(path, target); err != nil {
+				slog.Error("failed making symlink to file in target", "path", path, "target", target)
+				return err
+			}
+
+			return nil
+		}
+
+		slog.Warn("unsupported dir entry type", "entry", de, "file-mode", ft)
+
+		return nil
+	})
+
+	return err
+}
+
+// creates a 'private' repo in the project's folder and uses symlinks to all the files in the original
 func prepareCacheDir(newCacheDir string, oldCacheDir string) error {
 	defer common.ExecutionTimer().Log()
 
-	// Clean the new cache dir
 	err := os.RemoveAll(newCacheDir)
 	if err != nil {
-		slog.Error("failed cleaning new cache dir", "dir", newCacheDir)
+		slog.Error("failed cleaning new cache dir", "dir", newCacheDir, "err", err)
 		return common.NewPrintableError("failed cleaning new cache dir")
 	}
 
 	// Copy the old cache to the new cache to save time
 	if oldCacheDir != "" {
-		err = common.CopyDir(oldCacheDir, newCacheDir)
-		if err != nil {
+		if err := os.Mkdir(newCacheDir, os.ModePerm); err != nil {
+			slog.Error("failed making cache dir", "err", err, "path", newCacheDir)
+			return err
+		}
+
+		if err := copyTreeLinks(oldCacheDir, newCacheDir); err != nil {
+			slog.Error("failed making copy of m2 tree dir", "err", err, "from", oldCacheDir, "to", newCacheDir)
 			return err
 		}
 	}
@@ -52,22 +133,25 @@ func (f *fixer) Prepare() error {
 		slog.Warn("failed getting maven cache dir")
 		return common.NewPrintableError("failed getting maven cache dir")
 	}
-	if currCacheDir != f.cacheDir {
-		slog.Info("preparing maven cache dir", "dir", f.cacheDir)
-		err := prepareCacheDir(f.cacheDir, currCacheDir)
-		if err != nil {
-			return err
-		}
+
+	if currCacheDir == f.cacheDir {
+		slog.Info("skipping cache dir setup, already set")
+		return nil
 	}
-	return nil
+
+	slog.Info("preparing maven cache dir", "dir", f.cacheDir)
+	err := prepareCacheDir(f.cacheDir, currCacheDir)
+
+	return err
 }
 
+// copy a backup for the original artifact to the workdir (tmp location)
+// override the artifact file in the cache dir (will set it as the cache in HandleFixes)
+// add to the rollback map
 func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
-	// copy a backup for the original version to the workdir (tmp location)
-	// override the jar file in the cache dir (will set it as the cache in HandleFixes)
-	// add to the rollback map
-	_, ArtifactName, err := SplitJavaPackageName(dep.Name)
+	_, artifactId, err := SplitJavaPackageName(dep.Name)
 	if err != nil {
+		slog.Error("failed getting package name for dep", "err", err, "path", dep.Name)
 		return false, err
 	}
 
@@ -81,24 +165,45 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 		return false, fmt.Errorf("failed getting temp storage path for package")
 	}
 
-	err = common.CopyDir(origVersionDirPath, tmpVersionDirPath)
+	resolvedOriginDir, err := filepath.EvalSymlinks(origVersionDirPath)
 	if err != nil {
-		slog.Error("failed copying original version dir to tmp", "orig", origVersionDirPath, "tmp", tmpVersionDirPath)
-		return false, common.NewPrintableError("failed backing up the original version for: %s", origVersionDirPath)
+		slog.Error("failed resolving symlink", "err", err, "path", origVersionDirPath)
+		return false, err
 	}
 
-	f.rollback[origVersionDirPath] = tmpVersionDirPath
+	if filepath.Clean(origVersionDirPath) != resolvedOriginDir {
+		slog.Error("original artifact is symlink", "path", origVersionDirPath, "resolved", resolvedOriginDir)
+		return false, common.NewPrintableError("cannot fix %s:%s - located behind a symbolic link", dep.Name, dep.Version)
+	}
 
-	jarPath := filepath.Join(origVersionDirPath, GetPackageFileName(ArtifactName, dep.Version))
-	slog.Info("writing to jar file", "path", jarPath)
-	jarFile, err := os.OpenFile(jarPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	artifactFileName := GetPackageFileName(artifactId, dep.Version)
+	bkupPath := filepath.Join(tmpVersionDirPath, artifactFileName)
+	artifactPath := filepath.Join(origVersionDirPath, artifactFileName)
+
+	if err := os.MkdirAll(tmpVersionDirPath, 0755); err != nil {
+		slog.Error("failed making backup dirs", "err", err, "path", tmpVersionDirPath)
+		return false, err
+	}
+
+	if err := os.Rename(artifactPath, bkupPath); err != nil {
+		slog.Error("failed renaming artifact", "err", err, "from", artifactPath, "to", bkupPath)
+		return false, err
+	}
+
+	f.rollback[artifactPath] = bkupPath
+
+	slog.Info("writing to jar file", "path", artifactPath)
+
+	jarFile, err := os.OpenFile(artifactPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
+		slog.Error("failed creating file", "err", err, "path", jarFile)
 		return false, fmt.Errorf("failed creating jar file: %w", err)
 	}
 	defer jarFile.Close()
 
 	_, err = jarFile.Write(packageData)
 	if err != nil {
+		slog.Error("failed fixing package", "err", err, "path", jarFile)
 		return false, fmt.Errorf("failed writing to jar file: %w", err)
 	}
 

@@ -56,8 +56,9 @@ func getPipMetadata(targetDir string) *pipMetadata {
 		slog.Error("failed running pip version", "err", err)
 		return nil
 	}
+
 	if result.Code != 0 {
-		slog.Error("running pip version returned non-zero", "result", result)
+		slog.Error("running pip version returned non-zero", "result", result, "exitcode", result.Code)
 		return nil
 	}
 
@@ -166,6 +167,7 @@ func listPackages(targetDir string) (*common.ProcessResult, bool) {
 	if listResult.Code != 0 {
 		return listResult, false
 	}
+
 	if versionResult.Code != 0 {
 		return versionResult, false
 	}
@@ -222,6 +224,7 @@ func (m *PipPackageManager) getHostCompatibleTags() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if result.Code != 0 {
 		return nil, fmt.Errorf("failed running pip debug")
 	}

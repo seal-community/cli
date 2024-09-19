@@ -339,6 +339,7 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []share
 	for downloadedPackage := range downloadResultsChannel {
 		err, fixedLocations := fp.fixPackage(downloadedPackage, fixer)
 		if err != nil {
+			slog.Error("failed fixing package", "err", err)
 			return nil, err
 		}
 
