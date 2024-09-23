@@ -5,6 +5,7 @@ import (
 	"cli/internal/ecosystem/mappings"
 	"io"
 	"log/slog"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -40,6 +41,20 @@ func grypePackageManager(pkgManager string) string {
 	}
 }
 
+func grypePkgName(pkg string, pkgManager string) string {
+	if pkgManager == mappings.MavenManger {
+		// Maven packages are in the format `group:artifact`
+		// we need to drop the group name
+		//
+		// Example:
+		// com.fasterxml.jackson.core:jackson-databind -> jackson-databind
+		// org.apache.commons:commons-lang3 -> commons-lang3
+		parts := strings.Split(pkg, ":")
+		return parts[max(0, len(parts)-1)]
+	}
+	return pkg
+}
+
 // Creates a new ignore rule for the given package and version
 // https://github.com/anchore/grype/tree/v0.80.0?tab=readme-ov-file#specifying-matches-to-ignore
 func buildIgnoreRule(vulnId, pkg, version, pkgManager string) *yaml.Node {
@@ -49,7 +64,7 @@ func buildIgnoreRule(vulnId, pkg, version, pkgManager string) *yaml.Node {
 	// we don't add `location` since the CLI fixes everywhere
 	packageContent := []*yaml.Node{
 		{Kind: yaml.ScalarNode, Value: "name"},
-		{Kind: yaml.ScalarNode, Value: pkg},
+		{Kind: yaml.ScalarNode, Value: grypePkgName(pkg, pkgManager)},
 		{Kind: yaml.ScalarNode, Value: "version"},
 		{Kind: yaml.ScalarNode, Value: version},
 	}

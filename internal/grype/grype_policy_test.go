@@ -263,3 +263,40 @@ func TestGrypePackageManager(t *testing.T) {
 		})
 	}
 }
+
+func TestAddMavenRuleDropsGroupName(t *testing.T) {
+	vulnId := "GHSA-rgv9-q543-rqg4"
+	groupName := "com.fasterxml.jackson.core"
+	artifactId := "jackson-databind"
+	pkg := fmt.Sprintf("%s:%s", groupName, artifactId)
+	version := "2.10.5.1"
+	pkgManager := "java-archive"
+	bePkgManager := "Maven"
+	expected := fmt.Sprintf(`ignore:
+  - vulnerability: %s
+    reason: Fixed by Seal Security
+    package:
+      name: %s
+      version: %s
+      type: %s
+`, vulnId, artifactId, version, pkgManager)
+
+	pf, err := NewPolicy()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !pf.AddRule(vulnId, pkg, version, bePkgManager) {
+		t.Fatal("expected true")
+	}
+
+	b := &strings.Builder{}
+	err = SavePolicy(pf, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if b.String() != expected {
+		t.Fatalf("expected %s, got %s", expected, b.String())
+	}
+}
