@@ -3,6 +3,7 @@ package scanners
 import (
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/mappings"
 	"cli/internal/grype"
 	"log/slog"
 )
@@ -48,6 +49,14 @@ func EditGrypePolicyFile(policyFilePath string, vulnerable []api.PackageVersion,
 					slog.Debug("adding fixed vulerability to grype policy", "vuln", vulnId, "package", fixedPackage.Library.Name, "recommended version", fixedPackage.RecommendedLibraryVersionString)
 					if pf.AddRule(vulnId, linkedVulnPackage.Library.Name, linkedVulnPackage.Version, linkedVulnPackage.Library.PackageManager) {
 						addedRules = true
+					}
+
+					if mappings.MavenManger == linkedVulnPackage.Library.PackageManager {
+						// On maven, grype warns our sp packages as vulnerable as well, so we need to ignore them too.
+						slog.Debug("Working on maven - adding ignore rule for .grype.yaml for sp version as well", "fixed version", fixedPackage.Version)
+						if pf.AddRule(vulnId, linkedVulnPackage.Library.Name, fixedPackage.Version, linkedVulnPackage.Library.PackageManager) {
+							addedRules = true
+						}
 					}
 				}
 			}

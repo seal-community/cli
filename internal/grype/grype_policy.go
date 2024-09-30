@@ -12,10 +12,17 @@ import (
 
 const PolicyFileName = ".grype.yaml"
 
+type ExistingVulnsKey struct {
+	packageManager string
+	vulnId         string
+	packageName    string
+	packageVersion string
+}
+
 type PolicyFile struct {
 	root          yaml.Node
-	ignore        *yaml.Node      // to inject new rules
-	existingVulns map[string]bool // used to prevent addition of rules with duplicate values
+	ignore        *yaml.Node                // to inject new rules
+	existingVulns map[ExistingVulnsKey]bool // used to prevent addition of rules with duplicate values
 }
 
 const fixReason = "Fixed by Seal Security"
@@ -116,8 +123,16 @@ func buildIgnoreRule(vulnId, pkg, version, pkgManager string) *yaml.Node {
 }
 
 func (pf *PolicyFile) AddRule(vulnId string, pkg string, version string, pkgManager string) bool {
-	if _, exists := pf.existingVulns[vulnId]; exists {
-		slog.Warn("grype ignore rule already exists", "id", vulnId)
+	ruleKey := ExistingVulnsKey{
+		packageManager: grypePackageManager(pkgManager),
+		vulnId:         vulnId,
+		packageName:    pkg,
+		packageVersion: version,
+	}
+
+	slog.Debug("Checking existence of rule: ", "rule", ruleKey)
+	if _, exists := pf.existingVulns[ruleKey]; exists {
+		slog.Warn("grype ignore rule already exists", "rule", ruleKey)
 		return false
 	}
 
@@ -126,7 +141,8 @@ func (pf *PolicyFile) AddRule(vulnId string, pkg string, version string, pkgMana
 	ignoreRuleNode := buildIgnoreRule(vulnId, pkg, version, pkgManager)
 
 	pf.ignore.Content = append(pf.ignore.Content, ignoreRuleNode)
-	pf.existingVulns[vulnId] = true
+
+	pf.existingVulns[ruleKey] = true
 	return true
 }
 
@@ -192,7 +208,7 @@ func LoadPolicy(r io.Reader) (*PolicyFile, error) {
 		}
 	}
 
-	existingVulns := make(map[string]bool)
+	existingVulns := make(map[ExistingVulnsKey]bool)
 	for _, ignoreEntry := range ignore.Content {
 		for i, field := range ignoreEntry.Content {
 			if field.Kind == yaml.ScalarNode && field.Value == "vulnerability" {
@@ -201,9 +217,13 @@ func LoadPolicy(r io.Reader) (*PolicyFile, error) {
 					return nil, common.NewPrintableError(".grype.yaml file parsing error")
 				}
 
-				vulnId := ignoreEntry.Content[i+1].Value
-				slog.Debug("adding existing ignore rule", "rule", vulnId)
-				existingVulns[vulnId] = true
+				vulnsKey, err := extractExistingVulnsKey(ignoreEntry, i)
+				if err != nil {
+					return nil, err
+				}
+
+				slog.Debug("Loading rule: ", "rule", vulnsKey)
+				existingVulns[*vulnsKey] = true
 			}
 		}
 	}
@@ -215,6 +235,41 @@ func LoadPolicy(r io.Reader) (*PolicyFile, error) {
 	}
 
 	return &pf, nil
+}
+
+func extractExistingVulnsKey(ignoreEntry *yaml.Node, vulnIndex int) (*ExistingVulnsKey, error) {
+	var existingVulnsKey ExistingVulnsKey
+
+	existingVulnsKey.vulnId = ignoreEntry.Content[vulnIndex+1].Value
+
+	for j := vulnIndex + 2; j < len(ignoreEntry.Content); j++ {
+		packageField := ignoreEntry.Content[j]
+		// Parsing package object under vulnerability
+		if packageField.Kind == yaml.ScalarNode && packageField.Value == "package" {
+			if j+1 >= len(ignoreEntry.Content) || ignoreEntry.Content[j+1].Kind != yaml.MappingNode {
+				slog.Warn("bad ignore entry, missing package details", "entry", ignoreEntry)
+				return nil, common.NewPrintableError(".grype.yaml file parsing error")
+			}
+
+			packageDetails := ignoreEntry.Content[j+1]
+			for k := 0; k < len(packageDetails.Content); k += 2 {
+				key := packageDetails.Content[k]
+				value := packageDetails.Content[k+1]
+				if key.Kind == yaml.ScalarNode {
+					switch key.Value {
+					case "name":
+						existingVulnsKey.packageName = value.Value
+					case "version":
+						existingVulnsKey.packageVersion = value.Value
+					case "type":
+						existingVulnsKey.packageManager = value.Value
+					}
+				}
+			}
+		}
+	}
+
+	return &existingVulnsKey, nil
 }
 
 func SavePolicy(pf *PolicyFile, w io.Writer) error {
@@ -240,7 +295,7 @@ func NewPolicy() (*PolicyFile, error) {
 	pf := &PolicyFile{
 		root:          root,
 		ignore:        ignore,
-		existingVulns: make(map[string]bool),
+		existingVulns: make(map[ExistingVulnsKey]bool),
 	}
 	return pf, nil
 }

@@ -9,7 +9,8 @@ import (
 
 func TestLoadPolicyWithIgnore(t *testing.T) {
 	var tests = []struct {
-		content string
+		content     string
+		expectedKey ExistingVulnsKey
 	}{
 		{
 			`ignore:
@@ -18,7 +19,12 @@ func TestLoadPolicyWithIgnore(t *testing.T) {
       name: aiohttp
       version: 3.9.5
       type: python
-`},
+`, ExistingVulnsKey{
+				vulnId:         "GHSA-jwhx-xcg6-8xhj",
+				packageName:    "aiohttp",
+				packageVersion: "3.9.5",
+				packageManager: "python",
+			}},
 		{
 			`# This configuration file will be used to track CVEs that we can ignore for the
 # latest release of Dangerzone, and offer our analysis.
@@ -27,7 +33,12 @@ func TestLoadPolicyWithIgnore(t *testing.T) {
     # GHSA-jwhx-xcg6-8xhj
     # =============
     - vulnerability: GHSA-jwhx-xcg6-8xhj
-`},
+`, ExistingVulnsKey{
+				vulnId:         "GHSA-jwhx-xcg6-8xhj",
+				packageName:    "",
+				packageVersion: "",
+				packageManager: "",
+			}},
 		{
 			`ignore:
 - vulnerability: GHSA-jwhx-xcg6-8xhj
@@ -36,7 +47,12 @@ func TestLoadPolicyWithIgnore(t *testing.T) {
     version: 3.9.5
     type: python
 add-cpes-if-none: true
-`},
+`, ExistingVulnsKey{
+				vulnId:         "GHSA-jwhx-xcg6-8xhj",
+				packageName:    "aiohttp",
+				packageVersion: "3.9.5",
+				packageManager: "python",
+			}},
 	}
 
 	for _, tt := range tests {
@@ -50,7 +66,12 @@ add-cpes-if-none: true
 			t.Fatalf("expected 1 ignore rule, got %d", len(pf.ignore.Content))
 		}
 
-		if ok := pf.existingVulns["GHSA-jwhx-xcg6-8xhj"]; !ok {
+		var vulnKey ExistingVulnsKey
+		for key := range pf.existingVulns {
+			vulnKey = key
+			break
+		}
+		if vulnKey != tt.expectedKey {
 			t.Fatalf("expected to find GHSA-jwhx-xcg6-8xhj in existing vulns")
 		}
 	}
@@ -187,11 +208,7 @@ func TestAddRuleWithExisting(t *testing.T) {
 	}
 
 	if pf.AddRule(vulnId, pkg, version, bePkgManager) {
-		t.Fatal("expected true")
-	}
-
-	if pf.AddRule(vulnId, "some", "other", "npm") {
-		t.Fatal("expected true")
+		t.Fatal("expected false")
 	}
 
 	b := &strings.Builder{}
@@ -298,5 +315,148 @@ func TestAddMavenRuleDropsGroupName(t *testing.T) {
 
 	if b.String() != expected {
 		t.Fatalf("expected %s, got %s", expected, b.String())
+	}
+}
+
+func Test(t *testing.T) {
+	expected := `ignore:
+  - vulnerability: CVE-2022-29217
+    reason: Fixed by Seal Security
+    package:
+      name: pyjwt
+      version: 1.7.1
+      type: python`
+	r := strings.NewReader(expected)
+	pf, err := LoadPolicy(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(pf.ignore.Content) != 1 {
+		t.Fatalf("expected 1 ignore rule, got %d", len(pf.ignore.Content))
+	}
+
+	pf.AddRule("CVE-2022-29217", "pyjwt", "1.7.1", "python")
+}
+
+func TestExtractExistingVulnsKey(t *testing.T) {
+	tests := []struct {
+		vulnIndex   int
+		name        string
+		content     string
+		expectedKey ExistingVulnsKey
+		expectError bool
+	}{
+		{
+			vulnIndex: 0,
+			name:      "Valid vulnerability entry",
+			content: `ignore:
+- vulnerability: CVE-2021-1234
+  package:
+    name: package1
+    version: 1.0.0
+    type: python
+`,
+			expectedKey: ExistingVulnsKey{
+				vulnId:         "CVE-2021-1234",
+				packageName:    "package1",
+				packageVersion: "1.0.0",
+				packageManager: "python",
+			},
+			expectError: false,
+		},
+		{
+			vulnIndex: 0,
+			name:      "Vulnerability entry with extra fields",
+			content: `ignore:
+- randomkey: randomvalue
+  vulnerability: CVE-2021-5678
+  package:
+    name: package2
+    version: 2.0.0
+    type: rpm
+`,
+			expectedKey: ExistingVulnsKey{
+				vulnId:         "CVE-2021-5678",
+				packageName:    "package2",
+				packageVersion: "2.0.0",
+				packageManager: "rpm",
+			},
+			expectError: false,
+		},
+		{
+			vulnIndex: 0,
+			name:      "Vulnerability entry with missing package details",
+			content: `ignore:
+- vulnerability: CVE-2021-9999
+  package:
+    name: 
+`,
+			expectedKey: ExistingVulnsKey{
+				vulnId:         "CVE-2021-9999",
+				packageName:    "",
+				packageVersion: "",
+				packageManager: "",
+			},
+			expectError: false,
+		},
+		{
+			vulnIndex: 0,
+			name:      "Malformed package field",
+			content: `ignore:
+- vulnerability: CVE-2021-1234
+  package: badformat
+`,
+			expectedKey: ExistingVulnsKey{},
+			expectError: true,
+		},
+		{
+			vulnIndex: 0,
+			name:      "Vulnerability entry with additional random keys",
+			content: `ignore:
+- vulnerability: CVE-2022-3456
+  package:
+    name: package4
+    version: 4.0.0
+    type: tar
+  random: value
+  extra:
+    more: values
+`,
+			expectedKey: ExistingVulnsKey{
+				vulnId:         "CVE-2022-3456",
+				packageName:    "package4",
+				packageVersion: "4.0.0",
+				packageManager: "tar",
+			},
+			expectError: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pf, err := LoadPolicy(strings.NewReader(test.content))
+
+			if test.expectError && err == nil {
+				t.Fatal("Expected error but got none")
+			}
+			if !test.expectError && err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			if !test.expectError {
+				if len(pf.existingVulns) != 1 {
+					t.Fatalf("Expected one vulnerability in existing vulns")
+				}
+				var vulnKey ExistingVulnsKey
+				for key := range pf.existingVulns {
+					vulnKey = key
+					break
+				}
+				if vulnKey != test.expectedKey {
+					t.Fatalf("Expected %#v, got %#v", test.expectedKey, vulnKey)
+				}
+			}
+		})
 	}
 }
