@@ -158,6 +158,9 @@ func (m *NugetPackageManager) DownloadPackage(server api.ArtifactServer, descrip
 }
 
 func (m *NugetPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+	if m.Config.UseSealedNames {
+		slog.Warn("using sealed names in nuget is not supported yet")
+	}
 	return handleFixes(m.targetDir, fixes)
 }
 

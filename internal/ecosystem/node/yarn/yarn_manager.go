@@ -110,6 +110,9 @@ func (m *YarnPackageManager) DownloadPackage(server api.ArtifactServer, descript
 }
 
 func (m *YarnPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+	if m.Config.UseSealedNames {
+		slog.Warn("using sealed names in yarn is not supported yet")
+	}
 	return nil
 }
 

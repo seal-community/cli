@@ -316,6 +316,9 @@ func (m *PipPackageManager) DownloadPackage(server api.ArtifactServer, descripto
 }
 
 func (m *PipPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+	if m.Config.UseSealedNames {
+		slog.Warn("using sealed names in pip is not supported yet")
+	}
 	return nil
 }
 

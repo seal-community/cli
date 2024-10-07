@@ -123,6 +123,9 @@ func (m *GolangPackageManager) DownloadPackage(server api.ArtifactServer, descri
 }
 
 func (m *GolangPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+	if m.Config.UseSealedNames {
+		slog.Warn("using sealed names in golang is not supported yet")
+	}
 	return nil
 }
 

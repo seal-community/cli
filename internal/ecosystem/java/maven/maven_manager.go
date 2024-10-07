@@ -150,16 +150,47 @@ func (m *MavenPackageManager) DownloadPackage(server api.ArtifactServer, descrip
 	return utils.DownloadMavenPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
+// Overwrites the jar file in diskPath to a new jar containing the sealed names
+func changeToSealedName(packageName, packageOriginalVersion, diskPath string) error {
+	groupId, artifactId, err := utils.SplitJavaPackageName(packageName)
+	if err != nil {
+		slog.Error("failed getting package name for dependency", "err", err, "path", packageName)
+		return common.NewPrintableError("failed getting package name for dependency %s", packageName)
+	}
+
+	newJarPath, err := utils.CreateSealedNameJar(diskPath, groupId, artifactId, packageOriginalVersion)
+	if err != nil {
+		slog.Error("failed changing to sealed name", "err", err, "path", diskPath)
+		return common.NewPrintableError("failed changing package %s to sealed name", packageName)
+	}
+
+	if err = os.Rename(newJarPath, diskPath); err != nil {
+		slog.Error("failed renaming sealed file", "err", err, "from", newJarPath, "to", diskPath)
+		return err
+	}
+
+	return nil
+}
+
 // HandleFixes will create a metadata file for each package in the fixes map to indicate it was fixed
 func (m *MavenPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
 	for _, fix := range fixes {
 		metadata := shared.SealPackageMetadata{SealedVersion: fix.AvailableFix.Version}
-		packageDirPath := utils.GetJavaPackagePath(m.cacheDir, fix.VulnerablePackage.Library.Name, fix.VulnerablePackage.Version)
+		packageDirPath := utils.GetJavaPackagePath(m.cacheDir, fix.VulnerablePackage.Library.Name, fix.AvailableFix.OriginVersionString)
 		metadataFilePath := filepath.Join(packageDirPath, shared.SealMetadataFileName)
 
 		err := shared.SavePackageMetadata(metadata, metadataFilePath)
 		if err != nil {
 			return err
+		}
+
+		if m.Config.UseSealedNames {
+			for _, diskPath := range fix.FixedLocations {
+				slog.Info("changing package to sealed name", "id", fix.VulnerablePackage.Library.Name, "path", diskPath)
+				if err := changeToSealedName(fix.VulnerablePackage.Library.Name, fix.AvailableFix.OriginVersionString, diskPath); err != nil {
+					return common.FallbackPrintableMsg(err, "failed changing %s to sealed name", fix.VulnerablePackage.Library.Name)
+				}
+			}
 		}
 	}
 

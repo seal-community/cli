@@ -160,7 +160,8 @@ func (m *NpmPackageManager) DownloadPackage(server api.ArtifactServer, descripto
 
 // according to config, update lock file with the seal prefix
 func (m *NpmPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
-	if !m.Config.Npm.UpdatePackageNames {
+	// backwards compatibility for the previous config value
+	if !(m.Config.Npm.UpdatePackageNames || m.Config.UseSealedNames) {
 		slog.Debug("not updating package lock")
 		return nil
 	}

@@ -65,6 +65,8 @@ type Config struct {
 
 	// the following map deprecates the Project field, but we keep support for backward compatibility and utilizing it for 'caching' the selected project
 	ProjectMap map[string]ProjectInfo `yaml:"projects"` // project id is the key - no env override for this
+
+	UseSealedNames bool `yaml:"use-sealed-names" env:"USE_SEALED_NAMES"`
 }
 
 var FailedParsingConfYaml = common.NewPrintableError("could not parse configuration")

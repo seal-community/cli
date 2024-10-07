@@ -139,6 +139,9 @@ func (m *PnpmPackageManager) DownloadPackage(server api.ArtifactServer, descript
 }
 
 func (m *PnpmPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+	if m.Config.UseSealedNames {
+		slog.Warn("using sealed names in pnpm is not supported yet")
+	}
 	return nil
 }
 
