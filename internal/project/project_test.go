@@ -97,6 +97,7 @@ func TestFormatProjectIdForRepo(t *testing.T) {
 		t.Fatalf("wrong project id %s", payload)
 	}
 }
+
 func TestFormatProjectIdForRepoFails(t *testing.T) {
 	payload := formatProjectIdForRepo("requirements.txt", "aa\ncc") // should fail according to internal code in url.Parse
 	if payload != "" {

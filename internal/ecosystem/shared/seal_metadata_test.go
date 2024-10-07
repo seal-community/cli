@@ -55,3 +55,65 @@ func TestSanity(t *testing.T) {
 		t.Fatalf("failed parsing content - got %s expected %s", metadata.SealedVersion, versionValue)
 	}
 }
+
+func TestWriteMetadataSanity(t *testing.T) {
+	versionValue := "1.2.3"
+	metadata := SealPackageMetadata{SealedVersion: versionValue}
+	w := &strings.Builder{}
+	err := WritePackageMetadata(metadata, w)
+
+	if err != nil {
+		t.Fatalf("failed writing metadata: %v", err)
+	}
+
+	content := w.String()
+	readMetadata, err := LoadPackageMetadata(strings.NewReader(content))
+	if err != nil {
+		t.Fatalf("failed loading metadata: %v", err)
+	}
+
+	if readMetadata.SealedVersion != versionValue {
+		t.Fatalf("failed parsing content - got %s expected %s", readMetadata.SealedVersion, versionValue)
+	}
+}
+
+func TestWriteMetadataOverride(t *testing.T) {
+	versionValue := "1.2.3"
+	metadata := SealPackageMetadata{SealedVersion: versionValue}
+	w := &strings.Builder{}
+	err := WritePackageMetadata(metadata, w)
+
+	if err != nil {
+		t.Fatalf("failed writing metadata: %v", err)
+	}
+
+	content := w.String()
+	readMetadata, err := LoadPackageMetadata(strings.NewReader(content))
+	if err != nil {
+		t.Fatalf("failed loading metadata: %v", err)
+	}
+
+	if readMetadata.SealedVersion != versionValue {
+		t.Fatalf("failed parsing content - got %s expected %s", readMetadata.SealedVersion, versionValue)
+	}
+
+	// override
+	newVersionValue := "4.5.6"
+	metadata.SealedVersion = newVersionValue
+	w.Reset()
+	err = WritePackageMetadata(metadata, w)
+
+	if err != nil {
+		t.Fatalf("failed writing metadata: %v", err)
+	}
+
+	content = w.String()
+	readMetadata, err = LoadPackageMetadata(strings.NewReader(content))
+	if err != nil {
+		t.Fatalf("failed loading metadata: %v", err)
+	}
+
+	if readMetadata.SealedVersion != newVersionValue {
+		t.Fatalf("failed parsing content - got %s expected %s", readMetadata.SealedVersion, newVersionValue)
+	}
+}

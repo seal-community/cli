@@ -79,6 +79,9 @@ func getArtifactServerUrl(manager shared.PackageManager, conf *config.Config) st
 
 	case mappings.GolangEcosystem:
 		return api.GolangServer
+
+	case mappings.PhpEcosystem:
+		return api.PackagistServer
 	}
 
 	slog.Error("could not match artifact server to manager", "ecosystem", ecosystem, "manager", manager.Name())

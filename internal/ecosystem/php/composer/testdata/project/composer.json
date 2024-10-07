@@ -1,0 +1,10 @@
+{
+    "name": "test/test",
+    "require-dev": {
+        "monolog/monolog": "^3.7"
+    },
+    "require": {
+        "nategood/httpful": "0.1.0",
+        "phpseclib/phpseclib": "3.0.23.0-p53411"
+    }
+}

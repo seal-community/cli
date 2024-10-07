@@ -14,6 +14,8 @@ func TestParseRemoteUrl(t *testing.T) {
 		"ssh://user@server:/kensetsu/house.git":     "kensetsu/house",
 		"ssh://user@server:8080/kensetsu/house.git": "kensetsu/house",
 		"ssh://git@github.com/kensetsu/house.git":   "kensetsu/house",
+		"git@github.com:kensetsu/house.git":         "kensetsu/house",
+
 		// gitlab
 		"https://gitlab.com/kensetsu/house":  "kensetsu/house",
 		"https://gitlab.com/kensetsu/house/": "kensetsu/house",
@@ -33,7 +35,7 @@ func TestParseRemoteUrl(t *testing.T) {
 			}
 
 			if proj != expected {
-				t.Fatalf("bad proj %s", proj)
+				t.Fatalf("bad proj %s. expected %s", proj, expected)
 			}
 		})
 	}

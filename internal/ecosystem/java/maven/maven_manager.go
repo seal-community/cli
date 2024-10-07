@@ -157,16 +157,9 @@ func (m *MavenPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) e
 		packageDirPath := utils.GetJavaPackagePath(m.cacheDir, fix.VulnerablePackage.Library.Name, fix.VulnerablePackage.Version)
 		metadataFilePath := filepath.Join(packageDirPath, shared.SealMetadataFileName)
 
-		slog.Info("creating metadata file", "path", metadataFilePath)
-		w, err := common.CreateFile(metadataFilePath)
+		err := shared.SavePackageMetadata(metadata, metadataFilePath)
 		if err != nil {
 			return err
-		}
-
-		err = shared.SavePackageMetadata(metadata, w)
-		if err != nil {
-			slog.Error("failed saving metadata file", "path", metadataFilePath)
-			return fmt.Errorf("failed saving %s", metadataFilePath)
 		}
 	}
 

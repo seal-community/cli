@@ -8,6 +8,7 @@ import (
 	"cli/internal/ecosystem/golang"
 	"cli/internal/ecosystem/java"
 	"cli/internal/ecosystem/node"
+	"cli/internal/ecosystem/php"
 	"cli/internal/ecosystem/python"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/project"
@@ -72,6 +73,7 @@ func findPackageManager(configDir *config.Config, projectDir string, target stri
 	javaManager, javaErr := java.GetPackageManager(configDir, projectDir, target)
 	dotnetManager, dotnetErr := dotnet.GetPackageManager(configDir, projectDir, target)
 	golangManager, golangErr := golang.GetPackageManager(configDir, projectDir, target)
+	phpManager, phpErr := php.GetPackageManager(configDir, projectDir, target)
 
 	availableManagers := []struct {
 		manager shared.PackageManager
@@ -81,6 +83,7 @@ func findPackageManager(configDir *config.Config, projectDir string, target stri
 		{pythonManager, pythonErr},
 		{javaManager, javaErr},
 		{golangManager, golangErr},
+		{phpManager, phpErr},
 		// dotnet should be last for now since its current implementation searches
 		// recursively which can lead to a false positive identification
 		{dotnetManager, dotnetErr},

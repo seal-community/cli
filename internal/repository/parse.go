@@ -3,10 +3,10 @@ package repository
 import (
 	"errors"
 	"log/slog"
-	"net/url"
 	"sort"
 	"strings"
 
+	"github.com/whilp/git-urls"
 	"golang.org/x/exp/maps"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -104,15 +104,19 @@ func FindGitRemoteUrl(dir string) (string, error) {
 }
 
 func GetProjectFromRemote(remote string) (string, error) {
-	parsed, err := url.Parse(remote)
+	remote = strings.TrimSpace(remote)
+	// net/url parser does not like newlines. We switched to git-urls but wanted to be compatible
+	if strings.Contains(remote, "\n") {
+		return "", errors.New("newline in remote url")
+	}
+	parsed, err := giturls.Parse(remote)
 	if err != nil {
 		return "", err
 	}
 
 	proj := parsed.Path
 	proj = strings.TrimSuffix(proj, ".git") // not always present
-	proj = strings.TrimSuffix(proj, "/")    // clean just in case
-	proj = strings.TrimPrefix(proj, "/")    // clean just in case
+	proj = strings.Trim(proj, "/")          // clean just in case
 
 	return proj, nil
 }

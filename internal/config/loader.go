@@ -37,6 +37,10 @@ type PythonConfig struct {
 	OnlyBinary bool `yaml:"only-binary" env:"ONLY_BINARY"` // only install whl artifacts, no source artifacts
 }
 
+type ComposerConfig struct {
+	ProdOnlyDeps bool `yaml:"prod-only" env:"PROD_ONLY"`
+}
+
 type BlackDuckConfig struct {
 	Url         string `yaml:"blackduck-url"                       env:"URL"`
 	Token       string `yaml:"blackduck-token"                     env:"TOKEN"`
@@ -49,12 +53,13 @@ type ProjectInfo struct {
 }
 
 type Config struct {
-	Token   string       `yaml:"token"            env:"TOKEN"`
-	Project string       `yaml:"project"          env:"PROJECT"`
-	Npm     NpmConfig    `yaml:"npm"              envPrefix:"NPM_"`
-	Pnpm    PnpmConfig   `yaml:"pnpm"             envPrefix:"PNPM_"`
-	Maven   MavenConfig  `yaml:"maven"            envPrefix:"MAVEN_"`
-	Python  PythonConfig `yaml:"python"           envPrefix:"PYTHON_"`
+	Token    string         `yaml:"token"          env:"TOKEN"`
+	Project  string         `yaml:"project"        env:"PROJECT"`
+	Npm      NpmConfig      `yaml:"npm"            envPrefix:"NPM_"`
+	Pnpm     PnpmConfig     `yaml:"pnpm"           envPrefix:"PNPM_"`
+	Maven    MavenConfig    `yaml:"maven"          envPrefix:"MAVEN_"`
+	Python   PythonConfig   `yaml:"python"         envPrefix:"PYTHON_"`
+	Composer ComposerConfig `yaml:"composer"       envPrefix:"PHPCOMPOSER_"`
 
 	BlackDuck BlackDuckConfig `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
 

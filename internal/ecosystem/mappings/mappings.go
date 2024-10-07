@@ -7,11 +7,12 @@ import (
 
 // backend package manager enum
 const (
-	NpmManager    = "NPM"
-	PythonManager = "PyPI"
-	NugetManager  = "NuGet"
-	MavenManger   = "Maven"
-	GolangManager = "GO"
+	NpmManager      = "NPM"
+	PythonManager   = "PyPI"
+	NugetManager    = "NuGet"
+	MavenManger     = "Maven"
+	GolangManager   = "GO"
+	ComposerManager = "Composer"
 )
 
 const (
@@ -20,6 +21,7 @@ const (
 	DotnetEcosystem = ".NET"
 	JavaEcosystem   = "java"
 	GolangEcosystem = "golang"
+	PhpEcosystem    = "php"
 )
 
 func BackendManagerToEcosystem(bem string) string {
@@ -34,6 +36,8 @@ func BackendManagerToEcosystem(bem string) string {
 		return JavaEcosystem
 	case GolangManager:
 		return GolangEcosystem
+	case ComposerManager:
+		return PhpEcosystem
 	default:
 		slog.Warn("unsupported manager", "manager", bem)
 		return ""
@@ -52,6 +56,8 @@ func EcosystemToBackendManager(es string) string {
 		return MavenManger
 	case GolangEcosystem:
 		return GolangManager
+	case PhpEcosystem:
+		return ComposerManager
 	default:
 		slog.Warn("unsupported ecosystem", "value", es)
 		return ""

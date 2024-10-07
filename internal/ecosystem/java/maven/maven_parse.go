@@ -8,7 +8,6 @@ import (
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -29,21 +28,6 @@ func formatString(v ast.Vertex) string {
 	return strings.Trim(v.String(), "\"")
 }
 
-func getJavaPackageSealedVersion(path string) string {
-	f, err := os.Open(path)
-	if err != nil {
-		slog.Error("failed opening package metadata", "err", err)
-		return ""
-	}
-	defer f.Close()
-	metadata, err := shared.LoadPackageMetadata(f)
-	if err != nil {
-		slog.Error("failed loading package metadata", "err", err)
-		return ""
-	}
-	return metadata.SealedVersion
-}
-
 func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, packageInfo *utils.JavaPackageInfo, prodOnly bool, cacheDir string) *common.Dependency {
 	slog.Info("adding dependency", "packageInfo", packageInfo)
 	if prodOnly && !slices.Contains(prodBuildScopes, packageInfo.Scope) {
@@ -54,25 +38,21 @@ func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, packag
 	packageName := fmt.Sprintf("%s:%s", packageInfo.OrgName, packageInfo.ArtifactName)
 	packagePath := utils.GetJavaPackagePath(cacheDir, packageName, packageInfo.Version)
 	metadataPath := filepath.Join(packagePath, shared.SealMetadataFileName)
-	packageVersion := packageInfo.Version
-
-	// check if the package is already sealed
-	exists, err := common.PathExists(metadataPath)
+	sealMetadata, err := shared.LoadPackageSealMetadata(metadataPath)
+	// no error if the file does not exist
 	if err != nil {
-		slog.Warn("failed checking package metadata exists", "err", err)
+		return nil
 	}
-	if exists {
-		packageVersion = getJavaPackageSealedVersion(metadataPath)
-		if packageVersion == "" {
-			return nil
-		}
+
+	if sealMetadata != nil {
+		packageInfo.Version = sealMetadata.SealedVersion
 		slog.Info("found sealed package", "packageInfo", packageInfo)
 	}
 
 	newDep := &common.Dependency{
 		Name:           packageName,
 		NormalizedName: parser.normalizer.NormalizePackageName(packageName),
-		Version:        packageVersion,
+		Version:        packageInfo.Version,
 		PackageManager: mappings.MavenManger,
 	}
 
