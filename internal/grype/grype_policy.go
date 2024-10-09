@@ -36,7 +36,7 @@ func grypePackageManager(pkgManager string) string {
 		return "npm"
 	case mappings.GolangManager:
 		return "go-module"
-	case mappings.MavenManger:
+	case mappings.MavenManager:
 		return "java-archive"
 	case mappings.NugetManager:
 		return "dotnet"
@@ -49,7 +49,7 @@ func grypePackageManager(pkgManager string) string {
 }
 
 func grypePkgName(pkg string, pkgManager string) string {
-	if pkgManager == mappings.MavenManger {
+	if pkgManager == mappings.MavenManager {
 		// Maven packages are in the format `group:artifact`
 		// we need to drop the group name
 		//

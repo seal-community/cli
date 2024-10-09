@@ -30,6 +30,7 @@ func fixModeFromString(s string) phase.FixMode {
 }
 
 const modeFlag = "mode"
+const silenceFlag = "silence"
 
 func dumpSummary(summary *output.Summary, summaryPath string) error {
 	if summaryPath != "" {
@@ -131,8 +132,8 @@ func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFil
 }
 
 // dump and print a summary of the results
-func outputSummary(summaryPath string, fixes []shared.DependnecyDescriptor, projectDir string) error {
-	summary := output.NewSummary(projectDir, fixes)
+func outputSummary(summaryPath string, fixes []shared.DependnecyDescriptor, silenced []common.Dependency, projectDir string) error {
+	summary := output.NewSummary(projectDir, fixes, silenced)
 	if summary == nil {
 		return common.NewPrintableError("failed generating summary")
 	}
@@ -177,6 +178,7 @@ func fixCommand() *cobra.Command {
 			summaryPath := getArgString(cmd, summaryFlag)
 			configPath := getArgString(cmd, configFileKey)
 			fm := getArgString(cmd, modeFlag)
+			silenceArray := getArgArray(cmd, silenceFlag)
 
 			fixModeUsed := fixModeFromString(fm)
 			if fixModeUsed == "" {
@@ -195,6 +197,11 @@ func fixCommand() *cobra.Command {
 			}
 
 			defer fixPhase.HideProgress() // should be gone when this is over, hide just in case
+
+			if !fixPhase.Config.UseSealedNames && len(silenceArray) > 0 {
+				slog.Error("silencing packages is not supported when not using sealed names")
+				return common.NewPrintableError("silencing packages is not supported when not using sealed names")
+			}
 
 			actionsFilePath := getArgString(cmd, actionsFileKey)
 			if actionsFilePath == "" {
@@ -223,7 +230,15 @@ func fixCommand() *cobra.Command {
 				fixPhase.HideProgress() // make sure before printing
 				slog.Info("no vulnerable package found", "target", target)
 
-				err = dumpSummary(output.NewSummary(fixPhase.BaseDir, nil), summaryPath) // output summary even if no fixes are relvant, so could be processed by 3rd-party
+				silenced := make([]common.Dependency, 0)
+				if len(silenceArray) > 0 {
+					slog.Info("silencing packages", "count", len(silenceArray))
+					if silenced, err = fixPhase.Manager.SilencePackages(silenceArray, result.AllDependencies); err != nil {
+						return common.FallbackPrintableMsg(err, "failed silencing packages")
+					}
+				}
+
+				err = dumpSummary(output.NewSummary(fixPhase.BaseDir, nil, silenced), summaryPath) // output summary even if no fixes are relvant, so could be processed by 3rd-party
 				if err != nil {
 					return err
 				}
@@ -252,12 +267,21 @@ func fixCommand() *cobra.Command {
 				fixPhase.HandleCallbacks(fixes, &blackduck.BlackDuckCallback{Config: fixPhase.Config})
 			}
 
+			silenced := make([]common.Dependency, 0)
+			if len(silenceArray) > 0 {
+				slog.Info("silencing packages", "count", len(silenceArray))
+				if silenced, err = fixPhase.Manager.SilencePackages(silenceArray, result.AllDependencies); err != nil {
+					return common.FallbackPrintableMsg(err, "failed silencing packages")
+				}
+			}
+
 			fixPhase.HideProgress() // should be gone here, but before handling summary make sure it gone
-			return outputSummary(summaryPath, fixes, fixPhase.BaseDir)
+			return outputSummary(summaryPath, fixes, silenced, fixPhase.BaseDir)
 		},
 	}
 
 	cmd.Flags().String(summaryFlag, "", "output fix summary to path")
 	cmd.Flags().String(modeFlag, "local", fmt.Sprintf("Fix mode, options: [%s|%s|%s]", phase.FixModeLocal, phase.FixModeRemote, phase.FixModeAll))
+	cmd.Flags().StringArray(silenceFlag, []string{}, "silence false-positive packages in the format of 'packageName:version'")
 	return cmd
 }

@@ -51,7 +51,7 @@ func EditGrypePolicyFile(policyFilePath string, vulnerable []api.PackageVersion,
 						addedRules = true
 					}
 
-					if mappings.MavenManger == linkedVulnPackage.Library.PackageManager {
+					if mappings.MavenManager == linkedVulnPackage.Library.PackageManager {
 						// On maven, grype warns our sp packages as vulnerable as well, so we need to ignore them too.
 						slog.Debug("Working on maven - adding ignore rule for .grype.yaml for sp version as well", "fixed version", fixedPackage.Version)
 						if pf.AddRule(vulnId, linkedVulnPackage.Library.Name, fixedPackage.Version, linkedVulnPackage.Library.PackageManager) {

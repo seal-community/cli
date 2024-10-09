@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/otiai10/copy"
 	"io"
 	"log/slog"
 	"os"
@@ -133,4 +134,51 @@ func IsDirEmpty(path string) (bool, error) {
 		return true, nil
 	}
 	return false, err
+}
+
+// converts a symlinked file to be a file by deleting the symlink and copying the file it points to
+// returns error if part of the path besides the file itself is a symlink
+// if the file is not a symlink, it will return without erroring
+func ConvertSymLinkToFile(path string) error {
+	slog.Info("converting symlink to file", "path", path)
+
+	parentDir := filepath.Dir(path)
+	resolvedParentDir, err := filepath.EvalSymlinks(parentDir)
+	if err != nil {
+		slog.Error("failed resolving symlink", "err", err, "path", parentDir)
+		return err
+	}
+
+	if filepath.Clean(parentDir) != resolvedParentDir {
+		slog.Error("parent directory path include symlinks", "path", parentDir, "resolved", resolvedParentDir)
+		return NewPrintableError("failed converting symlink, parent directory is behind a symlink: %s", parentDir)
+	}
+
+	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		slog.Error("failed resolving symlink", "err", err, "path", path)
+		return err
+	}
+
+	if filepath.Clean(path) == resolvedPath {
+		slog.Info("path is not a symlink", "path", path)
+		return nil
+	}
+
+	opts := copy.Options{
+		PreserveTimes: true,
+		PreserveOwner: true,
+	}
+
+	if err := os.Remove(path); err != nil {
+		slog.Error("failed removing symlink", "err", err, "path", path)
+		return err
+	}
+
+	if err := copy.Copy(resolvedPath, path, opts); err != nil {
+		slog.Error("failed converting symlink to file", "err", err, "path", resolvedPath)
+		return err
+	}
+
+	return nil
 }

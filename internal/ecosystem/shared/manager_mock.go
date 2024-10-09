@@ -63,3 +63,7 @@ func (m *FakePackageManager) HandleFixes(fixes []DependnecyDescriptor) error {
 func (m *FakePackageManager) NormalizePackageName(name string) string {
 	return name
 }
+
+func (m *FakePackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+	return nil, nil
+}

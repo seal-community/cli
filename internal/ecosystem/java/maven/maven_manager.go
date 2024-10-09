@@ -303,3 +303,52 @@ func setCacheDir(projectDir string, newCacheDir string) error {
 func (m *MavenPackageManager) NormalizePackageName(name string) string {
 	return name
 }
+
+func parseSilenceInput(silenceEntry string) (string, string) {
+	silenceParts := strings.Split(silenceEntry, "@")
+	if len(silenceParts) != 2 {
+		return "", ""
+	}
+
+	return silenceParts[0], silenceParts[1]
+}
+
+func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+	// make sure the seal-m2 folder exists and initialized
+	df := m.GetFixer(m.targetDir)
+	if err := df.Prepare(); err != nil {
+		slog.Error("failed preparing folders", err)
+		return nil, err
+	}
+
+	silenced := make([]common.Dependency, 0, 1)
+	for _, silenceEntry := range silenceArray {
+		packageName, packageVersion := parseSilenceInput(silenceEntry)
+		if packageName == "" || packageVersion == "" {
+			slog.Warn("failed parsing silence entry", "entry", silenceEntry)
+			return nil, common.NewPrintableError("failed parsing silence entry %s", silenceEntry)
+		}
+
+		entryId := common.DependencyId(mappings.MavenManager, m.NormalizePackageName(packageName), packageVersion)
+
+		if _, ok := allDependencies[entryId]; !ok {
+			slog.Warn("failed silencing package, package not found", "entry", silenceEntry)
+			continue
+		}
+
+		for _, dep := range allDependencies[entryId] {
+			jarPath := dep.DiskPath
+			if err := common.ConvertSymLinkToFile(jarPath); err != nil {
+				slog.Warn("failed converting symlink to file", "path", jarPath, "err", err)
+				return nil, common.NewPrintableError("failed converting symlink to file, path: %s", jarPath)
+			}
+
+			if err := changeToSealedName(dep.Name, dep.Version, jarPath); err != nil {
+				slog.Warn("failed changing to sealed name", "path", jarPath, "err", err)
+				return nil, common.NewPrintableError("failed changing %s to sealed name", silenceEntry)
+			}
+			silenced = append(silenced, *dep)
+		}
+	}
+	return silenced, nil
+}

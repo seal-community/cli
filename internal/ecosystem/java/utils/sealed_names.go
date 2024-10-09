@@ -23,6 +23,8 @@ const symbolicName = "Bundle-SymbolicName"
 //  2. META-INF/maven/<groupId>/<artifactId>/pom.properties - changing the version to be the original one
 //     The artifactId to be the original one, and the groupId to be "seal"
 func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (string, error) {
+	slog.Info("Creating new sealed name jar", "jarPath", jarPath)
+
 	pomPropertiesFilePath := filepath.ToSlash(filepath.Join("META-INF/maven", groupId, artifactId, "pom.properties"))
 	manifestFilePath := filepath.ToSlash(filepath.Join("META-INF", "MANIFEST.MF"))
 
@@ -58,6 +60,7 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 			slog.Error("failed creating zip item header", "err", err, "path", zipItem.Name)
 			return "", err
 		}
+
 		itemReader := zipItemReader
 		if filepath.ToSlash(header.Name) == pomPropertiesFilePath {
 			itemReader = getSealedPomProperties(artifactId, originalVersion)

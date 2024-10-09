@@ -190,3 +190,8 @@ func (m *NpmPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) err
 func (m *NpmPackageManager) NormalizePackageName(name string) string {
 	return name
 }
+
+func (m *NpmPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+	slog.Warn("Silencing packages is not support for npm")
+	return nil, nil
+}

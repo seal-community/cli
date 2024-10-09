@@ -83,3 +83,24 @@ func TestGetJavaIndicatorFileAbsPath(t *testing.T) {
 		t.Fatalf("excepted %s; got %s", dst, p)
 	}
 }
+
+func TestParseSilenceInput(t *testing.T) {
+	tests := []struct {
+		input                  string
+		expectedPackageName    string
+		expectedPackageVersion string
+	}{
+		{"name@version", "name", "version"},
+		{"name@version@other", "", ""},
+		{"name", "", ""},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("test_%d", i), func(t *testing.T) {
+			pn, pv := parseSilenceInput(test.input)
+			if pn != test.expectedPackageName || pv != test.expectedPackageVersion {
+				t.Fatalf("failed to parse `%s`", test.input)
+			}
+		})
+	}
+}

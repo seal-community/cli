@@ -38,7 +38,10 @@ func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, packag
 	packageName := fmt.Sprintf("%s:%s", packageInfo.OrgName, packageInfo.ArtifactName)
 	packagePath := utils.GetJavaPackagePath(cacheDir, packageName, packageInfo.Version)
 	metadataPath := filepath.Join(packagePath, shared.SealMetadataFileName)
+	artifactFileName := utils.GetPackageFileName(packageInfo.ArtifactName, packageInfo.Version)
+	artifactPath := filepath.Join(packagePath, artifactFileName)
 	sealMetadata, err := shared.LoadPackageSealMetadata(metadataPath)
+
 	// no error if the file does not exist
 	if err != nil {
 		return nil
@@ -53,7 +56,8 @@ func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, packag
 		Name:           packageName,
 		NormalizedName: parser.normalizer.NormalizePackageName(packageName),
 		Version:        packageInfo.Version,
-		PackageManager: mappings.MavenManger,
+		PackageManager: mappings.MavenManager,
+		DiskPath:       artifactPath, // Note that this is the path only AFTER the cache copy
 	}
 
 	key := newDep.Id()

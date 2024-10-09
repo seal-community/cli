@@ -162,3 +162,8 @@ func GetPackageManager(config *config.Config, targetDir string, targetFile strin
 	slog.Debug("golang manager supports target", "target-file", targetFile, "target-dir", targetDir)
 	return NewGolangManager(config, targetFile, targetDir), nil
 }
+
+func (m *GolangPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+	slog.Warn("Silencing packages is not support for golang")
+	return nil, nil
+}

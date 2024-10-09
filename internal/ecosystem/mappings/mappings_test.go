@@ -10,7 +10,7 @@ func TestEcosystemConversion(t *testing.T) {
 		{NpmManager, "node"},
 		{PythonManager, "python"},
 		{NugetManager, ".NET"},
-		{MavenManger, "java"},
+		{MavenManager, "java"},
 		{GolangManager, "golang"},
 		{"asdasdasda", ""},
 	}

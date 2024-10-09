@@ -265,7 +265,7 @@ func TestGrypePackageManager(t *testing.T) {
 		{mappings.NpmManager, "npm"},
 		{mappings.PythonManager, "python"},
 		{mappings.NugetManager, "dotnet"},
-		{mappings.MavenManger, "java-archive"},
+		{mappings.MavenManager, "java-archive"},
 		{mappings.GolangManager, "go-module"},
 		{"asdasdasda", ""},
 	}

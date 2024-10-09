@@ -193,8 +193,6 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 	f.rollback[artifactPath] = bkupPath
 
 	slog.Info("writing to jar file", "path", artifactPath)
-	// update the diskPath value because it wasn't set before and now we know the correct path
-	dep.DiskPath = artifactPath
 
 	jarFile, err := os.OpenFile(artifactPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {

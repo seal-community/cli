@@ -41,6 +41,13 @@ func (d *Dependency) PrintableName() string {
 	}
 }
 
+func (d *Dependency) Descriptor() string {
+	switch d.PackageManager {
+	default:
+		return fmt.Sprintf("%s@%s", d.Name, d.Version)
+	}
+}
+
 func DependencyId(manager string, library string, version string) string {
 	if manager == "" || library == "" || version == "" {
 		panic(fmt.Errorf("failed: cant generate id for library:%s version:%s", library, version))

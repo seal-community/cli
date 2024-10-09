@@ -29,6 +29,17 @@ func getArgString(cmd *cobra.Command, key string) string {
 	return v
 }
 
+func getArgArray(cmd *cobra.Command, key string) []string {
+	v, err := cmd.Flags().GetStringArray(key)
+	if err != nil {
+		// means misconfiguration in code
+		slog.Error("failed getting flag", "err", err, "key", key)
+		panic(fmt.Sprintf("failed getting string array key %s", key))
+	}
+
+	return v
+}
+
 func getArgCount(cmd *cobra.Command, key string) int {
 	val, err := cmd.Flags().GetCount(key)
 	if err != nil {

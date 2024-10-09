@@ -326,3 +326,8 @@ func (m *PipPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) err
 func (m *PipPackageManager) NormalizePackageName(name string) string {
 	return strings.Replace(strings.ToLower(name), "_", "-", -1)
 }
+
+func (m *PipPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+	slog.Warn("Silencing packages is not support for pip")
+	return nil, nil
+}

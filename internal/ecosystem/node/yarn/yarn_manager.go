@@ -120,3 +120,8 @@ func (m *YarnPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) er
 func (m *YarnPackageManager) NormalizePackageName(name string) string {
 	return name
 }
+
+func (m *YarnPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+	slog.Warn("Silencing packages is not support for yarn")
+	return nil, nil
+}

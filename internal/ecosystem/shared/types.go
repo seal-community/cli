@@ -53,4 +53,5 @@ type PackageManager interface {
 	DownloadPackage(server api.ArtifactServer, descriptor DependnecyDescriptor) ([]byte, error)
 	HandleFixes(fixes []DependnecyDescriptor) error
 	NormalizePackageName(name string) string
+	SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error)
 }

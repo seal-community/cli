@@ -172,3 +172,8 @@ func GetPackageManager(config *config.Config, targetDir string, targetFile strin
 	slog.Debug("composer manager supports target", "target-file", targetFile, "target-dir", targetDir)
 	return NewComposerManager(config, targetFile, targetDir), nil
 }
+
+func (m *ComposerPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+	slog.Warn("Silencing packages is not support for composer")
+	return nil, nil
+}

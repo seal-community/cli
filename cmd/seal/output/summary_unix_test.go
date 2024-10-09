@@ -57,7 +57,15 @@ func TestSummarySanity(t *testing.T) {
 		},
 	}
 
-	s := NewSummary(projDir, []shared.DependnecyDescriptor{descLodash, descGlob})
+	ejsIO := common.Dependency{
+		Name:           "ejs",
+		Version:        "1.2.3",
+		PackageManager: mappings.NpmManager,
+		NormalizedName: "ejs",
+		DiskPath:       "/Users/fuwawa/proj/node_modules/ejs",
+	}
+
+	s := NewSummary(projDir, []shared.DependnecyDescriptor{descLodash, descGlob}, []common.Dependency{ejsIO})
 	if s.Root != projDir {
 		t.Fatalf("wrong project dir; expected `%s`, got `%s`", projDir, s.Root)
 	}
@@ -100,5 +108,21 @@ func TestSummarySanity(t *testing.T) {
 
 	if locsGlob[0] != "node_modules/glob-parent" {
 		t.Fatalf("wrong path for standard dep path; got `%s`", locsGlob[0])
+	}
+
+	if len(s.Silenced) != 1 {
+		t.Fatalf("wrong number of silenced; got `%d`", len(s.Silenced))
+	}
+
+	if s.Silenced[0].descriptor != "ejs@1.2.3" {
+		t.Fatalf("wrong silenced descriptor; got `%s`", s.Silenced[0].descriptor)
+	}
+
+	if len(s.Silenced[0].locations) != 1 {
+		t.Fatalf("wrong number of silenced paths; got `%d`", len(s.Silenced[0].locations))
+	}
+
+	if s.Silenced[0].locations[0] != "node_modules/ejs" {
+		t.Fatalf("wrong path for silenced dep path; got `%s`", s.Silenced[0].locations[0])
 	}
 }

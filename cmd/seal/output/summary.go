@@ -17,12 +17,39 @@ type summaryFix struct {
 	locations []string
 }
 
-type Summary struct {
-	Root  string       `json:"root"`
-	Fixes []summaryFix `json:"fixes"`
+type summarySilence struct {
+	descriptor string
+	locations  []string
 }
 
-func NewSummary(projectDir string, fixes []shared.DependnecyDescriptor) *Summary {
+type Summary struct {
+	Root     string           `json:"root"`
+	Fixes    []summaryFix     `json:"fixes"`
+	Silenced []summarySilence `json:"silences"`
+}
+
+func getRelativePaths(root string, paths []string) ([]string, error) {
+	relativePaths := make([]string, 0, len(paths))
+	for _, origPath := range paths {
+		path := origPath
+		if filepath.IsAbs(path) {
+			var err error
+			path, err = filepath.Rel(root, origPath)
+			if err != nil {
+				// should not really happen
+				slog.Error("failed converting to relative path", "err", err, "path", origPath)
+				return nil, err
+			}
+
+			common.Trace("converted path to relaive", "rel", path, "original", origPath)
+		}
+
+		relativePaths = append(relativePaths, path)
+	}
+	return relativePaths, nil
+}
+
+func NewSummary(projectDir string, fixes []shared.DependnecyDescriptor, silenced []common.Dependency) *Summary {
 	s := &Summary{Root: projectDir,
 		Fixes: make([]summaryFix, 0, 10), // allocate, so if empty in json will be [] instead of null
 	}
@@ -34,29 +61,34 @@ func NewSummary(projectDir string, fixes []shared.DependnecyDescriptor) *Summary
 		}
 
 		paths := entry.FixedLocations
-		relativePaths := make([]string, 0, len(paths))
 
 		slices.Sort(paths)
-		for _, origPath := range paths {
-			path := origPath
-			if filepath.IsAbs(path) {
-				var err error
-				path, err = filepath.Rel(s.Root, origPath)
-				if err != nil {
-					// should not really happen
-					slog.Error("failed converting to relative path", "err", err, "path", origPath)
-					return nil
-				}
 
-				common.Trace("converted path to relaive", "rel", path, "original", origPath)
-			}
-
-			relativePaths = append(relativePaths, path)
+		relativePaths, err := getRelativePaths(s.Root, paths)
+		if err != nil {
+			return nil
 		}
 
 		s.Fixes = append(s.Fixes, summaryFix{
 			dep:       entry,
 			locations: relativePaths,
+		})
+
+	}
+
+	silencedMap := make(map[string][]string, 0)
+	for _, d := range silenced {
+		silencedMap[d.Descriptor()] = append(silencedMap[d.Descriptor()], d.DiskPath)
+	}
+	for desc, paths := range silencedMap {
+		relativePaths, err := getRelativePaths(s.Root, paths)
+		if err != nil {
+			return nil
+		}
+
+		s.Silenced = append(s.Silenced, summarySilence{
+			descriptor: desc,
+			locations:  relativePaths,
 		})
 	}
 
@@ -119,6 +151,15 @@ func (s *Summary) Print() {
 		)
 
 		for _, path := range f.locations {
+			fmt.Printf("%s%s\n", prefix, common.Colorize(path, common.AnsiDarkGrey))
+		}
+
+		fmt.Println()
+	}
+
+	for _, s := range s.Silenced {
+		fmt.Printf("%s was silenced\n", common.Colorize(s.descriptor, common.AnsiColdPurple))
+		for _, path := range s.locations {
 			fmt.Printf("%s%s\n", prefix, common.Colorize(path, common.AnsiDarkGrey))
 		}
 

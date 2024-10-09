@@ -10,7 +10,7 @@ const (
 	NpmManager      = "NPM"
 	PythonManager   = "PyPI"
 	NugetManager    = "NuGet"
-	MavenManger     = "Maven"
+	MavenManager    = "Maven"
 	GolangManager   = "GO"
 	ComposerManager = "Composer"
 )
@@ -32,7 +32,7 @@ func BackendManagerToEcosystem(bem string) string {
 		return PythonEcosystem
 	case NugetManager:
 		return DotnetEcosystem
-	case MavenManger:
+	case MavenManager:
 		return JavaEcosystem
 	case GolangManager:
 		return GolangEcosystem
@@ -53,7 +53,7 @@ func EcosystemToBackendManager(es string) string {
 	case DotnetEcosystem:
 		return NugetManager
 	case JavaEcosystem:
-		return MavenManger
+		return MavenManager
 	case GolangEcosystem:
 		return GolangManager
 	case PhpEcosystem:

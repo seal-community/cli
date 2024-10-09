@@ -198,3 +198,8 @@ func handleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
 func (m *NugetPackageManager) NormalizePackageName(name string) string {
 	return strings.ToLower(name)
 }
+
+func (m *NugetPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+	slog.Warn("Silencing packages is not support for nuget")
+	return nil, nil
+}
