@@ -10,6 +10,7 @@ import (
 	"cli/internal/ecosystem/node"
 	"cli/internal/ecosystem/php"
 	"cli/internal/ecosystem/python"
+	"cli/internal/ecosystem/rpm"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/project"
 	"fmt"
@@ -65,9 +66,44 @@ type basePhase struct {
 	showBar bool // required because can't access progressbar unexported state
 
 	CanAuthenticate bool
+	OsMode          bool
 }
 
-func findPackageManager(configDir *config.Config, projectDir string, target string) (shared.PackageManager, error) {
+type availableManager struct {
+	manager shared.PackageManager
+	err     error
+}
+
+func chooseManager(availableManagers []availableManager) shared.PackageManager {
+	// choose first manager without error
+	var manager shared.PackageManager
+	for _, m := range availableManagers {
+		if m.err == nil {
+			if manager != nil {
+				slog.Warn("multiple package managers found, defaulting to", "manager", manager.Name())
+				return manager
+			}
+			manager = m.manager
+		}
+	}
+
+	if manager != nil {
+		slog.Info("found package manager", "manager", manager.Name())
+		return manager
+	}
+
+	errs := []error{}
+	for _, m := range availableManagers {
+		if m.err != nil {
+			errs = append(errs, m.err)
+		}
+	}
+
+	slog.Error("no package manager found in the project directory", "errs", errs)
+	return nil
+}
+
+func findApplicationPackageManager(configDir *config.Config, projectDir string, target string) (shared.PackageManager, error) {
 	nodeManager, nodeErr := node.GetPackageManager(configDir, projectDir, target)
 	pythonManager, pythonErr := python.GetPackageManager(configDir, projectDir, target)
 	javaManager, javaErr := java.GetPackageManager(configDir, projectDir, target)
@@ -75,10 +111,7 @@ func findPackageManager(configDir *config.Config, projectDir string, target stri
 	golangManager, golangErr := golang.GetPackageManager(configDir, projectDir, target)
 	phpManager, phpErr := php.GetPackageManager(configDir, projectDir, target)
 
-	availableManagers := []struct {
-		manager shared.PackageManager
-		err     error
-	}{
+	availableManagers := []availableManager{
 		{nodeManager, nodeErr},
 		{pythonManager, pythonErr},
 		{javaManager, javaErr},
@@ -88,32 +121,31 @@ func findPackageManager(configDir *config.Config, projectDir string, target stri
 		// recursively which can lead to a false positive identification
 		{dotnetManager, dotnetErr},
 	}
-
-	// choose first manager without error
-	var manager shared.PackageManager
-	for _, m := range availableManagers {
-		if m.err == nil {
-			if manager != nil {
-				slog.Warn("multiple package managers found, defaulting to", "manager", manager.Name())
-				return manager, nil
-			}
-			manager = m.manager
-		}
-	}
-
-	if manager != nil {
-		slog.Info("found package manager", "manager", manager.Name())
-		return manager, nil
-	}
-
 	// to have pretty message on the input file / project directory
 	actualTarget := projectDir
 	if target != "" {
 		actualTarget = target
 	}
 
-	slog.Error("no package manager found in the project directory", "errs", []error{nodeErr, pythonErr, dotnetErr})
+	if m := chooseManager(availableManagers); m != nil {
+		return m, nil
+	}
+
 	return nil, common.NewPrintableError("failed to find a supported package manager for %s", actualTarget)
+}
+
+func findOSPackageManager(configDir *config.Config, projectDir string) (shared.PackageManager, error) {
+	rpmManager, rpmErr := rpm.GetPackageManager(configDir, projectDir)
+
+	availableManagers := []availableManager{
+		{rpmManager, rpmErr},
+	}
+
+	if m := chooseManager(availableManagers); m != nil {
+		return m, nil
+	}
+
+	return nil, common.NewPrintableError("failed to find a supported package manager for os")
 }
 
 func (p *basePhase) findTargetFileFromManager() (string, error) {

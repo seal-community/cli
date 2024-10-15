@@ -168,7 +168,8 @@ func fixCommand() *cobra.Command {
 			}()
 
 			target := extractTarget(args)
-			targetDir := common.GetAbsDirPath(target)
+
+			targetDir := common.GetTargetDir(target)
 			if targetDir == "" {
 				slog.Error("bad target input", "target", target)
 				return common.NewPrintableError("target not found `%s`", target)

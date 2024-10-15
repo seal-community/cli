@@ -12,6 +12,8 @@ func TestEcosystemConversion(t *testing.T) {
 		{NugetManager, ".NET"},
 		{MavenManager, "java"},
 		{GolangManager, "golang"},
+		{ComposerManager, "php"},
+		{RpmManager, "rpm"},
 		{"asdasdasda", ""},
 	}
 
@@ -34,6 +36,8 @@ func TestManagerToEcosystemConversion(t *testing.T) {
 		{DotnetEcosystem, "NuGet"},
 		{JavaEcosystem, "Maven"},
 		{GolangEcosystem, "GO"},
+		{PhpEcosystem, "Composer"},
+		{RpmEcosystem, "RPM"},
 		{"asdasdasda", ""},
 	}
 

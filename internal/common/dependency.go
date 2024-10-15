@@ -14,6 +14,8 @@ type Dependency struct {
 	Branch         string      `json:"-"` // chain of dependencies that reached this
 	Dev            bool        `json:"-"` // currently useful for pnpm since npm handles it implicitly
 	Link           bool        `json:"-"` // currently useful for pnpm - is a link to another place
+	Arch           string      `json:"-"` // currently useful for rpm - architecture of the package
+	TmpPath        string      `json:"-"` // currently useful for rpm - temporary path for the package
 }
 
 func (d *Dependency) HasAlias() bool {

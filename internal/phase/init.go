@@ -82,6 +82,9 @@ func getArtifactServerUrl(manager shared.PackageManager, conf *config.Config) st
 
 	case mappings.PhpEcosystem:
 		return api.PackagistServer
+
+	case mappings.RpmEcosystem:
+		return api.RpmServer
 	}
 
 	slog.Error("could not match artifact server to manager", "ecosystem", ecosystem, "manager", manager.Name())
@@ -93,9 +96,12 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 	var err error
 
 	// using locals until we initialize the manager, then we can use the Phase.Project struct
+	p.OsMode = targetPath == common.OsMagic
+	if p.OsMode {
+		targetPath = common.CliCWD
+	}
 	projectDir := getProjectDirAbs(targetPath)
 	targetFile := getTargetFileAbs(targetPath) // will be empty if a directory was provided
-
 	if projectDir == "" {
 		return common.NewPrintableError("bad project directory path: %s", targetPath)
 	}
@@ -118,12 +124,23 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 
 	slog.Info("initiated config", "has-token", p.Config.Token != "")
 
-	p.Manager, err = findPackageManager(p.Config, projectDir, targetFile)
+	if p.OsMode && p.Config.Project == "" {
+
+	}
+
+	if p.OsMode {
+		slog.Debug("checking for OS package manager")
+		p.Manager, err = findOSPackageManager(p.Config, projectDir)
+	} else {
+		slog.Debug("checking for application package manager")
+		p.Manager, err = findApplicationPackageManager(p.Config, projectDir, targetFile)
+	}
+
 	if err != nil {
 		return err
 	}
 
-	if targetFile == "" {
+	if targetFile == "" && !p.OsMode {
 		// reaching here means we already found an indicator and have a package manager associated with the project dir
 		// use target file according to manager until scanning directory is deprecated
 		slog.Warn("looking up indicator in project dir since target file not provided", "project-dir", projectDir)
@@ -176,7 +193,18 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 
 // inits project id, prints warning message if generates new id
 // assumes we already have target file
-func (p *basePhase) initLocalProject(projectDir string, targetFile string) error {
+func (p *basePhase) initLocalProject(projectDir string, targetFile string) (err error) {
+
+	if p.OsMode {
+		if p.Config.Project == "" {
+			return common.NewPrintableError("project ID missing")
+		}
+
+		p.Project.Tag = p.Config.Project
+		p.Project.FoundLocally = true // we are in OS mode, so we must have a project id given by the user
+		p.Project.NameCandidate = p.Config.Project
+		return nil
+	}
 
 	relTarget, err := filepath.Rel(projectDir, targetFile)
 	// must be a subpath within project dir, so not allowed to have relative dir traversal; unlikely

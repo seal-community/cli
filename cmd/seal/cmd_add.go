@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const osFlag = "os"
+
 func parseRule(args []string) (*phase.AddRule, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("not enough arguments")
@@ -107,10 +109,13 @@ func addCommand() *cobra.Command {
 			outputSnykPolicy := getArgBool(cmd, snykPolicyFlag)
 			outputGrypePolicy := getArgBool(cmd, grypePolicyFlag)
 			target := getArgString(cmd, manifestFile)
-			targetDir := common.GetAbsDirPath(target)
 			configPath := getArgString(cmd, configFileKey)
+			isOS := getArgBool(cmd, osFlag)
 
-			addPhase, err := phase.NewAddPhase(targetDir, configPath, verbosity == 0)
+			// target should not be OsMagic, but we check for convention
+			targetDir := common.GetTargetDir(target)
+
+			addPhase, err := phase.NewAddPhase(targetDir, configPath, verbosity == 0, isOS)
 			if err != nil {
 				slog.Error("failed initializing scan", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing scan phase")
@@ -212,6 +217,7 @@ func addCommand() *cobra.Command {
 
 	cmd.Flags().Bool(snykPolicyFlag, false, fmt.Sprintf("generate or update the %s file", snyk.PolicyFileName))
 	cmd.Flags().Bool(grypePolicyFlag, false, fmt.Sprintf("generate or update the %s file", grype.PolicyFileName))
+	cmd.Flags().Bool(osFlag, false, "use OS mode, no target file needed")
 	cmd.Flags().String(manifestFile, "", "path to the manifest file to use")
 	return cmd
 }
