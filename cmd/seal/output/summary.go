@@ -49,7 +49,7 @@ func getRelativePaths(root string, paths []string) ([]string, error) {
 	return relativePaths, nil
 }
 
-func NewSummary(projectDir string, fixes []shared.DependnecyDescriptor, silenced []common.Dependency) *Summary {
+func NewSummary(projectDir string, fixes []shared.DependnecyDescriptor, silenced map[string][]string) *Summary {
 	s := &Summary{Root: projectDir,
 		Fixes: make([]summaryFix, 0, 10), // allocate, so if empty in json will be [] instead of null
 	}
@@ -76,18 +76,14 @@ func NewSummary(projectDir string, fixes []shared.DependnecyDescriptor, silenced
 
 	}
 
-	silencedMap := make(map[string][]string, 0)
-	for _, d := range silenced {
-		silencedMap[d.Descriptor()] = append(silencedMap[d.Descriptor()], d.DiskPath)
-	}
-	for desc, paths := range silencedMap {
+	for silencedPackageId, paths := range silenced {
 		relativePaths, err := getRelativePaths(s.Root, paths)
 		if err != nil {
 			return nil
 		}
 
 		s.Silenced = append(s.Silenced, summarySilence{
-			descriptor: desc,
+			descriptor: silencedPackageId,
 			locations:  relativePaths,
 		})
 	}

@@ -53,5 +53,7 @@ type PackageManager interface {
 	DownloadPackage(server api.ArtifactServer, descriptor DependnecyDescriptor) ([]byte, error)
 	HandleFixes(fixes []DependnecyDescriptor) error
 	NormalizePackageName(name string) string
-	SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error)
+	// Silences the given packages (silenceArray) in the given dependencies map.
+	// returns a map of all the silenced package ids to a list of the paths they were silenced in
+	SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error)
 }

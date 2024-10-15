@@ -191,7 +191,7 @@ func (m *NpmPackageManager) NormalizePackageName(name string) string {
 	return name
 }
 
-func (m *NpmPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+func (m *NpmPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
 	slog.Warn("Silencing packages is not support for npm")
 	return nil, nil
 }

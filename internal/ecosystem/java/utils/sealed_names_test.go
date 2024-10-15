@@ -21,26 +21,6 @@ func getTestFile(name string) io.ReadCloser {
 	return io.NopCloser(bytes.NewReader(data))
 }
 
-func TestGetSealedPomProperties(t *testing.T) {
-	tests := []struct {
-		artifactId string
-		version    string
-		expected   string
-	}{
-		{"artifact", "1.2.3", "artifactId=artifact\ngroupId=seal\nversion=1.2.3\n"},
-		{"artifact", "1.2.3-SNAPSHOT", "artifactId=artifact\ngroupId=seal\nversion=1.2.3-SNAPSHOT\n"},
-	}
-	for _, test := range tests {
-		t.Run(test.artifactId, func(t *testing.T) {
-			result := getSealedPomProperties(test.artifactId, test.version)
-			resultBytes, _ := io.ReadAll(result)
-			if string(resultBytes) != test.expected {
-				t.Fatalf("wrong result, expected: `%s` got: `%s`", test.expected, result)
-			}
-		})
-	}
-}
-
 func TestGetSealedManifest(t *testing.T) {
 	tests := []struct {
 		filename   string
@@ -52,7 +32,7 @@ func TestGetSealedManifest(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.artifactId, func(t *testing.T) {
 			inFile := getTestFile(test.filename)
-			result := getSealedManifest(inFile, test.artifactId)
+			result := getSilencedManifest(inFile, test.artifactId)
 			resultData, _ := io.ReadAll(result)
 			expected, _ := io.ReadAll(getTestFile(test.filename + ".EXPECTED"))
 			expectedString := strings.ReplaceAll(string(expected), "\r", "")
@@ -60,5 +40,17 @@ func TestGetSealedManifest(t *testing.T) {
 				t.Fatalf("wrong result for %s, expected: `%s` got: `%s`", test.filename, expected, resultData)
 			}
 		})
+	}
+}
+
+func TestGetSealedPomXML(t *testing.T) {
+	inFile := getTestFile("pom.xml")
+	result := getSilencedPomXML(inFile)
+	resultData, _ := io.ReadAll(result)
+	expected, _ := io.ReadAll(getTestFile("pom.xml.expected"))
+	expectedString := strings.ReplaceAll(string(expected), "\r", "")
+	resultString := strings.ReplaceAll(string(resultData), "\r", "")
+	if resultString != expectedString {
+		t.Fatalf("wrong result, expected: `%s` got: `%s`", expected, resultData)
 	}
 }

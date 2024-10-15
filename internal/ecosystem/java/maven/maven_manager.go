@@ -313,7 +313,7 @@ func parseSilenceInput(silenceEntry string) (string, string) {
 	return silenceParts[0], silenceParts[1]
 }
 
-func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
 	// make sure the seal-m2 folder exists and initialized
 	df := m.GetFixer(m.targetDir)
 	if err := df.Prepare(); err != nil {
@@ -321,7 +321,7 @@ func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependen
 		return nil, err
 	}
 
-	silenced := make([]common.Dependency, 0, 1)
+	silencePackagesIds := make(map[string]bool, 0)
 	for _, silenceEntry := range silenceArray {
 		packageName, packageVersion := parseSilenceInput(silenceEntry)
 		if packageName == "" || packageVersion == "" {
@@ -329,26 +329,33 @@ func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependen
 			return nil, common.NewPrintableError("failed parsing silence entry %s", silenceEntry)
 		}
 
-		entryId := common.DependencyId(mappings.MavenManager, m.NormalizePackageName(packageName), packageVersion)
+		silencePackagesIds[common.DependencyId(mappings.MavenManager, m.NormalizePackageName(packageName), packageVersion)] = true
+	}
 
-		if _, ok := allDependencies[entryId]; !ok {
-			slog.Warn("failed silencing package, package not found", "entry", silenceEntry)
-			continue
-		}
-
-		for _, dep := range allDependencies[entryId] {
-			jarPath := dep.DiskPath
-			if err := common.ConvertSymLinkToFile(jarPath); err != nil {
-				slog.Warn("failed converting symlink to file", "path", jarPath, "err", err)
-				return nil, common.NewPrintableError("failed converting symlink to file, path: %s", jarPath)
+	// silenced package id to list of jar paths
+	silenced := make(map[string][]string, 0)
+	for _, depList := range allDependencies {
+		for _, dep := range depList {
+			s, err := utils.ShouldSilence(dep.DiskPath, silencePackagesIds)
+			if err != nil {
+				return nil, err
 			}
 
-			if err := changeToSealedName(dep.Name, dep.Version, jarPath); err != nil {
-				slog.Warn("failed changing to sealed name", "path", jarPath, "err", err)
-				return nil, common.NewPrintableError("failed changing %s to sealed name", silenceEntry)
+			if !s {
+				continue
 			}
-			silenced = append(silenced, *dep)
+
+			_, ok := silencePackagesIds[dep.Id()]
+			silencedPackages, err := utils.SilenceJar(dep.DiskPath, silencePackagesIds, ok)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, silencedPackage := range silencedPackages {
+				silenced[silencedPackage] = append(silenced[silencedPackage], dep.DiskPath)
+			}
 		}
 	}
+
 	return silenced, nil
 }

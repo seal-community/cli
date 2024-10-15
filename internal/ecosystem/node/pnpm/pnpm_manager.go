@@ -149,7 +149,7 @@ func (m *PnpmPackageManager) NormalizePackageName(name string) string {
 	return name
 }
 
-func (m *PnpmPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) ([]common.Dependency, error) {
+func (m *PnpmPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
 	slog.Warn("Silencing packages is not support for pnpm")
 	return nil, nil
 }

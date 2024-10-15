@@ -57,15 +57,7 @@ func TestSummarySanity(t *testing.T) {
 		},
 	}
 
-	ejsIO := common.Dependency{
-		Name:           "ejs",
-		Version:        "1.2.3",
-		PackageManager: mappings.NpmManager,
-		NormalizedName: "ejs",
-		DiskPath:       "/Users/fuwawa/proj/node_modules/ejs",
-	}
-
-	s := NewSummary(projDir, []shared.DependnecyDescriptor{descLodash, descGlob}, []common.Dependency{ejsIO})
+	s := NewSummary(projDir, []shared.DependnecyDescriptor{descLodash, descGlob}, map[string][]string{"ejs@1.2.3": {"/Users/fuwawa/proj/node_modules/ejs"}})
 	if s.Root != projDir {
 		t.Fatalf("wrong project dir; expected `%s`, got `%s`", projDir, s.Root)
 	}

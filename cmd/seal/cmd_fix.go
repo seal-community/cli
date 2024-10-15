@@ -132,7 +132,7 @@ func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFil
 }
 
 // dump and print a summary of the results
-func outputSummary(summaryPath string, fixes []shared.DependnecyDescriptor, silenced []common.Dependency, projectDir string) error {
+func outputSummary(summaryPath string, fixes []shared.DependnecyDescriptor, silenced map[string][]string, projectDir string) error {
 	summary := output.NewSummary(projectDir, fixes, silenced)
 	if summary == nil {
 		return common.NewPrintableError("failed generating summary")
@@ -231,7 +231,7 @@ func fixCommand() *cobra.Command {
 				fixPhase.HideProgress() // make sure before printing
 				slog.Info("no vulnerable package found", "target", target)
 
-				silenced := make([]common.Dependency, 0)
+				silenced := make(map[string][]string, 0)
 				if len(silenceArray) > 0 {
 					slog.Info("silencing packages", "count", len(silenceArray))
 					if silenced, err = fixPhase.Manager.SilencePackages(silenceArray, result.AllDependencies); err != nil {
@@ -268,7 +268,7 @@ func fixCommand() *cobra.Command {
 				fixPhase.HandleCallbacks(fixes, &blackduck.BlackDuckCallback{Config: fixPhase.Config})
 			}
 
-			silenced := make([]common.Dependency, 0)
+			silenced := make(map[string][]string, 0)
 			if len(silenceArray) > 0 {
 				slog.Info("silencing packages", "count", len(silenceArray))
 				if silenced, err = fixPhase.Manager.SilencePackages(silenceArray, result.AllDependencies); err != nil {
