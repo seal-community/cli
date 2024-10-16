@@ -141,8 +141,15 @@ func packageDependencyId(groupId, artifactId, version string) string {
 	return common.DependencyId(mappings.MavenManager, packageName, version)
 }
 
-func ShouldSilence(jarPath string, packagesToSilence map[string]bool) (bool, error) {
+func ShouldSilence(dependency common.Dependency, packagesToSilence map[string]bool) (bool, error) {
+	jarPath := dependency.DiskPath
 	slog.Info("Checking if silence needed", "jarPath", jarPath)
+
+	if s, ok := packagesToSilence[dependency.Id()]; ok && s {
+		slog.Debug("package in silence list", "package", dependency.Id())
+		return true, nil
+	}
+
 	jarReader, err := zip.OpenReader(jarPath)
 	if err != nil {
 		slog.Warn("failed reading package", "err", err, "path", jarPath)

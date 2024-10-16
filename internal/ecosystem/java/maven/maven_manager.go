@@ -336,7 +336,7 @@ func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependen
 	silenced := make(map[string][]string, 0)
 	for _, depList := range allDependencies {
 		for _, dep := range depList {
-			s, err := utils.ShouldSilence(dep.DiskPath, silencePackagesIds)
+			s, err := utils.ShouldSilence(*dep, silencePackagesIds)
 			if err != nil {
 				return nil, err
 			}
