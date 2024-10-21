@@ -149,7 +149,7 @@ func (f *fixer) Prepare() error {
 // override the artifact file in the cache dir (will set it as the cache in HandleFixes)
 // add to the rollback map
 func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
-	_, artifactId, err := SplitJavaPackageName(dep.Name)
+	_, artifactId, err := SplitJavaPackageName(dep.NormalizedName)
 	if err != nil {
 		slog.Error("failed getting package name for dep", "err", err, "path", dep.Name)
 		return false, err

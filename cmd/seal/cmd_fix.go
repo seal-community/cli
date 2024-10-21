@@ -50,8 +50,9 @@ func dumpSummary(summary *output.Summary, summaryPath string) error {
 }
 
 func printSummary(summary *output.Summary) {
-	if len(summary.Fixes) > 0 {
-		slog.Info("fixed packaged", "count", len(summary.Fixes))
+	if len(summary.Fixes) > 0 || len(summary.Silenced) > 0 {
+		slog.Info("fixed packages", "count", len(summary.Fixes))
+		slog.Info("silenced packages", "count", len(summary.Silenced))
 		summary.Print()
 	}
 
@@ -245,7 +246,7 @@ func fixCommand() *cobra.Command {
 				}
 
 				fmt.Println("No applicable fix available") // ok to print here
-				return nil
+				return outputSummary(summaryPath, nil, silenced, fixPhase.BaseDir)
 			}
 
 			slog.Info("trying to get available fixes", "mode", fixModeUsed)

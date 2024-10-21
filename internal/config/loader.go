@@ -118,5 +118,30 @@ func Load(r io.Reader, environment EnvMap) (*Config, error) {
 		return nil, FailedParsingEnvVars
 	}
 
+	s, err := conf.ToString()
+	if err != nil {
+		// shouldn't happen but don't fail if it does
+		slog.Warn("failed converting config to string", "err", err)
+	} else {
+		slog.Info("config", "str", s)
+	}
+
 	return conf, nil
+}
+
+func restoreToken(c Config, tmpToken string) {
+	c.Token = tmpToken
+}
+
+func (c Config) ToString() (string, error) {
+	tmpToken := c.Token
+	c.Token = "REDACTED"
+	defer restoreToken(c, tmpToken)
+
+	b, err := yaml.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }

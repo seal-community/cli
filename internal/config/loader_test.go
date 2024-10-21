@@ -212,3 +212,40 @@ func TestProjectsMapAndProject(t *testing.T) {
 		t.Fatalf("wrong target: %s", projInfo.Targets[0])
 	}
 }
+
+func TestToString(t *testing.T) {
+	content := "token: abcd\nproject: proj-id-3\nprojects: \n  proj-id-1:\n    targets:\n      - package.json"
+	config, err := Load(strings.NewReader(content), emptyEnv)
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+
+	if s, err := config.ToString(); err != nil || s != `token: REDACTED
+project: proj-id-3
+npm:
+    prod-only: false
+    ignore-extraneous: false
+    update-package-names: false
+pnpm:
+    prod-only: false
+maven:
+    prod-only: false
+    cache-path: ""
+python:
+    only-binary: false
+composer:
+    prod-only: false
+blackduck:
+    blackduck-url: ""
+    blackduck-token: ""
+    blackduck-project-name: ""
+    blackduck-project-version-name: ""
+projects:
+    proj-id-1:
+        targets:
+            - package.json
+use-sealed-names: false
+` {
+		t.Fatalf("failed to convert to string %s", s)
+	}
+}

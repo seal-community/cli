@@ -194,6 +194,14 @@ func (m *MavenPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) e
 		}
 	}
 
+	if err := m.setCacheDir(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MavenPackageManager) setCacheDir() error {
 	currCacheDir := utils.GetCacheDir(m.targetDir)
 	if currCacheDir == "" {
 		slog.Warn("failed getting maven cache dir")
@@ -314,10 +322,14 @@ func parseSilenceInput(silenceEntry string) (string, string) {
 }
 
 func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
-	// make sure the seal-m2 folder exists and initialized
+	// make sure the seal-m2 folder exists, initialized and set as the cache dir
 	df := m.GetFixer(m.targetDir)
 	if err := df.Prepare(); err != nil {
 		slog.Error("failed preparing folders", err)
+		return nil, err
+	}
+
+	if err := m.setCacheDir(); err != nil {
 		return nil, err
 	}
 
@@ -346,7 +358,7 @@ func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependen
 			}
 
 			_, ok := silencePackagesIds[dep.Id()]
-			silencedPackages, err := utils.SilenceJar(dep.DiskPath, silencePackagesIds, ok)
+			silencedPackages, err := utils.SilenceJar(*dep, silencePackagesIds, ok)
 			if err != nil {
 				return nil, err
 			}

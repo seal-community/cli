@@ -205,9 +205,10 @@ func ShouldSilence(dependency common.Dependency, packagesToSilence map[string]bo
 // if the package id is in the packagesToSilence map (acting as a set for convenience).
 // If silenceMainManifest is true, it will also change the groupId in the main manifest file.
 // Returns the path to the new jar and a map (set) of the silenced packages.
-func getSilencedJar(jarPath string, packagesToSilence map[string]bool, silenceMainManifest bool) (string, map[string]bool, error) {
+func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, silenceMainManifest bool) (string, map[string]bool, error) {
 	manifestFilePath := filepath.ToSlash(filepath.Join("META-INF", manifestFileName))
 
+	jarPath := dep.DiskPath
 	origReader, err := zip.OpenReader(jarPath)
 	if err != nil {
 		slog.Error("failed reading package", "err", err, "path", jarPath)
@@ -268,6 +269,7 @@ func getSilencedJar(jarPath string, packagesToSilence map[string]bool, silenceMa
 			}
 
 			if v, ok := packagesToSilence[pomProperties.GetPackageId()]; ok && v {
+				slog.Debug("changing groupId in pom.properties")
 				silencedPackagesMap[pomProperties.GetPackageId()] = true
 				pomProperties.GroupId = sealGroupId
 			}
@@ -275,7 +277,14 @@ func getSilencedJar(jarPath string, packagesToSilence map[string]bool, silenceMa
 			itemReader = pomProperties.GetAsReader()
 		} else if currFilePath == manifestFilePath && silenceMainManifest {
 			// an huristic to find the artifactId since parsing it from the manifest is not trivial
-			itemReader = getSilencedManifest(zipItemReader, filepath.Base(filepath.Dir(filepath.Dir(jarPath))))
+			_, artifactId, err := SplitJavaPackageName(dep.NormalizedName)
+			if err != nil {
+				slog.Error("failed parsing artifactId from package name", "err", err, "package", dep.Name)
+				return "", nil, err
+			}
+
+			itemReader = getSilencedManifest(zipItemReader, artifactId)
+			silencedPackagesMap[dep.Id()] = true
 		}
 
 		if itemReader == nil {
@@ -293,10 +302,11 @@ func getSilencedJar(jarPath string, packagesToSilence map[string]bool, silenceMa
 
 // Silences the provided jar by changing the groupIds in the pom.xml, pom.properties
 // of the provided packages to silence given as a map (acting as a set for convenience).
-func SilenceJar(jarPath string, packagesToSilence map[string]bool, silenceMainManifest bool) ([]string, error) {
+func SilenceJar(dep common.Dependency, packagesToSilence map[string]bool, silenceMainManifest bool) ([]string, error) {
+	jarPath := dep.DiskPath
 	slog.Info("Silencing jar", "jarPath", jarPath)
 
-	sealedNameFilePath, silencedPackagesMap, err := getSilencedJar(jarPath, packagesToSilence, silenceMainManifest)
+	sealedNameFilePath, silencedPackagesMap, err := getSilencedJar(dep, packagesToSilence, silenceMainManifest)
 	if err != nil {
 		slog.Error("failed silencing jar", "jarPath", jarPath, "err", err)
 		return nil, err
