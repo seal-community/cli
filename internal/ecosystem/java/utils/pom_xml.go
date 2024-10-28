@@ -30,7 +30,35 @@ func ReadPomXMLFromFile(reader io.Reader) *pomXML {
 	return &pomXML{Document: *doc}
 }
 
-func (p *pomXML) GetPackageId() string {
+func (p *pomXML) GetGroupId() string {
+	project := p.Document.SelectElement(projectTag)
+	if project == nil {
+		slog.Error("failed selecting project element")
+		return ""
+	}
+
+	groupId := project.SelectElement(groupIdTag)
+	if groupId != nil {
+		return groupId.Text()
+	}
+
+	// if groupId is missing, it is assumed to be the parent's groupId
+	parent := project.SelectElement(parentTag)
+	if parent == nil {
+		slog.Error("failed finding groupId element")
+		return ""
+	}
+
+	groupId = parent.SelectElement(groupIdTag)
+	if groupId == nil {
+		slog.Error("failed selecting groupId element from parent")
+		return ""
+	}
+
+	return groupId.Text()
+}
+
+func (p *pomXML) GetArtifactId() string {
 	project := p.Document.SelectElement(projectTag)
 	if project == nil {
 		slog.Error("failed selecting project element")
@@ -43,39 +71,48 @@ func (p *pomXML) GetPackageId() string {
 		return ""
 	}
 
-	groupId := project.SelectElement(groupIdTag)
-	if groupId == nil {
-		// if groupId is missing, it is assumed to be the parent's groupId
-		parent := project.SelectElement(parentTag)
-		if parent == nil {
-			slog.Error("failed finding groupId element")
-			return ""
-		}
+	return artifactId.Text()
+}
 
-		groupId = parent.SelectElement(groupIdTag)
-		if groupId == nil {
-			slog.Error("failed selecting groupId element from parent")
-			return ""
-		}
+func (p *pomXML) GetVersion() string {
+	project := p.Document.SelectElement(projectTag)
+	if project == nil {
+		slog.Error("failed selecting project element")
+		return ""
 	}
 
 	version := project.SelectElement(versionTag)
-	if version == nil {
-		// if version is missing, it is assumed to be the parent's version
-		parent := project.SelectElement(parentTag)
-		if parent == nil {
-			slog.Error("failed finding version element")
-			return ""
-		}
-
-		version = parent.SelectElement(versionTag)
-		if version == nil {
-			slog.Error("failed selecting version element from parent")
-			return ""
-		}
+	if version != nil {
+		return version.Text()
 	}
 
-	return packageDependencyId(groupId.Text(), artifactId.Text(), version.Text())
+	// if version is missing, it is assumed to be the parent's version
+	parent := project.SelectElement(parentTag)
+	if parent == nil {
+		slog.Error("failed finding version element")
+		return ""
+	}
+
+	version = parent.SelectElement(versionTag)
+	if version == nil {
+		slog.Error("failed selecting version element from parent")
+		return ""
+	}
+
+	return version.Text()
+}
+
+func (p *pomXML) GetPackageId() string {
+	groupId := p.GetGroupId()
+	artifactId := p.GetArtifactId()
+	version := p.GetVersion()
+
+	if groupId == "" || artifactId == "" || version == "" {
+		slog.Error("failed getting packageId")
+		return ""
+	}
+
+	return packageDependencyId(groupId, artifactId, version)
 }
 
 func (p *pomXML) GetAsReader() io.ReadCloser {
@@ -116,4 +153,21 @@ func (p *pomXML) Silence() error {
 	}
 
 	return nil
+}
+
+func (p *pomXML) GetPomProperties() *PomProperties {
+	artifactId := p.GetArtifactId()
+	groupId := p.GetGroupId()
+	version := p.GetVersion()
+
+	if artifactId == "" || groupId == "" || version == "" {
+		slog.Error("failed getting pom properties", "artifactId", artifactId, "groupId", groupId, "version", version)
+		return nil
+	}
+
+	return &PomProperties{
+		ArtifactId: artifactId,
+		GroupId:    groupId,
+		Version:    version,
+	}
 }

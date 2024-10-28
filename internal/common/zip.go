@@ -50,3 +50,28 @@ func UnzipFile(file *zip.File, location string) error {
 
 	return nil
 }
+
+func GetZipFilePathsSet(file []*zip.File) map[string]bool {
+	zipFilePaths := make(map[string]bool, 0)
+	for _, zipItem := range file {
+		zipFilePaths[filepath.ToSlash(zipItem.Name)] = true
+	}
+
+	return zipFilePaths
+}
+
+func AddFileToZip(zipWriter *zip.Writer, filePath string, file io.ReadCloser) error {
+	targetItem, err := zipWriter.Create(filePath)
+	if err != nil {
+		slog.Error("failed creating zip item header", "err", err, "path", filePath)
+		return err
+	}
+
+	_, err = io.Copy(targetItem, file)
+	if err != nil {
+		slog.Error("failed copying zip item", "err", err, "path", filePath)
+		return err
+	}
+
+	return nil
+}

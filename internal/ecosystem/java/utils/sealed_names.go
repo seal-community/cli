@@ -51,6 +51,7 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 	sealedZipWriter := zip.NewWriter(sealedNameFile)
 	defer sealedZipWriter.Close()
 
+	pomChanged := false
 	for _, zipItem := range origReader.File {
 		zipItemReader, err := zipItem.Open()
 		if err != nil {
@@ -70,6 +71,7 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 		case pomPropertiesFilePath:
 			pomProp := PomProperties{GroupId: sealGroupId, ArtifactId: artifactId, Version: originalVersion}
 			itemReader = pomProp.GetAsReader()
+			pomChanged = true
 		case manifestFilePath:
 			itemReader = getSilencedManifest(zipItemReader, artifactId)
 		case pomXMLFilePath:
@@ -83,6 +85,21 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 		_, err = io.Copy(targetItem, itemReader)
 		if err != nil {
 			slog.Error("failed copying zip item", "err", err, "path", zipItem.Name)
+			return "", err
+		}
+	}
+
+	// If the pom.properties file was not found, create a new one
+	if !pomChanged {
+		pomProp := PomProperties{GroupId: sealGroupId, ArtifactId: artifactId, Version: originalVersion}
+		itemReader := pomProp.GetAsReader()
+		if itemReader == nil {
+			slog.Error("failed to create new item reader for pom.properties")
+			return "", fmt.Errorf("failed to create new item reader for %s", pomPropertiesFileName)
+		}
+
+		err := common.AddFileToZip(sealedZipWriter, pomPropertiesFilePath, itemReader)
+		if err != nil {
 			return "", err
 		}
 	}
@@ -230,6 +247,8 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 
 	silencedPackagesMap := make(map[string]bool, 0)
 
+	zipFilePathsList := common.GetZipFilePathsSet(origReader.File)
+
 	for _, zipItem := range origReader.File {
 		zipItemReader, err := zipItem.Open()
 		if err != nil {
@@ -250,14 +269,33 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 		if currFileName == pomXMLFileName {
 			pom := ReadPomXMLFromFile(zipItemReader)
 			if pom == nil {
-				return "", nil, common.NewPrintableError("failed parsing pom.xml file in %s", jarPath)
+				return "", nil, fmt.Errorf("failed parsing pom.xml file in %s", jarPath)
 			}
 
 			if v, ok := packagesToSilence[pom.GetPackageId()]; ok && v {
 				silencedPackagesMap[pom.GetPackageId()] = true
 				err := pom.Silence()
 				if err != nil {
-					return "", nil, common.NewPrintableError("failed sealing pom.xml file in %s", jarPath)
+					return "", nil, fmt.Errorf("failed sealing pom.xml file in %s", jarPath)
+				}
+
+				pomPropertiesFilePath := filepath.ToSlash(filepath.Join(filepath.Dir(currFilePath), pomPropertiesFileName))
+				if ok := zipFilePathsList[pomPropertiesFilePath]; !ok {
+					// If the pom.properties file does not exist, create a new one
+					pomProp := pom.GetPomProperties()
+
+					pomReader := pomProp.GetAsReader()
+					if pomReader == nil {
+						slog.Error("failed to create new item reader for pom.properties")
+						return "", nil, fmt.Errorf("failed to create new item reader for %s", pomPropertiesFileName)
+					}
+
+					err := common.AddFileToZip(sealedZipWriter, pomPropertiesFilePath, pomReader)
+					if err != nil {
+						return "", nil, err
+					}
+
+					slog.Info("created new pom.properties file in path", "path", pomPropertiesFilePath)
 				}
 			}
 
@@ -265,7 +303,7 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 		} else if currFileName == pomPropertiesFileName {
 			pomProperties := ReadPomPropertiesFromFile(zipItemReader)
 			if pomProperties == nil {
-				return "", nil, common.NewPrintableError("failed parsing pom.properties file in %s", jarPath)
+				return "", nil, fmt.Errorf("failed parsing pom.properties file in %s", jarPath)
 			}
 
 			if v, ok := packagesToSilence[pomProperties.GetPackageId()]; ok && v {
@@ -297,6 +335,34 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 			return "", nil, err
 		}
 	}
+
+	// If the pom.properties file of the jar itself does not exist,
+	// and the jar needs to be silenced, create a new silenced pom.properties file
+	if silenceMainManifest {
+		groupId, artifactId, err := SplitJavaPackageName(dep.NormalizedName)
+		if err != nil {
+			slog.Error("failed parsing artifactId from package name", "err", err, "package", dep.Name)
+			return "", nil, err
+		}
+
+		mainPomPropertiesFilePath := filepath.ToSlash(filepath.Join("META-INF/maven", groupId, artifactId, pomPropertiesFileName))
+		if _, ok := zipFilePathsList[mainPomPropertiesFilePath]; !ok {
+			pomProp := PomProperties{GroupId: sealGroupId, ArtifactId: artifactId, Version: dep.Version}
+			itemReader := pomProp.GetAsReader()
+			if itemReader == nil {
+				slog.Error("failed to create new item reader for pom.properties")
+				return "", nil, fmt.Errorf("failed to create new item reader for %s", pomPropertiesFileName)
+			}
+
+			err := common.AddFileToZip(sealedZipWriter, mainPomPropertiesFilePath, itemReader)
+			if err != nil {
+				return "", nil, err
+			}
+
+			slog.Info("created new pom.properties file in path", "path", mainPomPropertiesFilePath)
+		}
+	}
+
 	return sealedNameFilePath, silencedPackagesMap, nil
 }
 
@@ -314,7 +380,7 @@ func SilenceJar(dep common.Dependency, packagesToSilence map[string]bool, silenc
 
 	if err := common.ConvertSymLinkToFile(jarPath); err != nil {
 		slog.Warn("failed converting symlink to file", "path", jarPath, "err", err)
-		return nil, common.NewPrintableError("failed converting symlink to file, path: %s", jarPath)
+		return nil, fmt.Errorf("failed converting symlink to file, path: %s", jarPath)
 	}
 
 	if err = os.Rename(sealedNameFilePath, jarPath); err != nil {
