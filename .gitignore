@@ -32,6 +32,8 @@ test/*/output/
 
 **/__debug_bin*
 
+.idea
+
 # python
 .venv/
 requirements.txt
