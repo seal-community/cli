@@ -2,10 +2,11 @@ package common
 
 import (
 	"errors"
-	"github.com/otiai10/copy"
 	"log/slog"
 	"os"
 	"syscall"
+
+	"github.com/otiai10/copy"
 )
 
 // MoveFile safely moves a file, handling cross-device link errors.
@@ -34,8 +35,18 @@ func MoveFile(source, destination string) error {
 	// Handle cross-device move logic here (e.g., copy and delete)
 
 	// Copy the file.
-	if err := copy.Copy(source, destination); err != nil {
-		slog.Error("copy failed:", "err", err)
+	opts := copy.Options{
+		PreserveTimes: true,
+		PreserveOwner: true,
+	}
+
+	if err := copy.Copy(source, destination, opts); err != nil {
+		slog.Error("copy failed", "err", err, "src", source, "dst", destination)
+		if rmErr := os.RemoveAll(destination); rmErr != nil {
+			// attempting to clean if copy failed midway, nothing we can do if this fails
+			slog.Warn("attempted removal of destination", "err", rmErr)
+		}
+
 		return err
 	}
 
