@@ -78,7 +78,7 @@ func removeVersionPath(path, version string) string {
 
 // Fix a dependency by replacing the code in the vendor directory
 // Store a copy of the original dependency in the workdir for rollback
-func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	origDepDirPath := filepath.Join(f.vendorDir, dep.Name)
 	tmpDepDirPath := filepath.Join(f.workdir, dep.Name)
 
@@ -89,7 +89,7 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 		return false, err
 	}
 
-	if err := os.Rename(origDepDirPath, tmpDepDirPath); err != nil {
+	if err := common.MoveFile(origDepDirPath, tmpDepDirPath); err != nil {
 		slog.Error("failed moving original version dir to tmp", "orig", origDepDirPath, "tmp", tmpDepDirPath, "err", err)
 		return false, common.NewPrintableError("failed backing up the original version for: %s", origDepDirPath)
 	}
@@ -133,7 +133,7 @@ func (f *fixer) Rollback() bool {
 				slog.Error("failed removing original version dir", "dir", orig)
 			}
 
-			if err := os.Rename(tmp, orig); err != nil {
+			if err := common.MoveFile(tmp, orig); err != nil {
 				slog.Error("failed renaming tmp to original version dir", "tmp", tmp, "orig", orig)
 			}
 		}

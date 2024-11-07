@@ -133,7 +133,7 @@ func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFil
 }
 
 // dump and print a summary of the results
-func outputSummary(summaryPath string, fixes []shared.DependnecyDescriptor, silenced map[string][]string, projectDir string) error {
+func outputSummary(summaryPath string, fixes []shared.DependencyDescriptor, silenced map[string][]string, projectDir string) error {
 	summary := output.NewSummary(projectDir, fixes, silenced)
 	if summary == nil {
 		return common.NewPrintableError("failed generating summary")
@@ -256,7 +256,7 @@ func fixCommand() *cobra.Command {
 				return common.FallbackPrintableMsg(err, "failed querying for fixes")
 			}
 
-			var fixes []shared.DependnecyDescriptor
+			var fixes []shared.DependencyDescriptor
 			slog.Debug("fixes available", "mode", fixModeUsed, "available", len(availableFixes))
 			if len(availableFixes) > 0 {
 				slog.Info("attempting to apply fixes", "mode", fixModeUsed, "available", len(availableFixes))

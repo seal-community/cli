@@ -118,11 +118,11 @@ func (m *ComposerPackageManager) GetScanTargets() []string {
 	return []string{m.composerTargetFile}
 }
 
-func (m *ComposerPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *ComposerPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	return downloadPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *ComposerPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *ComposerPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	for _, fix := range fixes {
 		metadata := shared.SealPackageMetadata{SealedVersion: fix.AvailableFix.Version}
 		metadataFilePath := getMetadataDepFile(m.targetDir, fix.VulnerablePackage.Library.Name)

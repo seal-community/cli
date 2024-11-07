@@ -71,7 +71,7 @@ func getLockfileVersion(lock *orderedmap.OrderedMap) lockfileVersion {
 //	diskpath -> package
 //
 // this way we can easily find entries in the lock file that needs updating
-func extractFixedLocations(fixes []shared.DependnecyDescriptor) map[string]*api.PackageVersion {
+func extractFixedLocations(fixes []shared.DependencyDescriptor) map[string]*api.PackageVersion {
 	newmap := make(map[string]*api.PackageVersion)
 	for _, entry := range fixes {
 		for _, path := range entry.FixedLocations {
@@ -83,7 +83,7 @@ func extractFixedLocations(fixes []shared.DependnecyDescriptor) map[string]*api.
 	return newmap
 }
 
-func UpdateLockfile(lock *orderedmap.OrderedMap, fixes []shared.DependnecyDescriptor, projectDir string) error {
+func UpdateLockfile(lock *orderedmap.OrderedMap, fixes []shared.DependencyDescriptor, projectDir string) error {
 	version := getLockfileVersion(lock)
 	fixmap := extractFixedLocations(fixes)
 

@@ -118,11 +118,11 @@ func (m *GolangPackageManager) GetScanTargets() []string {
 	return []string{m.golangTargetFile}
 }
 
-func (m *GolangPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *GolangPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	return DownloadPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *GolangPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *GolangPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if m.Config.UseSealedNames {
 		slog.Warn("using sealed names in golang is not supported yet")
 	}

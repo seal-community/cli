@@ -13,7 +13,7 @@ import (
 )
 
 type summaryFix struct {
-	dep       shared.DependnecyDescriptor
+	dep       shared.DependencyDescriptor
 	locations []string
 }
 
@@ -49,7 +49,7 @@ func getRelativePaths(root string, paths []string) ([]string, error) {
 	return relativePaths, nil
 }
 
-func NewSummary(projectDir string, fixes []shared.DependnecyDescriptor, silenced map[string][]string) *Summary {
+func NewSummary(projectDir string, fixes []shared.DependencyDescriptor, silenced map[string][]string) *Summary {
 	s := &Summary{Root: projectDir,
 		Fixes: make([]summaryFix, 0, 10), // allocate, so if empty in json will be [] instead of null
 	}

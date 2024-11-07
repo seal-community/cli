@@ -146,7 +146,7 @@ func (m *MavenPackageManager) GetScanTargets() []string {
 	return []string{m.javaTargetFile}
 }
 
-func (m *MavenPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *MavenPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	return utils.DownloadMavenPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
@@ -164,7 +164,7 @@ func changeToSealedName(packageName, packageOriginalVersion, diskPath string) er
 		return common.NewPrintableError("failed changing package %s to sealed name", packageName)
 	}
 
-	if err = os.Rename(newJarPath, diskPath); err != nil {
+	if err = common.MoveFile(newJarPath, diskPath); err != nil {
 		slog.Error("failed renaming sealed file", "err", err, "from", newJarPath, "to", diskPath)
 		return err
 	}
@@ -173,7 +173,7 @@ func changeToSealedName(packageName, packageOriginalVersion, diskPath string) er
 }
 
 // HandleFixes will create a metadata file for each package in the fixes map to indicate it was fixed
-func (m *MavenPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *MavenPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	for _, fix := range fixes {
 		metadata := shared.SealPackageMetadata{SealedVersion: fix.AvailableFix.Version}
 		packageDirPath := utils.GetJavaPackagePath(m.cacheDir, fix.VulnerablePackage.Library.Name, fix.AvailableFix.OriginVersionString)

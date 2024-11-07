@@ -28,7 +28,7 @@ const (
 )
 
 type PostFixRunner interface {
-	HandleAppliedFixes(projectDir string, fixes []shared.DependnecyDescriptor) error
+	HandleAppliedFixes(projectDir string, fixes []shared.DependencyDescriptor) error
 	ShouldSkip() bool
 	GetStepDescription() string
 }
@@ -39,7 +39,7 @@ func NewFixPhase(target string, configPath string, showProgress bool) (*fixPhase
 		return nil, err
 	}
 
-	sp.addToMax(FixSteps) // increase max to accomodate fix logic in progress bar
+	sp.addToMax(FixSteps) // increase max to accommodate fix logic in progress bar
 	fp := &fixPhase{
 		scanPhase: sp,
 	}
@@ -47,7 +47,7 @@ func NewFixPhase(target string, configPath string, showProgress bool) (*fixPhase
 	return fp, nil
 }
 
-func packageDownloadWorker(ctx context.Context, artifactServer api.ArtifactServer, manager shared.PackageManager, downloadJobsChannel chan shared.DependnecyDescriptor, downloadResultsChannel chan shared.PackageDownload) (err error) {
+func packageDownloadWorker(ctx context.Context, artifactServer api.ArtifactServer, manager shared.PackageManager, downloadJobsChannel chan shared.DependencyDescriptor, downloadResultsChannel chan shared.PackageDownload) (err error) {
 	defer func() {
 		if panicObj := recover(); panicObj != nil {
 			slog.Error("panic caught", "err", panicObj, "trace", string(debug.Stack()))
@@ -100,7 +100,7 @@ func cleanWorkdir(fixer shared.DependencyFixer, err *error) {
 	// all sub folders should be restored due to rollback or by cleanup
 }
 
-func shouldSkipPackage(entry shared.DependnecyDescriptor) bool {
+func shouldSkipPackage(entry shared.DependencyDescriptor) bool {
 	p := entry.VulnerablePackage
 	packageId := p.Id()
 	if len(p.OpenVulnerabilities) == 0 {
@@ -140,7 +140,7 @@ func (fp *fixPhase) fixPackage(downloadedPackage shared.PackageDownload, fixer s
 		}
 
 		if fixed {
-			slog.Info("fixed dependnecy instance", "id", packageId, "path", depInstance.DiskPath)
+			slog.Info("fixed dependency instance", "id", packageId, "path", depInstance.DiskPath)
 			fixedLocations = append(fixedLocations, depInstance.DiskPath)
 		}
 	}
@@ -148,14 +148,14 @@ func (fp *fixPhase) fixPackage(downloadedPackage shared.PackageDownload, fixer s
 	return nil, fixedLocations
 }
 
-func (fp *fixPhase) HandleCallbacks(fixes []shared.DependnecyDescriptor, callbacks ...PostFixRunner) {
+func (fp *fixPhase) HandleCallbacks(fixes []shared.DependencyDescriptor, callbacks ...PostFixRunner) {
 	defer fp.advanceStep("") // must mirror the minimum steps count for this command
 	if len(callbacks) == 0 {
 		slog.Debug("no callbacks to run")
 		return
 	}
 
-	fp.addToMax(len(callbacks)) // increase max to accomodate fix logic in progress bar
+	fp.addToMax(len(callbacks)) // increase max to accommodate fix logic in progress bar
 
 	for _, callback := range callbacks {
 		step := callback.GetStepDescription()
@@ -216,14 +216,14 @@ func (fp *fixPhase) queryRemoteConfigPackages(vulnerablePackages []api.PackageVe
 }
 
 // combine fix + vulnerable + dependency information for same package
-func buildDescriptorsForFixes(scanResult ScanResult, fixedPackages []api.PackageVersion, overrideMethod shared.OverriddenMethod) ([]shared.DependnecyDescriptor, error) {
+func buildDescriptorsForFixes(scanResult ScanResult, fixedPackages []api.PackageVersion, overrideMethod shared.OverriddenMethod) ([]shared.DependencyDescriptor, error) {
 	// use a map from origin id to the new dependency descriptor struct, so we can update it with the server response
-	descs := make(map[string]*shared.DependnecyDescriptor)
+	descs := make(map[string]*shared.DependencyDescriptor)
 	for i := range scanResult.Vulnerable { // index since going to use pointer to the struct
 		vulnerable := scanResult.Vulnerable[i]
 		locations := scanResult.AllDependencies[vulnerable.Id()]
 
-		descriptor := shared.DependnecyDescriptor{
+		descriptor := shared.DependencyDescriptor{
 			VulnerablePackage: &vulnerable,
 			Locations:         make(map[string]common.Dependency),
 			FixedLocations:    make([]string, 0, len(locations)),
@@ -237,7 +237,7 @@ func buildDescriptorsForFixes(scanResult ScanResult, fixedPackages []api.Package
 		descs[vulnerable.OriginId()] = &descriptor
 	}
 
-	availableFixes := make([]shared.DependnecyDescriptor, 0, len(fixedPackages))
+	availableFixes := make([]shared.DependencyDescriptor, 0, len(fixedPackages))
 	for i := range fixedPackages { // index since going to use pointer to the struct
 		pkg := fixedPackages[i]
 		desc, exists := descs[pkg.OriginId()]
@@ -256,7 +256,7 @@ func buildDescriptorsForFixes(scanResult ScanResult, fixedPackages []api.Package
 
 // fetches the available fixes according the the fix mode
 // either the recommended ones in the scan result(all is from server, local was patched to contain the actions file values), or remote config
-func (fp *fixPhase) GetAvailableFixes(scanResult *ScanResult, mode FixMode) ([]shared.DependnecyDescriptor, error) {
+func (fp *fixPhase) GetAvailableFixes(scanResult *ScanResult, mode FixMode) ([]shared.DependencyDescriptor, error) {
 
 	var err error
 	var fixedPackages []api.PackageVersion
@@ -286,7 +286,7 @@ func (fp *fixPhase) GetAvailableFixes(scanResult *ScanResult, mode FixMode) ([]s
 	return buildDescriptorsForFixes(*scanResult, fixedPackages, overrideMethod)
 }
 
-func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []shared.DependnecyDescriptor, err error) {
+func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor) (_ []shared.DependencyDescriptor, err error) {
 	// assumes running from the directory of the project
 	// 		relies on dependencies being installed beforehand (e.g. `npm install`)
 	// returns a list of the fixed descriptors
@@ -294,7 +294,7 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []share
 	defer cleanWorkdir(fixer, &err) // will rollback if encountered error
 
 	downloadResultsChannel := make(chan shared.PackageDownload, len(availableFixes))
-	downloadJobsChannel := make(chan shared.DependnecyDescriptor, len(availableFixes))
+	downloadJobsChannel := make(chan shared.DependencyDescriptor, len(availableFixes))
 	g, ctx := errgroup.WithContext(context.Background())
 
 	// start workers
@@ -335,7 +335,7 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependnecyDescriptor) (_ []share
 	common.Trace("prepare phase done")
 
 	// Fix packages one at a time
-	fixed := make([]shared.DependnecyDescriptor, 0, len(availableFixes))
+	fixed := make([]shared.DependencyDescriptor, 0, len(availableFixes))
 	for downloadedPackage := range downloadResultsChannel {
 		err, fixedLocations := fp.fixPackage(downloadedPackage, fixer)
 		if err != nil {

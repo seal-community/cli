@@ -253,7 +253,7 @@ func TestLockfileUpdateV2MultipleLocations(t *testing.T) {
 
 	projectDir := "/prj"
 
-	fixes := []shared.DependnecyDescriptor{
+	fixes := []shared.DependencyDescriptor{
 		{VulnerablePackage: &pkg,
 			FixedLocations: []string{
 				filepath.Join(projectDir, "node_modules/commitizen/node_modules/lodash"),
@@ -300,7 +300,7 @@ func TestLockfileUpdateV3MultipleLocations(t *testing.T) {
 
 	projectDir := "/prj"
 
-	fixes := []shared.DependnecyDescriptor{
+	fixes := []shared.DependencyDescriptor{
 		{VulnerablePackage: &pkg,
 			FixedLocations: []string{
 				filepath.Join(projectDir, "node_modules/commitizen/node_modules/lodash"),
@@ -337,7 +337,7 @@ func TestLockfileOldNotSupported(t *testing.T) {
 	}
 
 	projectDir := "/prj"
-	fixes := []shared.DependnecyDescriptor{
+	fixes := []shared.DependencyDescriptor{
 		{VulnerablePackage: &semverregex,
 			FixedLocations: []string{
 				filepath.Join(projectDir, "node_modules/semver-regex"),

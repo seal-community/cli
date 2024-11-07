@@ -111,7 +111,7 @@ func TestHandleFixes(t *testing.T) {
 		RecommendedLibraryVersionString: "",
 	}
 
-	fixes := []shared.DependnecyDescriptor{
+	fixes := []shared.DependencyDescriptor{
 		{
 			Locations: map[string]common.Dependency{
 				"Snappier.1.1.0-sp1.nupkg": {},

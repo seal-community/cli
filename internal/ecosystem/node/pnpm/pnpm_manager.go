@@ -134,11 +134,11 @@ func (m *PnpmPackageManager) GetScanTargets() []string {
 	return []string{filepath.Join(m.targetDir, utils.PackageJsonFile)}
 }
 
-func (m *PnpmPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *PnpmPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *PnpmPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *PnpmPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if m.Config.UseSealedNames {
 		slog.Warn("using sealed names in pnpm is not supported yet")
 	}

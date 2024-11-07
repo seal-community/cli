@@ -39,7 +39,7 @@ func TestLockfileUpdateV1Formatting(t *testing.T) {
 	}
 
 	projectDir := "/prj"
-	fixes := []shared.DependnecyDescriptor{
+	fixes := []shared.DependencyDescriptor{
 		{
 			VulnerablePackage: &minimist1,
 			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/mkdirp/node_modules/minimist")},
@@ -95,7 +95,7 @@ func TestLockfileUpdateV2Formatting(t *testing.T) {
 	}
 
 	projectDir := "/prj"
-	fixes := []shared.DependnecyDescriptor{
+	fixes := []shared.DependencyDescriptor{
 		{
 			VulnerablePackage: &merge,
 			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/merge")},
@@ -165,7 +165,7 @@ func TestLockfileUpdateV3Formatting(t *testing.T) {
 	}
 
 	projectDir := "/prj"
-	fixes := []shared.DependnecyDescriptor{
+	fixes := []shared.DependencyDescriptor{
 		{
 			VulnerablePackage: &merge,
 			FixedLocations:    []string{filepath.Join(projectDir, "node_modules/merge")},

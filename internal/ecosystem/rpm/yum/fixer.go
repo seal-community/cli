@@ -21,7 +21,7 @@ func buildRpmName(name, version, arch string) string {
 // Fix will write the package data to the workdir
 // Later, the manager will install all packages in one yum transaction
 // Otherwise, we need to deal with package obsoletes and conflicts, which does not give any more control
-func (m *YumPackageManager) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (m *YumPackageManager) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	packageName := buildRpmName(dep.Name, dep.Version, dep.Arch)
 	packagePath := path.Join(m.workDir, packageName)
 	file, err := common.CreateFile(packagePath)

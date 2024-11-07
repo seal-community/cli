@@ -105,11 +105,11 @@ func (m *YarnPackageManager) GetScanTargets() []string {
 	return m.npmManager.GetScanTargets()
 }
 
-func (m *YarnPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *YarnPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *YarnPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *YarnPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if m.Config.UseSealedNames {
 		slog.Warn("using sealed names in yarn is not supported yet")
 	}

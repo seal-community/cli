@@ -7,7 +7,7 @@ import (
 
 type DependencyFixer interface {
 	Prepare() error
-	Fix(entry DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error)
+	Fix(entry DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error)
 	Rollback() bool
 	Cleanup() bool
 }
@@ -20,7 +20,7 @@ const (
 	OverriddenFromRemote OverriddenMethod = "remote"
 )
 
-type DependnecyDescriptor struct {
+type DependencyDescriptor struct {
 	VulnerablePackage *api.PackageVersion
 	AvailableFix      *api.PackageVersion
 	Locations         map[string]common.Dependency
@@ -28,12 +28,12 @@ type DependnecyDescriptor struct {
 	OverrideMethod    OverriddenMethod
 }
 
-func (d DependnecyDescriptor) IsOverridden() bool {
+func (d DependencyDescriptor) IsOverridden() bool {
 	return d.OverrideMethod != NotOverridden
 }
 
 type PackageDownload struct {
-	Entry DependnecyDescriptor
+	Entry DependencyDescriptor
 	Data  []byte
 }
 
@@ -50,8 +50,8 @@ type PackageManager interface {
 	GetFixer(workdir string) DependencyFixer
 	GetEcosystem() string
 	GetScanTargets() []string
-	DownloadPackage(server api.ArtifactServer, descriptor DependnecyDescriptor) ([]byte, error)
-	HandleFixes(fixes []DependnecyDescriptor) error
+	DownloadPackage(server api.ArtifactServer, descriptor DependencyDescriptor) ([]byte, error)
+	HandleFixes(fixes []DependencyDescriptor) error
 	NormalizePackageName(name string) string
 	// Silences the given packages (silenceArray) in the given dependencies map.
 	// returns a map of all the silenced package ids to a list of the paths they were silenced in

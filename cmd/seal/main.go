@@ -96,8 +96,8 @@ func cli() (errCode ErrorCode) {
 	defer func() {
 		// used to recover from panics, might not have logging.
 		// we do not want to show stacktrace to users, only minimal info
-		if panciObj := recover(); panciObj != nil {
-			slog.Error("panic caught", "err", panciObj, "trace", string(debug.Stack()))
+		if panicObj := recover(); panicObj != nil {
+			slog.Error("panic caught", "err", panicObj, "trace", string(debug.Stack()))
 			fmt.Println("Internal error")
 			errCode = FailedPanic
 		}

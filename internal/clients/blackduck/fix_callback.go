@@ -21,7 +21,7 @@ func parseKey(vals []string) string {
 	return strings.ToLower(strings.Join(vals, "/")) // Has to be '/' because this is what BlackDuck using in the componentVersionOriginId field
 }
 
-func buildSealedVulnerabilitiesMapping(fixes []shared.DependnecyDescriptor) vulnerabilityMapping {
+func buildSealedVulnerabilitiesMapping(fixes []shared.DependencyDescriptor) vulnerabilityMapping {
 	mapping := make(vulnerabilityMapping)
 	for _, entry := range fixes {
 		fix := entry.AvailableFix
@@ -104,7 +104,7 @@ type BlackDuckCallback struct {
 	Config *config.Config
 }
 
-func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes []shared.DependnecyDescriptor) error {
+func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes []shared.DependencyDescriptor) error {
 	project, err := c.getProjectByName(bdProject)
 	if err != nil {
 		slog.Error("failed getting project", "err", err)
@@ -134,7 +134,7 @@ func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes []shared.Dep
 	return nil
 }
 
-func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
+func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes []shared.DependencyDescriptor) error {
 	bdConfg := b.Config.BlackDuck
 	c := NewClient(bdConfg)
 	return handleAppliedFixes(bdConfg.Project, c, fixes)

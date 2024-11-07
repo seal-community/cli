@@ -39,7 +39,7 @@ type fixer struct {
 // To rollback easily, we return the dist-info path, which should look like: `.../site-packages/<name>-<version>.dist-info`
 //
 // The function will append any dot-dot paths found in the original RECORD file to the new RECORD file
-// dot-dot paths in the original RECORD are paths created during installation of the original package, such that their content can't be overriden by the sealed package
+// dot-dot paths in the original RECORD are paths created during installation of the original package, such that their content can't be overridden by the sealed package
 // They should be kept as is
 func (f *fixer) extractWhlPackage(sitePackagesPath string, payload []byte, dotdotPaths []string) (string, error) {
 	// Open zipfile in memory
@@ -304,7 +304,7 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 			return err
 		}
 
-		if err := os.Rename(orig, tmp); err != nil {
+		if err := common.MoveFile(orig, tmp); err != nil {
 			slog.Error("failed moving original to temp dir", "err", err, "original", orig, "tmp-path", dst)
 			return fmt.Errorf("failed backing up package %s", dep.PrintableName())
 		}
@@ -407,7 +407,7 @@ func fixDiskPathIfNeeded(dep *common.Dependency) error {
 	return nil
 }
 
-func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	// update the diskpath in case the package was installed without wheel using a tgz file
 	// to use the egg-info directory instead
 	if err := fixDiskPathIfNeeded(dep); err != nil {
@@ -458,7 +458,7 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 func (f *fixer) Rollback() bool {
 	finishedOk := true
 	for orig, tmpName := range f.rollback {
-		if err := f.rollbackDependecy(tmpName, orig); err != nil {
+		if err := f.rollbackDependency(tmpName, orig); err != nil {
 			finishedOk = false
 		}
 	}
@@ -473,7 +473,7 @@ func (f *fixer) Rollback() bool {
 	return finishedOk
 }
 
-func (f *fixer) rollbackDependecy(from string, to string) error {
+func (f *fixer) rollbackDependency(from string, to string) error {
 	slog.Debug("rolling back", "from", from, "to", to)
 
 	// move each dir under `to` to `from`

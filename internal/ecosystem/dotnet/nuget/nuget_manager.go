@@ -153,18 +153,18 @@ func (m *NugetPackageManager) GetScanTargets() []string {
 	return []string{m.nugetTargetFile}
 }
 
-func (m *NugetPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *NugetPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	return DownloadNugetPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *NugetPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *NugetPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if m.Config.UseSealedNames {
 		slog.Warn("using sealed names in nuget is not supported yet")
 	}
 	return handleFixes(m.targetDir, fixes)
 }
 
-func handleFixes(projectDir string, fixes []shared.DependnecyDescriptor) error {
+func handleFixes(projectDir string, fixes []shared.DependencyDescriptor) error {
 	slog.Info("updating project.assets.json with fixes", "count", len(fixes))
 	assetsPaths, err := common.FindPathsWithSuffix(projectDir, ProjectAssetsFileName)
 	for _, assetsPath := range assetsPaths {

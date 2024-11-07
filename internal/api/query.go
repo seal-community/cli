@@ -26,7 +26,7 @@ var NilResponseObjectType = errors.New("bad request response type")
 type ArtifactServer interface {
 	Get(uri string, params []StringPair, extraHdrs []StringPair) (data []byte, code int, err error)
 
-	// will convert respons from json and populate input obj
+	// will convert response from json and populate input obj
 	// if non-pointer type is passed json marshal will return error
 	GetJsonObject(url string, headers []StringPair, params []StringPair, obj any) (int, error)
 }
@@ -36,11 +36,11 @@ type PackageQueryType int
 const (
 	OnlyVulnerable PackageQueryType = iota
 	OnlyFixed      PackageQueryType = iota
-	// futue support for query all
+	// future support for query all
 )
 
 type RemoteOverrideQuery struct {
-	LibraryId            string  `json:"libray_id"`
+	LibraryId            string  `json:"libray_id"` // the API has a typo
 	OriginVersionId      string  `json:"origin_version_id"`
 	RecommendedVersionId *string `json:"recommended_version_id"` // could be null
 }

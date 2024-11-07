@@ -20,7 +20,7 @@ func TestParseKey(t *testing.T) {
 	}
 }
 
-func getFixAndScanResult() []shared.DependnecyDescriptor {
+func getFixAndScanResult() []shared.DependencyDescriptor {
 	scannedDjango := api.PackageVersion{
 		Version:                         "3.2.17+sp1",
 		Library:                         api.Package{NormalizedName: "django", Name: "Django", PackageManager: mappings.PythonManager},
@@ -92,7 +92,7 @@ func getFixAndScanResult() []shared.DependnecyDescriptor {
 		},
 		OriginVersionString: "2.26.0",
 	}
-	return []shared.DependnecyDescriptor{
+	return []shared.DependencyDescriptor{
 		{VulnerablePackage: &scannedDjango, AvailableFix: &fixedDjango, Locations: nil, FixedLocations: nil},
 		{VulnerablePackage: &scannedGrpcio, AvailableFix: &fixedGrpcio, Locations: nil, FixedLocations: nil},
 		{VulnerablePackage: &scannedRequests, AvailableFix: &fixedRequests, Locations: nil, FixedLocations: nil},

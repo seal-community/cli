@@ -13,7 +13,7 @@ import (
 
 func TestSummarySanity(t *testing.T) {
 	projDir := `C:\fuwawa\proj`
-	descLodash := shared.DependnecyDescriptor{
+	descLodash := shared.DependencyDescriptor{
 		VulnerablePackage: &api.PackageVersion{
 			Version:                         "1.2.3",
 			Library:                         api.Package{Name: "lodash", PackageManager: mappings.NpmManager},
@@ -37,7 +37,7 @@ func TestSummarySanity(t *testing.T) {
 		},
 	}
 
-	descGlob := shared.DependnecyDescriptor{
+	descGlob := shared.DependencyDescriptor{
 		VulnerablePackage: &api.PackageVersion{
 			Version:                         "3.1.0",
 			Library:                         api.Package{Name: "glob-parent", PackageManager: mappings.NpmManager},
@@ -57,7 +57,7 @@ func TestSummarySanity(t *testing.T) {
 		},
 	}
 
-	s := NewSummary(projDir, []shared.DependnecyDescriptor{descLodash, descGlob}, map[string][]string{"ejs@1.2.3": {`C:\fuwawa\proj\node_modules\ejs`}})
+	s := NewSummary(projDir, []shared.DependencyDescriptor{descLodash, descGlob}, map[string][]string{"ejs@1.2.3": {`C:\fuwawa\proj\node_modules\ejs`}})
 	if s.Root != projDir {
 		t.Fatalf("wrong project dir; expected `%s`, got `%s`", projDir, s.Root)
 	}

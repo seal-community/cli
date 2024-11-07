@@ -148,7 +148,7 @@ func (f *fixer) Prepare() error {
 // copy a backup for the original artifact to the workdir (tmp location)
 // override the artifact file in the cache dir (will set it as the cache in HandleFixes)
 // add to the rollback map
-func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	_, artifactId, err := SplitJavaPackageName(dep.NormalizedName)
 	if err != nil {
 		slog.Error("failed getting package name for dep", "err", err, "path", dep.Name)
@@ -185,7 +185,7 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 		return false, err
 	}
 
-	if err := os.Rename(artifactPath, bkupPath); err != nil {
+	if err := common.MoveFile(artifactPath, bkupPath); err != nil {
 		slog.Error("failed renaming artifact", "err", err, "from", artifactPath, "to", bkupPath)
 		return false, err
 	}
@@ -218,7 +218,7 @@ func (f *fixer) Rollback() bool {
 			slog.Error("failed removing original version dir", "dir", orig)
 		}
 
-		if err := os.Rename(tmp, orig); err != nil {
+		if err := common.MoveFile(tmp, orig); err != nil {
 			slog.Error("failed renaming tmp to original version dir", "tmp", tmp, "orig", orig)
 		}
 	}

@@ -306,7 +306,7 @@ func (m *PipPackageManager) getCompatibleTags(name string, version string) ([]st
 	return res, nil
 }
 
-func (m *PipPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *PipPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	compatibleTags, err := m.getCompatibleTags(descriptor.VulnerablePackage.Library.Name, descriptor.VulnerablePackage.Version)
 	if err != nil {
 		return nil, err
@@ -315,7 +315,7 @@ func (m *PipPackageManager) DownloadPackage(server api.ArtifactServer, descripto
 	return utils.DownloadPythonPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, compatibleTags, m.Config.Python.OnlyBinary)
 }
 
-func (m *PipPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *PipPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if m.Config.UseSealedNames {
 		slog.Warn("using sealed names in pip is not supported yet")
 	}

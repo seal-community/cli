@@ -30,7 +30,7 @@ func (f *fixer) Prepare() error {
 
 // Fix a dependency by replacing the code in the vendor directory
 // Store a copy of the original dependency in the workdir for rollback
-func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
 	origDepDirPath := dep.DiskPath
 	tmpDepDirPath := filepath.Join(f.workdir, dep.Name)
 
@@ -41,7 +41,7 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 		return false, err
 	}
 
-	if err := os.Rename(origDepDirPath, tmpDepDirPath); err != nil {
+	if err := common.MoveFile(origDepDirPath, tmpDepDirPath); err != nil {
 		slog.Error("failed moving original version dir to tmp", "orig", origDepDirPath, "tmp", tmpDepDirPath, "err", err)
 		return false, common.NewPrintableError("failed backing up the original version for: %s", origDepDirPath)
 	}
@@ -65,13 +65,13 @@ func (f *fixer) Fix(entry shared.DependnecyDescriptor, dep *common.Dependency, p
 	return true, nil
 }
 
-func rollbackDependecy(from string, to string) error {
+func rollbackDependency(from string, to string) error {
 	slog.Debug("rolling back", "from", from, "to", to)
 	if err := os.RemoveAll(to); err != nil {
 		slog.Error("failed removing original version dir", "dir", to, "err", err)
 	}
 
-	if err := os.Rename(from, to); err != nil {
+	if err := common.MoveFile(from, to); err != nil {
 		slog.Error("failed rollback", "err", err, "from", from, "to", to)
 		return err
 	}
@@ -82,7 +82,7 @@ func rollbackDependecy(from string, to string) error {
 func (f *fixer) Rollback() bool {
 	finishedOk := true
 	for orig, tmpName := range f.rollback {
-		if err := rollbackDependecy(tmpName, orig); err != nil {
+		if err := rollbackDependency(tmpName, orig); err != nil {
 			slog.Error("failed rollback", "err", err, "from", tmpName, "to", orig)
 			finishedOk = false
 		}

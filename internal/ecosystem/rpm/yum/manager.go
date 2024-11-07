@@ -98,7 +98,7 @@ func (m *YumPackageManager) GetScanTargets() []string {
 	return []string{"yum"} // We use yum as the target to indicate the source of the scan
 }
 
-func (m *YumPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *YumPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	arch := descriptor.Locations[""].Arch // RPM packages have no location, so the map includes a single empty string key
 
 	if arch == "" {
@@ -111,7 +111,7 @@ func (m *YumPackageManager) DownloadPackage(server api.ArtifactServer, descripto
 
 // Installs all the sealed libraries in one yum transaction
 // In case any of the sealed libraries cause conflicts, yum will fail the whole transaction
-func (m *YumPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *YumPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if len(m.installPaths) == 0 {
 		slog.Debug("no libraries to install via yum")
 		return nil

@@ -154,12 +154,12 @@ func (m *NpmPackageManager) GetScanTargets() []string {
 	return []string{filepath.Join(m.targetDir, utils.PackageJsonFile)}
 }
 
-func (m *NpmPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependnecyDescriptor) ([]byte, error) {
+func (m *NpmPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
 	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
 // according to config, update lock file with the seal prefix
-func (m *NpmPackageManager) HandleFixes(fixes []shared.DependnecyDescriptor) error {
+func (m *NpmPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	// backwards compatibility for the previous config value
 	if !(m.Config.Npm.UpdatePackageNames || m.Config.UseSealedNames) {
 		slog.Debug("not updating package lock")
