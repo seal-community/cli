@@ -118,3 +118,86 @@ func TestSummarySanity(t *testing.T) {
 		t.Fatalf("wrong path for silenced dep path; got `%s`", s.Silenced[0].locations[0])
 	}
 }
+
+func TestGetRemediatedCVEs(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       summaryFix
+		expectedIds []string
+	}{
+		{
+			name: "Successful remediation",
+			input: summaryFix{
+				dep: shared.DependencyDescriptor{
+					VulnerablePackage: &api.PackageVersion{
+						OpenVulnerabilities: []api.Vulnerability{
+							{SnykID: "Sneaky123"},
+							{CVE: "CVE-2023-0002"},
+						},
+					},
+					AvailableFix: &api.PackageVersion{
+						SealedVulnerabilities: []api.Vulnerability{
+							{SnykID: "Sneaky123"},
+						},
+					},
+				},
+			},
+			expectedIds: []string{"Sneaky123"},
+		},
+		{
+			name: "No remediation available",
+			input: summaryFix{
+				dep: shared.DependencyDescriptor{
+					VulnerablePackage: &api.PackageVersion{
+						OpenVulnerabilities: []api.Vulnerability{
+							{CVE: "CVE-2023-0001"},
+						},
+					},
+					AvailableFix: nil,
+				},
+			},
+			expectedIds: []string{},
+		},
+		{
+			name: "No vulnerable package",
+			input: summaryFix{
+				dep: shared.DependencyDescriptor{
+					VulnerablePackage: nil,
+					AvailableFix: &api.PackageVersion{
+						SealedVulnerabilities: []api.Vulnerability{
+							{CVE: "CVE-2023-0001"},
+						},
+					},
+				},
+			},
+			expectedIds: []string{},
+		},
+		{
+			name: "No matching CVEs between vulnerable and sealed",
+			input: summaryFix{
+				dep: shared.DependencyDescriptor{
+					VulnerablePackage: &api.PackageVersion{
+						OpenVulnerabilities: []api.Vulnerability{
+							{CVE: "CVE-2023-0001"},
+						},
+					},
+					AvailableFix: &api.PackageVersion{
+						SealedVulnerabilities: []api.Vulnerability{
+							{CVE: "CVE-2023-0002"},
+						},
+					},
+				},
+			},
+			expectedIds: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			remediatedVulnerabilityIds := GetRemediatedVulnerabilityIds(tt.input)
+			if !(len(tt.expectedIds) == 0 && len(remediatedVulnerabilityIds) == 0) && !reflect.DeepEqual(tt.expectedIds, remediatedVulnerabilityIds) {
+				t.Fatalf("remediatedCVEs output: %s is not the same as expected: %s", remediatedVulnerabilityIds, tt.expectedIds)
+			}
+		})
+	}
+}

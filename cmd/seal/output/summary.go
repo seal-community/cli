@@ -126,6 +126,27 @@ func (s *Summary) Save(w io.Writer) error {
 	return nil
 }
 
+func GetRemediatedVulnerabilityIds(f summaryFix) []string {
+	var remediatedCVEs []string
+	if f.dep.AvailableFix == nil || f.dep.VulnerablePackage == nil {
+		slog.Warn("Dependency has no available fix or vulnerable package even though it is marked as a fix.")
+		return remediatedCVEs
+	}
+
+	sealedCVEs := make(map[string]bool)
+	for _, item := range f.dep.AvailableFix.SealedVulnerabilities {
+		sealedCVEs[item.PreferredId()] = true
+	}
+
+	for _, item := range f.dep.VulnerablePackage.OpenVulnerabilities {
+		if sealedCVEs[item.PreferredId()] {
+			remediatedCVEs = append(remediatedCVEs, item.PreferredId())
+		}
+	}
+
+	return remediatedCVEs
+}
+
 func (s *Summary) Print() {
 	// if we change the response model / add additional request for each package we could also print the sealed vulnerabilities of the fixed version
 	const prefix = "   "
@@ -148,6 +169,10 @@ func (s *Summary) Print() {
 
 		for _, path := range f.locations {
 			fmt.Printf("%s%s\n", prefix, common.Colorize(path, common.AnsiDarkGrey))
+		}
+
+		for _, cve := range GetRemediatedVulnerabilityIds(f) {
+			fmt.Printf("%s remediated\n", cve)
 		}
 
 		fmt.Println()
