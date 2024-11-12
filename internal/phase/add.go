@@ -64,7 +64,16 @@ var overrideMultipleCandidates = errors.New("multiple candidates found")
 func (ap *addPhase) resolveOverride(manager string, o actions.Override, qt api.PackageQueryType) (*api.PackageVersion, error) {
 
 	dep := common.Dependency{Name: o.Library, NormalizedName: ap.Manager.NormalizePackageName(o.Library), Version: o.Version, PackageManager: manager}
-	result, err := fetchPackagesInfo(ap.Backend, []common.Dependency{dep}, nil, qt, nil)
+	var result *[]api.PackageVersion
+	var err error
+	if ap.CanAuthenticate {
+		slog.Debug("resolving rule auth")
+		result, err = fetchPackagesInfoAuth(ap.Backend, []common.Dependency{dep}, nil, qt, nil, false)
+	} else {
+		slog.Debug("resolving rule unauth")
+		result, err = fetchPackagesInfo(ap.Backend, []common.Dependency{dep}, nil, qt, nil)
+	}
+
 	if err != nil || result == nil {
 		slog.Error("failed querying package", "err", err, "from-library", o.Library, "from-version", o.Version)
 		return nil, err
@@ -130,7 +139,10 @@ func (ap *addPhase) Resolve(rule AddRule) (*ResolvedRule, error) {
 		return nil, common.FallbackPrintableMsg(err, "failed resolving version")
 	}
 
+	result := ResolvedRule{From: *resolvedFrom, To: resolvedTo}
+
+	slog.Info("finished resolving", "result", result)
 	ap.advanceStep("") // final step
 
-	return &ResolvedRule{From: *resolvedFrom, To: resolvedTo}, nil
+	return &result, nil
 }

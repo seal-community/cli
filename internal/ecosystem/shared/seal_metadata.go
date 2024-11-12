@@ -37,11 +37,11 @@ func LoadPackageSealMetadata(metadataFilePath string) (*SealPackageMetadata, err
 	}
 
 	if !exists {
-		slog.Debug("no metadata file found", "path", metadataFilePath)
+		common.Trace("no metadata file found", "path", metadataFilePath)
 		return nil, nil
 	}
 
-	slog.Info("loading metadata file", "path", metadataFilePath)
+	slog.Debug("loading metadata file", "path", metadataFilePath)
 	r, err := common.OpenFile(metadataFilePath)
 	if err != nil {
 		return nil, err

@@ -117,8 +117,7 @@ func (p ConsolePrinter) Handle(vulnerablePackages []api.PackageVersion, allDeps 
 		t.AppendSeparator()
 	}
 
-	fmt.Println("") // make sure the table starts in a new line (progress bar issues etc)
-	t.Render()      // prints to stdout
+	t.Render() // prints to stdout
 
 	return nil
 }

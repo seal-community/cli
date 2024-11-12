@@ -16,14 +16,11 @@ type CliServer struct {
 	authToken string
 }
 
-const maxDependencyChunkSize = 800
-const maxRemoteOverrideChunkSize = 800
-
 func (s CliServer) GetPackageChunkSize() int {
-	return maxDependencyChunkSize
+	return 800
 }
 func (s CliServer) GetRemoteConfigChunkSize() int {
-	return maxRemoteOverrideChunkSize
+	return 800
 }
 
 func NewCliServer(token string, project string, client http.Client) *CliServer {

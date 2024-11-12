@@ -11,8 +11,16 @@ linters:
     - godox # checks no BUG/FIXME/TODO
     - forbidigo # arbitrary forbidden patterns
     - gofmt # formatting
+    - revive
 
 linters-settings:
+  revive:
+    severity: error
+    rules:
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#empty-block
+      - name: empty-block
+        severity: error
+
   staticcheck:
     checks:
       - "-S1008" # about simplifying conditions https://staticcheck.dev/docs/checks/#S1008

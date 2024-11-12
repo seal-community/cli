@@ -34,7 +34,7 @@ func NewClient(bdConfig config.BlackDuckConfig) *BlackDuckClient {
 	return &BlackDuckClient{
 		Client:          http.Client{},
 		Url:             bdConfig.Url,
-		Token:           bdConfig.Token,
+		Token:           bdConfig.Token.Value(),
 		VersionToFilter: bdConfig.VersionName,
 	}
 }

@@ -383,7 +383,7 @@ func SilenceJar(dep common.Dependency, packagesToSilence map[string]bool, silenc
 		return nil, fmt.Errorf("failed converting symlink to file, path: %s", jarPath)
 	}
 
-	if err = common.MoveFile(sealedNameFilePath, jarPath); err != nil {
+	if err = common.Move(sealedNameFilePath, jarPath); err != nil {
 		slog.Error("failed renaming sealed file", "err", err, "from", sealedNameFilePath, "to", jarPath)
 		return nil, err
 	}

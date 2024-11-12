@@ -126,7 +126,7 @@ func (s *Summary) Save(w io.Writer) error {
 	return nil
 }
 
-func GetRemediatedVulnerabilityIds(f summaryFix) []string {
+func getRemediatedVulnerabilityIds(f summaryFix) []string {
 	var remediatedCVEs []string
 	if f.dep.AvailableFix == nil || f.dep.VulnerablePackage == nil {
 		slog.Warn("Dependency has no available fix or vulnerable package even though it is marked as a fix.")
@@ -147,8 +147,11 @@ func GetRemediatedVulnerabilityIds(f summaryFix) []string {
 	return remediatedCVEs
 }
 
-func (s *Summary) Print() {
+func (s *Summary) Print(finalMsg string) {
 	// if we change the response model / add additional request for each package we could also print the sealed vulnerabilities of the fixed version
+	slog.Info("fixed packages", "count", len(s.Fixes))
+	slog.Info("silenced packages", "count", len(s.Silenced))
+
 	const prefix = "   "
 	for _, f := range s.Fixes {
 		overrideMsg := ""
@@ -171,7 +174,7 @@ func (s *Summary) Print() {
 			fmt.Printf("%s%s\n", prefix, common.Colorize(path, common.AnsiDarkGrey))
 		}
 
-		for _, cve := range GetRemediatedVulnerabilityIds(f) {
+		for _, cve := range getRemediatedVulnerabilityIds(f) {
 			fmt.Printf("%s remediated\n", cve)
 		}
 
@@ -186,4 +189,23 @@ func (s *Summary) Print() {
 
 		fmt.Println()
 	}
+
+	if finalMsg != "" {
+		// allow overriding summary message
+		fmt.Println(finalMsg)
+		return
+	}
+
+	var msg string
+	fixed := len(s.Fixes)
+	switch fixed {
+	case 0:
+		msg = "Nothing to fix"
+	case 1:
+		msg = "Fixed 1 package"
+	default:
+		msg = fmt.Sprintf("Fixed %d packages", fixed)
+	}
+
+	fmt.Println(msg)
 }

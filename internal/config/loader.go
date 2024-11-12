@@ -4,6 +4,7 @@ import (
 	"cli/internal/common"
 	"io"
 	"log/slog"
+	"net/url"
 	"strings"
 
 	"github.com/caarlos0/env/v10"
@@ -14,6 +15,23 @@ import (
 
 // ideally we could create automatic documentation for config / env variables during build
 // to differentiate between set to empty value vs not set, use pointer types when applicable
+
+// used for redacting sensitive strings from prints/logs
+// this should be used for all token fields
+type SensitiveString string
+
+const redactedString = "**REDACTED**"
+
+func (s SensitiveString) String() string {
+	if string(s) == "" {
+		return ""
+	}
+	return redactedString
+}
+
+func (s SensitiveString) Value() string {
+	return string(s)
+}
 
 const SealEnvPrefix = "SEAL_"
 
@@ -42,26 +60,40 @@ type ComposerConfig struct {
 }
 
 type BlackDuckConfig struct {
-	Url         string `yaml:"blackduck-url"                       env:"URL"`
-	Token       string `yaml:"blackduck-token"                     env:"TOKEN"`
-	Project     string `yaml:"blackduck-project-name"              env:"PROJECT"`
-	VersionName string `yaml:"blackduck-project-version-name"      env:"PROJECT_VERSION_NAME"`
+	Url         string          `yaml:"blackduck-url"                       env:"URL"`
+	Token       SensitiveString `yaml:"blackduck-token"                     env:"TOKEN"`
+	Project     string          `yaml:"blackduck-project-name"              env:"PROJECT"`
+	VersionName string          `yaml:"blackduck-project-version-name"      env:"PROJECT_VERSION_NAME"`
 }
 
 type ProjectInfo struct {
 	Targets []string `yaml:"targets"` // list of scan targets
 }
 
+type JFrogConfig struct {
+	Token  SensitiveString `yaml:"token"  env:"AUTH_TOKEN"`
+	Host   string          `yaml:"host"   env:"INSTANCE_HOST"`
+	Scheme string          `yaml:"scheme"   env:"INSTANCE_SCHEME"`
+
+	Enabled bool `yaml:"enabled"   env:"ENABLED"`
+
+	// repository keys for jfrog, will use defaults from `setDefaults` if not set
+	CliRepository   string `yaml:"cli-repo"   env:"CLI_REPO"`
+	MavenRepository string `yaml:"maven-repo"   env:"MAVEN_REPO"`
+}
+
 type Config struct {
-	Token    string         `yaml:"token"          env:"TOKEN"`
-	Project  string         `yaml:"project"        env:"PROJECT"`
-	Npm      NpmConfig      `yaml:"npm"            envPrefix:"NPM_"`
-	Pnpm     PnpmConfig     `yaml:"pnpm"           envPrefix:"PNPM_"`
-	Maven    MavenConfig    `yaml:"maven"          envPrefix:"MAVEN_"`
-	Python   PythonConfig   `yaml:"python"         envPrefix:"PYTHON_"`
-	Composer ComposerConfig `yaml:"composer"       envPrefix:"PHPCOMPOSER_"`
+	Token    SensitiveString `yaml:"token"          env:"TOKEN"`
+	Project  string          `yaml:"project"        env:"PROJECT"`
+	Npm      NpmConfig       `yaml:"npm"            envPrefix:"NPM_"`
+	Pnpm     PnpmConfig      `yaml:"pnpm"           envPrefix:"PNPM_"`
+	Maven    MavenConfig     `yaml:"maven"          envPrefix:"MAVEN_"`
+	Python   PythonConfig    `yaml:"python"         envPrefix:"PYTHON_"`
+	Composer ComposerConfig  `yaml:"composer"       envPrefix:"PHPCOMPOSER_"`
 
 	BlackDuck BlackDuckConfig `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
+
+	JFrog JFrogConfig `yaml:"jfrog" envPrefix:"JFROG_"`
 
 	// the following map deprecates the Project field, but we keep support for backward compatibility and utilizing it for 'caching' the selected project
 	ProjectMap map[string]ProjectInfo `yaml:"projects"` // project id is the key - no env override for this
@@ -71,6 +103,8 @@ type Config struct {
 
 var FailedParsingConfYaml = common.NewPrintableError("could not parse configuration")
 var FailedParsingEnvVars = common.NewPrintableError("could not parse environment variables")
+var InvalidJFrogHost = common.NewPrintableError("invalid JFrog host")
+var InvalidJFrogHostScheme = common.NewPrintableError("JFrog host should not contain scheme")
 
 const ConfigFileName = ".seal-config.yml"
 
@@ -82,10 +116,32 @@ type EnvMap map[string]string
 
 type EnvLookupFunc func(string) (string, bool)
 
-func setDefaults(conf *Config) {}
+func setDefaults(conf *Config) {
+	conf.JFrog.CliRepository = "seal-cli"
+	conf.JFrog.MavenRepository = "seal-mvn"
+	conf.JFrog.Scheme = "https"
+}
 
 func New(environment EnvMap) (*Config, error) {
 	return Load(strings.NewReader(""), environment)
+}
+
+func validate(conf Config) *common.PrintableError {
+	if conf.JFrog.Enabled {
+		host := conf.JFrog.Host
+		u, err := url.Parse(host)
+		if err != nil {
+			slog.Error("jfrog host could not be parsed", "host", host)
+			return InvalidJFrogHost
+		}
+
+		if u.Scheme != "" {
+			slog.Error("jfrog host contains scheme", "scheme", u.Scheme, "host", host)
+			return InvalidJFrogHostScheme
+		}
+	}
+
+	return nil
 }
 
 func Load(r io.Reader, environment EnvMap) (*Config, error) {
@@ -118,30 +174,10 @@ func Load(r io.Reader, environment EnvMap) (*Config, error) {
 		return nil, FailedParsingEnvVars
 	}
 
-	s, err := conf.ToString()
-	if err != nil {
-		// shouldn't happen but don't fail if it does
-		slog.Warn("failed converting config to string", "err", err)
-	} else {
-		slog.Info("config", "str", s)
+	if err := validate(*conf); err != nil {
+		slog.Error("config failed validation", "err", err)
+		return nil, err
 	}
 
 	return conf, nil
-}
-
-func restoreToken(c Config, tmpToken string) {
-	c.Token = tmpToken
-}
-
-func (c Config) ToString() (string, error) {
-	tmpToken := c.Token
-	c.Token = "REDACTED"
-	defer restoreToken(c, tmpToken)
-
-	b, err := yaml.Marshal(c)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
 }

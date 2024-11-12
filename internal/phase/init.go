@@ -41,6 +41,8 @@ func InitConfiguration(path string) (*config.Config, error) {
 		return nil, common.FallbackPrintableMsg(err, "failed parsing config file")
 	}
 
+	slog.Info("config loaded", "data", configuration) // will not log sensitive strings
+
 	return configuration, nil
 }
 
@@ -61,45 +63,19 @@ func createInternalSealFolder(projectDir string) (string, error) {
 	return p, nil
 }
 
-func getArtifactServerUrl(manager shared.PackageManager, conf *config.Config) string {
-	ecosystem := manager.GetEcosystem()
-
-	switch ecosystem {
-	case mappings.PythonEcosystem:
-		return api.PypiServer
-
-	case mappings.NodeEcosystem:
-		return api.NpmServer
-
-	case mappings.DotnetEcosystem:
-		return api.NugetServer
-
-	case mappings.JavaEcosystem:
-		return api.MavenServer
-
-	case mappings.GolangEcosystem:
-		return api.GolangServer
-
-	case mappings.PhpEcosystem:
-		return api.PackagistServer
-
-	case mappings.RpmEcosystem:
-		return api.RpmServer
-	}
-
-	slog.Error("could not match artifact server to manager", "ecosystem", ecosystem, "manager", manager.Name())
-	return ""
-}
-
-// prints warning to console if this is a new project
+// prints warning to console if this is a new project / some misconfiguration might have happened
+// IMPORTANT: can technically print here, as it is part of the init of the phase that comes before the progress bar is initialized
 func (p *basePhase) init(targetPath string, configPath string, showProgress bool) error {
 	var err error
+	fmt.Printf("\n") // using this to print a new line before start of output
 
 	// using locals until we initialize the manager, then we can use the Phase.Project struct
 	p.OsMode = targetPath == common.OsMagic
 	if p.OsMode {
 		targetPath = common.CliCWD
+		slog.Info("overriding target path for OS mode - will use CWD", "targetPath", targetPath)
 	}
+
 	projectDir := getProjectDirAbs(targetPath)
 	targetFile := getTargetFileAbs(targetPath) // will be empty if a directory was provided
 	if projectDir == "" {
@@ -122,11 +98,7 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 		return err
 	}
 
-	slog.Info("initiated config", "has-token", p.Config.Token != "")
-
-	if p.OsMode && p.Config.Project == "" {
-
-	}
+	slog.Info("loaded config", "has-token", p.Config.Token != "")
 
 	if p.OsMode {
 		slog.Debug("checking for OS package manager")
@@ -138,6 +110,12 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 
 	if err != nil {
 		return err
+	}
+
+	version := p.Manager.GetVersion()
+	if !p.Manager.IsVersionSupported(version) {
+		slog.Error("unsupported package manager version", "version", version)
+		return common.NewPrintableError("unsupported package manager version %s", version)
 	}
 
 	if targetFile == "" && !p.OsMode {
@@ -166,12 +144,6 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 		return common.NewPrintableError("invalid project name `%s` - %s", p.Project.Tag, reason)
 	}
 
-	if !p.Project.FoundLocally {
-		// IMPORTANT: can technically print here, as it is part of the init of the phase that comes before the progress bar is initialized
-		slog.Info("generated project id is new", "tag", p.Project.Tag, "display-name", p.Project.NameCandidate)
-		fmt.Printf("\n%s: %s\n", common.Colorize("using project-id", common.AnsiDarkGrey), p.Project.Tag)
-	}
-
 	p.Workdir, err = createInternalSealFolder(p.BaseDir)
 	if err != nil {
 		slog.Error("failed creating seal temp dir in project", "project-path", p.BaseDir)
@@ -183,12 +155,49 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 		return err
 	}
 
+	if !p.Project.FoundLocally {
+		slog.Info("generated project id is new", "tag", p.Project.Tag, "display-name", p.Project.NameCandidate)
+		fmt.Printf("%s: %s\n", common.Colorize("using project-id", common.AnsiDarkGrey), p.Project.Tag)
+	}
+
 	p.Bar = common.NewProgressBar(showProgress, 0) // no steps, should be configured by actual phase
 	p.showBar = showProgress                       // bar should not be changed directly
 
 	slog.Info("initialized", "project-id", p.Project.Tag, "manager", p.Manager.Name(), "project-dir", p.BaseDir, "target", p.TargetFile, "tmp-workdir", p.Workdir)
 
 	return nil
+}
+
+// returns url according to the manager's ecosystem
+func getArtifactServerUrl(manager shared.PackageManager, conf *config.Config) string {
+	ecosystem := manager.GetEcosystem()
+
+	switch ecosystem {
+	case mappings.PythonEcosystem:
+		return api.PypiServer
+
+	case mappings.NodeEcosystem:
+		return api.NpmServer
+
+	case mappings.DotnetEcosystem:
+		return api.NugetServer
+
+	case mappings.JavaEcosystem:
+		return api.MavenServer
+
+	case mappings.GolangEcosystem:
+		return api.GolangServer
+
+	case mappings.PhpEcosystem:
+		return api.PackagistServer
+
+	case mappings.RpmEcosystem:
+		return api.RpmServer
+	}
+
+	slog.Error("could not match artifact server to manager", "ecosystem", ecosystem, "manager", manager.Name())
+
+	return ""
 }
 
 // inits project id, prints warning message if generates new id
@@ -237,16 +246,10 @@ func (p *basePhase) initLocalProject(projectDir string, targetFile string) (err 
 	return nil
 }
 
-// depends on project being initialized
-func (p *basePhase) initServers() error {
+func (p *basePhase) initDefaultServers(client http.Client) error {
 
-	if p.Config.Token != "" {
-		p.CanAuthenticate = true
-	}
-
-	httpClient := http.Client{}
-
-	server := api.NewCliServer(p.Config.Token, p.Project.Tag, httpClient)
+	token := p.Config.Token.Value()
+	server := api.NewCliServer(token, p.Project.Tag, client)
 	if server == nil {
 		return common.NewPrintableError("failed setting up server")
 	}
@@ -256,13 +259,77 @@ func (p *basePhase) initServers() error {
 		return common.NewPrintableError("unsupported ecosystem")
 	}
 
-	artifactServer := api.NewArtifactServer(baseUrl, p.Config.Token, p.Project.Tag, httpClient)
+	artifactServer := api.NewArtifactServer(baseUrl, token, p.Project.Tag, client)
 	if artifactServer == nil {
 		return common.NewPrintableError("failed setting up artifact server")
+	}
+
+	if token != "" {
+		p.CanAuthenticate = true
+		slog.Debug("token configured, will use authenticated flow")
 	}
 
 	p.Backend = server
 	p.ArtifactServer = artifactServer
 
 	return nil
+}
+
+func (p *basePhase) initJfrogServers(client http.Client) error {
+	jfrogToken := p.Config.JFrog.Token.Value()
+
+	if p.Config.JFrog.Host == "" || jfrogToken == "" {
+		// warn that it might be misconfigured
+		slog.Error("partial JFrog configuration", "host", p.Config.JFrog.Host, "has-token", jfrogToken == "")
+		return common.NewPrintableError("using JFrog requires both host and token")
+	}
+
+	cliBaseUrl, err := getJfrogCliServerUrl(p.Config)
+	if err != nil {
+		return err
+	}
+
+	cliBackend := api.NewCliJfrogServer(
+		client,
+		p.Project.Tag,
+		jfrogToken,
+		cliBaseUrl,
+	)
+
+	artifactServerBaseUrl, err := getJfrogArtifactServerUrl(p.Config, p.Manager)
+	if err != nil {
+		return err
+	}
+
+	artifactServer := api.NewJFrogArtifactServer(client,
+		p.Project.Tag,
+		jfrogToken,
+		artifactServerBaseUrl,
+	)
+
+	p.CanAuthenticate = true
+	p.Backend = cliBackend
+	p.ArtifactServer = artifactServer
+
+	return nil
+}
+
+// depends on project being initialized
+// prints to screen if uses jfrog setver
+func (p *basePhase) initServers() error {
+	httpClient := http.Client{}
+
+	if p.Config.JFrog.Enabled {
+		slog.Info("initializing jfrog servers")
+		if err := p.initJfrogServers(httpClient); err != nil {
+			slog.Error("failed initialize jfrog", "err", err)
+			return common.FallbackPrintableMsg(err, "failed to initialize JFrog servers")
+		}
+
+		fmt.Println(common.Colorize("using JFrog artifactory", common.AnsiDarkGrey))
+		return nil
+	}
+
+	slog.Info("initializing default servers")
+	return p.initDefaultServers(httpClient)
 }

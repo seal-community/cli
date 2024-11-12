@@ -3,6 +3,7 @@ package phase
 import (
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/config"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/project"
@@ -96,6 +97,33 @@ func TestGetArtifactServerUrl(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.ecosystem, func(t *testing.T) {
 			if url := getArtifactServerUrl(&shared.FakePackageManager{Ecosystem: test.ecosystem}, nil); url != test.expectedUrl {
+				t.Fatalf("expected %s for ecosystem %s; got %s", test.expectedUrl, test.ecosystem, url)
+			}
+		})
+	}
+}
+
+func TestGetJfrogArtifactRepo(t *testing.T) {
+
+	conf := config.Config{}
+	conf.JFrog.MavenRepository = "mvnvnv"
+
+	tests := []struct {
+		ecosystem   string
+		expectedUrl string
+	}{
+		{mappings.JavaEcosystem, conf.JFrog.MavenRepository},
+		{mappings.PythonEcosystem, ""},
+		{mappings.NodeEcosystem, ""},
+		{mappings.DotnetEcosystem, ""},
+		{mappings.NodeEcosystem, ""},
+		{mappings.GolangEcosystem, ""},
+		{"bad123", ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.ecosystem, func(t *testing.T) {
+			if url := getJfrogArtifactRepo(&shared.FakePackageManager{Ecosystem: test.ecosystem}, &conf); url != test.expectedUrl {
 				t.Fatalf("expected %s for ecosystem %s; got %s", test.expectedUrl, test.ecosystem, url)
 			}
 		})

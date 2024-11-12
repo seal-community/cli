@@ -3,16 +3,19 @@
 
 package api
 
-// needs to be var to inject port string during build
+// using vars to inject string values during build
 var serverPort string = ""
+var serverHost string = ""
+var serverScheme string = ""
 
-var BaseURL = "http://127.0.0.1:" + serverPort + "/cli.sealsecurity.io"
+var mockServer = serverScheme + "://" + serverHost + ":" + serverPort
 
-var AuthURL = "http://127.0.0.1:" + serverPort + "/authorization.sealsecurity.io"
-var PypiServer = "http://127.0.0.1:" + serverPort + "/pypi.sealsecurity.io"
-var NpmServer = "http://127.0.0.1:" + serverPort + "/npm.sealsecurity.io"
-var NugetServer = "http://127.0.0.1:" + serverPort + "/nuget.sealsecurity.io"
-var MavenServer = "http://127.0.0.1:" + serverPort + "/maven.sealsecurity.io"
-var GolangServer = "http://127.0.0.1:" + serverPort + "/go.sealsecurity.io"
-var PackagistServer = "http://127.0.0.1:" + serverPort + "/packagist.sealsecurity.io"
-var RpmServer = "http://127.0.0.1:" + serverPort + "/rpm.sealsecurity.io"
+var BaseURL = mockServer + "/cli.sealsecurity.io"
+var AuthURL = mockServer + "/authorization.sealsecurity.io"
+var PypiServer = mockServer + "/pypi.sealsecurity.io"
+var NpmServer = mockServer + "/npm.sealsecurity.io"
+var NugetServer = mockServer + "/nuget.sealsecurity.io"
+var MavenServer = mockServer + "/maven.sealsecurity.io"
+var GolangServer = mockServer + "/go.sealsecurity.io"
+var PackagistServer = mockServer + "/packagist.sealsecurity.io"
+var RpmServer = mockServer + "/rpm.sealsecurity.io"

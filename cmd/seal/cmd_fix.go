@@ -49,27 +49,6 @@ func dumpSummary(summary *output.Summary, summaryPath string) error {
 	return nil
 }
 
-func printSummary(summary *output.Summary) {
-	if len(summary.Fixes) > 0 || len(summary.Silenced) > 0 {
-		slog.Info("fixed packages", "count", len(summary.Fixes))
-		slog.Info("silenced packages", "count", len(summary.Silenced))
-		summary.Print()
-	}
-
-	var msg string
-	fixed := len(summary.Fixes)
-	switch fixed {
-	case 0:
-		msg = "Nothing to fix"
-	case 1:
-		msg = "Fixed 1 package"
-	default:
-		msg = fmt.Sprintf("Fixed %d packages", fixed)
-	}
-
-	fmt.Println(msg)
-}
-
 func loadActionsFile(actionsFilePath string) (*actions.ActionsFile, error) {
 	f, err := os.Open(actionsFilePath)
 	if err != nil {
@@ -93,14 +72,15 @@ func filterVulnerablePackageForOverrides(vulnPackages []api.PackageVersion, over
 	overriddenPackages := make([]api.PackageVersion, 0, len(vulnPackages))
 
 	for _, vulnPackage := range vulnPackages {
+		vulnId := vulnPackage.Id()
 		if vulnPackage.RecommendedLibraryVersionId == "" {
 			// do not allow to 'abuse' this to install package inplace of the vulnerable one if we don't have a SP for it
-			slog.Debug("ignoring vulnerable package - does not have a sealed version", "packageId", vulnPackage.Id())
+			slog.Debug("ignoring vulnerable package - does not have a sealed version", "packageId", vulnId)
 			continue
 		}
-		override, ok := overrides[vulnPackage.Id()]
+		override, ok := overrides[vulnId]
 		if !ok {
-			slog.Debug("ignoring vulnerable package version, not in allowed overrides", "name", vulnPackage.Library.Name, "version", vulnPackage.Version)
+			slog.Debug("ignoring vulnerable package version, not in allowed overrides", "name", vulnPackage.Library.Name, "version", vulnPackage.Version, "id", vulnId)
 			continue
 		}
 
@@ -133,7 +113,7 @@ func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFil
 }
 
 // dump and print a summary of the results
-func outputSummary(summaryPath string, fixes []shared.DependencyDescriptor, silenced map[string][]string, projectDir string) error {
+func outputSummary(summaryPath string, fixes []shared.DependencyDescriptor, silenced map[string][]string, projectDir string, finalMsg string) error {
 	summary := output.NewSummary(projectDir, fixes, silenced)
 	if summary == nil {
 		return common.NewPrintableError("failed generating summary")
@@ -144,7 +124,7 @@ func outputSummary(summaryPath string, fixes []shared.DependencyDescriptor, sile
 		return err
 	}
 
-	printSummary(summary)
+	summary.Print(finalMsg)
 	return nil
 }
 
@@ -158,6 +138,7 @@ func fixCommand() *cobra.Command {
 				// used to print error message on exit
 				if err != nil {
 					if printableErr := common.AsPrintable(err); printableErr != nil {
+						fmt.Println("")
 						fmt.Println(printableErr.Error())
 					} else {
 						slog.Warn("non printable error", "err", err)
@@ -211,7 +192,6 @@ func fixCommand() *cobra.Command {
 			}
 
 			// auth check could be run in parallel with scan sub command to improve experience
-			slog.Info("authenticating")
 			if err := fixPhase.InitRemoteProject(); err != nil {
 				return common.FallbackPrintableMsg(err, "failed initializing project from server")
 			}
@@ -240,13 +220,7 @@ func fixCommand() *cobra.Command {
 					}
 				}
 
-				err = dumpSummary(output.NewSummary(fixPhase.BaseDir, nil, silenced), summaryPath) // output summary even if no fixes are relvant, so could be processed by 3rd-party
-				if err != nil {
-					return err
-				}
-
-				fmt.Println("No applicable fix available") // ok to print here
-				return outputSummary(summaryPath, nil, silenced, fixPhase.BaseDir)
+				return outputSummary(summaryPath, nil, silenced, fixPhase.BaseDir, "No applicable fix available")
 			}
 
 			slog.Info("trying to get available fixes", "mode", fixModeUsed)
@@ -278,7 +252,7 @@ func fixCommand() *cobra.Command {
 			}
 
 			fixPhase.HideProgress() // should be gone here, but before handling summary make sure it gone
-			return outputSummary(summaryPath, fixes, silenced, fixPhase.BaseDir)
+			return outputSummary(summaryPath, fixes, silenced, fixPhase.BaseDir, "")
 		},
 	}
 

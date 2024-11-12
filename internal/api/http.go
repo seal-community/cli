@@ -7,11 +7,34 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"slices"
 )
 
 type StringPair struct {
 	Name  string
 	Value string
+}
+
+// returns length of query string, e.g.:
+//
+//	len("param=value&param2=value2")
+func calculateQuerystringLength(params []StringPair) int {
+	q := url.Values{}
+	for _, p := range params {
+		q.Add(p.Name, p.Value)
+	}
+
+	qs := q.Encode()
+	return len(qs)
+}
+
+func paramExists(params []StringPair, name string) bool {
+	idx := slices.IndexFunc(params, func(p StringPair) bool {
+		return p.Name == name
+	})
+
+	return idx > -1
 }
 
 func SendHttpRequest[RequestType any](client http.Client, method string, url string, body *RequestType, headers []StringPair, params []StringPair) ([]byte, int, error) {

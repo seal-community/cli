@@ -41,7 +41,7 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 		return false, err
 	}
 
-	if err := common.MoveFile(origDepDirPath, tmpDepDirPath); err != nil {
+	if err := common.Move(origDepDirPath, tmpDepDirPath); err != nil {
 		slog.Error("failed moving original version dir to tmp", "orig", origDepDirPath, "tmp", tmpDepDirPath, "err", err)
 		return false, common.NewPrintableError("failed backing up the original version for: %s", origDepDirPath)
 	}
@@ -71,7 +71,7 @@ func rollbackDependency(from string, to string) error {
 		slog.Error("failed removing original version dir", "dir", to, "err", err)
 	}
 
-	if err := common.MoveFile(from, to); err != nil {
+	if err := common.Move(from, to); err != nil {
 		slog.Error("failed rollback", "err", err, "from", from, "to", to)
 		return err
 	}

@@ -49,7 +49,7 @@ func containsNestedNodeModules(path string) bool {
 func moveNodeModules(src string, target string) error {
 	srcModules := filepath.Join(src, nodeModulesDirName)
 	targetModules := filepath.Join(target, nodeModulesDirName)
-	if err := common.MoveFile(srcModules, targetModules); err != nil {
+	if err := common.Move(srcModules, targetModules); err != nil {
 		slog.Error("failed moving node_modules dir", "src", srcModules, "target", targetModules)
 		return err
 	}
@@ -100,7 +100,7 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	}
 
 	slog.Debug("moving dep to seal tmp", "from", dep.DiskPath, "to", tmpName)
-	if err := common.MoveFile(dep.DiskPath, tmpName); err != nil {
+	if err := common.Move(dep.DiskPath, tmpName); err != nil {
 		slog.Error("failed moving original to temp dir", "err", err, "original", dep.DiskPath, "tmp-path", tmpName)
 		return false, common.NewPrintableError("failed backing up package %s", dep.PrintableName())
 	}
@@ -151,7 +151,7 @@ func (f *fixer) rollbackDependency(from string, to string) error {
 	}
 
 	_ = os.RemoveAll(to) // delete the patched contents, ignore if doesn't exist, other failure will cause rename to fail as well
-	if err := common.MoveFile(from, to); err != nil {
+	if err := common.Move(from, to); err != nil {
 		slog.Error("failed rollback", "err", err, "from", from, "to", to)
 		// greedy try to restore as much as possible
 		return err

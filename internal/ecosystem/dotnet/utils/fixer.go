@@ -68,7 +68,7 @@ func savePackageFiles(location, packageName string, nupkgData []byte) error {
 				slog.Debug("renaming file", "file", file.Name())
 				currentPath := filepath.Join(location, file.Name())
 				newPath := filepath.Join(location, strings.ToLower(file.Name()))
-				if err := common.MoveFile(currentPath, newPath); err != nil {
+				if err := common.Move(currentPath, newPath); err != nil {
 					slog.Error("failed renaming file", "err", err, "file", file)
 					return err
 				}

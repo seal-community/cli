@@ -194,7 +194,7 @@ func TestGetRemediatedCVEs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			remediatedVulnerabilityIds := GetRemediatedVulnerabilityIds(tt.input)
+			remediatedVulnerabilityIds := getRemediatedVulnerabilityIds(tt.input)
 			if !(len(tt.expectedIds) == 0 && len(remediatedVulnerabilityIds) == 0) && !reflect.DeepEqual(tt.expectedIds, remediatedVulnerabilityIds) {
 				t.Fatalf("remediatedCVEs output: %s is not the same as expected: %s", remediatedVulnerabilityIds, tt.expectedIds)
 			}

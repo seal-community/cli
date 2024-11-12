@@ -1,7 +1,9 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 )
@@ -25,7 +27,7 @@ func TestEmptyConfigFileOverriddenByEnv(t *testing.T) {
 		t.Fatalf("failed loading config: %v", err)
 	}
 
-	if config.Token != envToken {
+	if config.Token.Value() != envToken {
 		t.Fatalf("failed override with env - got %s expected %s", config.Token, envToken)
 	}
 }
@@ -67,7 +69,7 @@ func TestNonemptyConfigFile(t *testing.T) {
 		t.Fatalf("failed loading config: %v", err)
 	}
 
-	if config.Token != tokenValue {
+	if config.Token.Value() != tokenValue {
 		t.Fatalf("failed parsing content - got %s expected %s", config.Token, tokenValue)
 	}
 }
@@ -81,7 +83,7 @@ func TestNonemptyConfigFileOverriddenByEnv(t *testing.T) {
 		t.Fatalf("failed loading config: %v", err)
 	}
 
-	if config.Token != envToken {
+	if config.Token.Value() != envToken {
 		t.Fatalf("failed override exsiting value with env - got %s expected %s", config.Token, envToken)
 	}
 }
@@ -213,39 +215,118 @@ func TestProjectsMapAndProject(t *testing.T) {
 	}
 }
 
-func TestToString(t *testing.T) {
-	content := "token: abcd\nproject: proj-id-3\nprojects: \n  proj-id-1:\n    targets:\n      - package.json"
+func TestStringRedacted(t *testing.T) {
+	content := "token: this-is-my-secret-token\nproject: proj-id-3\nprojects: \n  proj-id-1:\n    targets:\n      - package.json"
 	config, err := Load(strings.NewReader(content), emptyEnv)
 	if config == nil || err != nil {
 		t.Fatalf("failed loading config: %v", err)
 	}
 
-	if s, err := config.ToString(); err != nil || s != `token: REDACTED
-project: proj-id-3
-npm:
-    prod-only: false
-    ignore-extraneous: false
-    update-package-names: false
-pnpm:
-    prod-only: false
-maven:
-    prod-only: false
-    cache-path: ""
-python:
-    only-binary: false
-composer:
-    prod-only: false
-blackduck:
-    blackduck-url: ""
-    blackduck-token: ""
-    blackduck-project-name: ""
-    blackduck-project-version-name: ""
-projects:
-    proj-id-1:
-        targets:
-            - package.json
-use-sealed-names: false
-` {
-		t.Fatalf("failed to convert to string %s", s)
+	if tokenStr := config.Token.String(); tokenStr != redactedString {
+		t.Fatalf("token str not redacted `%s`", tokenStr)
+	}
+}
+
+func TestFmtRedacted(t *testing.T) {
+	token := "this-is-my-secret-token"
+	content := fmt.Sprintf("token: %s\nproject: proj-id-3\nprojects: \n  proj-id-1:\n    targets:\n      - package.json", token)
+	config, err := Load(strings.NewReader(content), emptyEnv)
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+
+	res := fmt.Sprintf("%v", config)
+	if res == "" {
+		t.Fatalf("failed formatting config")
+	}
+
+	if strings.Contains(res, token) {
+		t.Fatalf("token not redacted in `%s`", res)
+	}
+}
+
+func TestLogRedacted(t *testing.T) {
+	token := "this-is-my-secret-token"
+	content := fmt.Sprintf("token: %s\nproject: proj-id-3\nprojects: \n  proj-id-1:\n    targets:\n      - package.json", token)
+	config, err := Load(strings.NewReader(content), emptyEnv)
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+
+	var b bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&b,
+		&slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	logger.Info("test sensitive", "config", config)
+
+	logData := b.String()
+
+	if strings.Contains(logData, token) {
+		t.Fatalf("log data contains token:\n`%s`", logData)
+	}
+}
+
+func TestLogNotTruncated(t *testing.T) {
+	token := "this-is-my-secret-token"
+	projId := "proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-123-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-proj-idproj-idproj-idproj-123"
+	content := fmt.Sprintf(`token: %s
+project: %s
+`, token, projId)
+	config, err := Load(strings.NewReader(content), emptyEnv)
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+
+	var b bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&b,
+		&slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	logger.Info("test sensitive", "config", config)
+
+	logData := b.String()
+
+	if !strings.Contains(logData, projId) {
+		t.Fatalf("output truncated:\n`%s`", logData)
+	}
+}
+
+func TestValidateJfrogSanity(t *testing.T) {
+	content := `jfrog:
+  enabled: true
+  host: "my-domain.com"
+`
+	config, err := Load(strings.NewReader(content), emptyEnv)
+	if config == nil || err != nil {
+		t.Fatalf("failed loading config: %v", err)
+	}
+}
+
+func TestValidateJfrogBadHostScheme(t *testing.T) {
+	content := `jfrog:
+  enabled: true
+  host: "http://my-domain.com"
+`
+	config, err := Load(strings.NewReader(content), emptyEnv)
+	if config != nil || err == nil {
+		t.Fatalf("should fail loading config: %v", config)
+	}
+
+	if err != InvalidJFrogHostScheme {
+		t.Fatalf("wrong err: `%v` exepcted `%v`", err, InvalidJFrogHostScheme)
+	}
+}
+
+func TestValidateJfrogBadHost(t *testing.T) {
+	content := `jfrog:
+  enabled: true
+  host: "www\n.exe"
+`
+	config, err := Load(strings.NewReader(content), emptyEnv)
+	if config != nil || err == nil {
+		t.Fatalf("should fail loading config: %v", config)
+	}
+
+	if err != InvalidJFrogHost {
+		t.Fatalf("wrong err: `%v` exepcted `%v`", err, InvalidJFrogHost)
 	}
 }

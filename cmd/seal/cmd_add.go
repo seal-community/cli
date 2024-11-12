@@ -95,6 +95,7 @@ func addCommand() *cobra.Command {
 				// used to print error message on exit
 				if err != nil {
 					if printableErr := common.AsPrintable(err); printableErr != nil {
+						fmt.Println("")
 						fmt.Println(printableErr.Error())
 						// overwrite so we could distinguish between usage error and more internal ones;
 						// only doing for printable errors since we check the commandline args
@@ -122,6 +123,12 @@ func addCommand() *cobra.Command {
 			}
 
 			defer addPhase.HideProgress() // should be gone when this is over, hide just in case
+
+			if addPhase.CanAuthenticate { // optional in normal flow, but required for Jfrog
+				if err := addPhase.InitRemoteProject(); err != nil {
+					return common.FallbackPrintableMsg(err, "failed initializing project from server")
+				}
+			}
 
 			rule, err := parseRule(args)
 			if err != nil {

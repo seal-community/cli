@@ -304,7 +304,7 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 			return err
 		}
 
-		if err := common.MoveFile(orig, tmp); err != nil {
+		if err := common.Move(orig, tmp); err != nil {
 			slog.Error("failed moving original to temp dir", "err", err, "original", orig, "tmp-path", dst)
 			return fmt.Errorf("failed backing up package %s", dep.PrintableName())
 		}

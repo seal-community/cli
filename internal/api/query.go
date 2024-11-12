@@ -6,8 +6,8 @@ import (
 )
 
 type Backend interface {
-	GetPackageChunkSize() int
-	GetRemoteConfigChunkSize() int
+	GetPackageChunkSize() int      // used for requesting chunks of vulnerable packages from the BE
+	GetRemoteConfigChunkSize() int // used for requesting chunks of configured fixes from the BE
 
 	QueryPackages(request *BulkCheckRequest, queryType PackageQueryType) (*Page[PackageVersion], error)
 

@@ -164,7 +164,7 @@ func changeToSealedName(packageName, packageOriginalVersion, diskPath string) er
 		return common.NewPrintableError("failed changing package %s to sealed name", packageName)
 	}
 
-	if err = common.MoveFile(newJarPath, diskPath); err != nil {
+	if err = common.Move(newJarPath, diskPath); err != nil {
 		slog.Error("failed renaming sealed file", "err", err, "from", newJarPath, "to", diskPath)
 		return err
 	}

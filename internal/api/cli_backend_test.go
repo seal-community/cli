@@ -3,6 +3,7 @@ package api
 import (
 	"cli/internal/common"
 	"cli/internal/ecosystem/mappings"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -418,5 +419,22 @@ func TestRemoteConfigQueryProjectDoesNotExist(t *testing.T) {
 
 	if err != NonExistentProjectError || page != nil {
 		t.Fatalf("should fail without token %v, page: %v", err, page)
+	}
+}
+
+func TestPayloadify(t *testing.T) {
+	d := struct {
+		Name   string
+		hidden string
+	}{Name: "ahoy", hidden: "hidden"}
+	b64 := payloadify(d)
+
+	jsonData, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		t.Fatalf("failed decoding base64: %v", err)
+	}
+
+	if string(jsonData) != `{"Name":"ahoy"}` {
+		t.Fatalf("bad payload: `%s`", jsonData)
 	}
 }

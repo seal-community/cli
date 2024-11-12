@@ -185,7 +185,7 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 		return false, err
 	}
 
-	if err := common.MoveFile(artifactPath, bkupPath); err != nil {
+	if err := common.Move(artifactPath, bkupPath); err != nil {
 		slog.Error("failed renaming artifact", "err", err, "from", artifactPath, "to", bkupPath)
 		return false, err
 	}
@@ -218,7 +218,7 @@ func (f *fixer) Rollback() bool {
 			slog.Error("failed removing original version dir", "dir", orig)
 		}
 
-		if err := common.MoveFile(tmp, orig); err != nil {
+		if err := common.Move(tmp, orig); err != nil {
 			slog.Error("failed renaming tmp to original version dir", "tmp", tmp, "orig", orig)
 		}
 	}

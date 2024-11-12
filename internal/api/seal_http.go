@@ -32,7 +32,7 @@ func sendSealRequestJson[RequestType any, ResponseType any](client http.Client, 
 
 	err = json.Unmarshal(responseData, &responseObject)
 	if err != nil {
-		slog.Error("failed unmarshal response body", "body", string(responseData))
+		slog.Error("failed unmarshal response body", "body", string(responseData), "err", err)
 		return nil, 0, err
 	}
 

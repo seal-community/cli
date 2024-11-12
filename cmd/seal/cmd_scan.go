@@ -112,8 +112,8 @@ func convertActionsOverride(af *actions.ActionsFile, normalizer shared.Normalize
 	for projectName, projectSection := range af.Projects {
 		slog.Debug("converting override in project", "project", projectName)
 		for libraryName, versionMap := range projectSection.Overrides {
-			slog.Debug("converting override in library", "lib", libraryName)
 			for version, override := range versionMap {
+				slog.Debug("converting override in library", "lib", libraryName, "version", version)
 				p := api.PackageVersion{
 					Version:                         version,
 					RecommendedLibraryVersionString: override.Version,
@@ -124,9 +124,12 @@ func convertActionsOverride(af *actions.ActionsFile, normalizer shared.Normalize
 						PackageManager: mappings.EcosystemToBackendManager(projectSection.Manager.Ecosystem),
 					}, // ideally the ecosystem would be validated to be from currently supported list
 				}
+
 				if _, ok := packages[p.Id()]; ok {
 					slog.Warn("duplicate override found", "id", p.Id())
 				}
+
+				slog.Info("added override to allowed-list", "package", p.Id())
 				packages[p.Id()] = p
 			}
 		}
@@ -216,6 +219,7 @@ func scanCommand() *cobra.Command {
 				// used to print error message on exit
 				if err != nil {
 					if printableErr := common.AsPrintable(err); printableErr != nil {
+						fmt.Println("")
 						fmt.Println(printableErr.Error())
 					} else {
 						slog.Warn("non printable error", "err", err)
@@ -254,7 +258,6 @@ func scanCommand() *cobra.Command {
 
 			// auth is optional for scaning purposes
 			if scanPhase.CanAuthenticate {
-				slog.Info("authenticating")
 				if err := scanPhase.InitRemoteProject(); err != nil {
 					return common.FallbackPrintableMsg(err, "failed initializing project from server")
 				}

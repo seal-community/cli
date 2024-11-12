@@ -202,6 +202,7 @@ func printMsgDespiteProgressBar(msg string, args ...any) {
 
 // prints warning to console
 func (p *basePhase) InitRemoteProject() error {
+	slog.Info("checking authentication")
 	if err := p.ValidateAuth(); err != nil {
 		slog.Error("auth failed", "err", err)
 		return common.FallbackPrintableMsg(err, "authentication issue")
@@ -209,9 +210,10 @@ func (p *basePhase) InitRemoteProject() error {
 
 	p.Bar.Describe("Getting project information")
 
+	slog.Info("initializing project")
 	projDesc, err := p.InitializeProject()
-	if err != nil {
-		slog.Error("failed initializing project", "err", err, "tag", p.Project.Tag, "name-candidate", p.Project.NameCandidate)
+	if err != nil || projDesc == nil {
+		slog.Error("failed initializing project", "err", err, "tag", p.Project.Tag, "name-candidate", p.Project.NameCandidate, "desc", projDesc)
 		return common.FallbackPrintableMsg(err, "failed querying project from server")
 	}
 
@@ -239,12 +241,6 @@ func (p *basePhase) InitRemoteProject() error {
 	p.addFinishedStep() // since this was unexpected in scan flow
 
 	return nil
-}
-
-func (p *basePhase) cliMetadata() map[string]interface{} {
-	return map[string]interface{}{
-		"version": common.CliVersion,
-	}
 }
 
 func (p *basePhase) HideProgress() {
@@ -295,7 +291,14 @@ func (p *basePhase) QueryRecommendedPackages(vulnerablePackages []api.PackageVer
 		})
 	}
 
-	available, err := fetchPackagesInfo(p.Backend, deps, nil, api.OnlyFixed, nil)
+	var err error
+	var available *[]api.PackageVersion
+
+	if p.CanAuthenticate {
+		available, err = fetchPackagesInfoAuth(p.Backend, deps, nil, api.OnlyFixed, nil, false) // always using false, this is used only to query recommendations; and required for JFrog flow
+	} else {
+		available, err = fetchPackagesInfo(p.Backend, deps, nil, api.OnlyFixed, nil)
+	}
 	if err != nil {
 		slog.Error("failed getting fixed versions info", "err", err)
 		return nil, common.NewPrintableError("failed querying recommended fixes")

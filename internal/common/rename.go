@@ -9,8 +9,10 @@ import (
 	"github.com/otiai10/copy"
 )
 
-// MoveFile safely moves a file, handling cross-device link errors.
-func MoveFile(source, destination string) error {
+// tries to use os.Rename first
+// handles cross-device link errors by copying to destination and removing source
+// in this case, will only shallow-copy links
+func Move(source, destination string) error {
 	// Attempt to use os.Rename().
 	err := os.Rename(source, destination)
 	if err == nil {

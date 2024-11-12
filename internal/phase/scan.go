@@ -3,7 +3,6 @@ package phase
 import (
 	"cli/internal/api"
 	"cli/internal/common"
-	"fmt"
 	"log/slog"
 )
 
@@ -29,27 +28,6 @@ func NewScanPhase(target string, configPath string, showProgress bool) (*scanPha
 type PackageManagerMetadata struct {
 	Version string `json:"version"`
 	Name    string `json:"name"`
-}
-
-func (sp *scanPhase) metadata() (*PackageManagerMetadata, error) {
-	packageManager := sp.Manager
-
-	name := packageManager.Name()
-	version := packageManager.GetVersion()
-	if version == "" {
-		slog.Error("failed getting version of manager", "name", name)
-		// IMPORTANT: in future we might want to return printable error here
-		return nil, fmt.Errorf("failed getting package manager version")
-	}
-
-	if !packageManager.IsVersionSupported(version) {
-		slog.Error("unsupported package manager version", "version", version)
-		return nil, common.NewPrintableError("unsupported package manager version %s", version)
-	}
-
-	slog.Info("package manager version", "version", version, "name", name)
-
-	return &PackageManagerMetadata{Version: version, Name: name}, nil
 }
 
 func (sp *scanPhase) Collect() (common.DependencyMap, error) {
@@ -113,19 +91,13 @@ func (sp *scanPhase) checkVulnerabilitiesInPackages(deps []common.Dependency, me
 func (sp *scanPhase) Scan(generateActivity bool) (*ScanResult, error) {
 	slog.Info("starting scan", "target", sp.BaseDir)
 
-	metadata := sp.cliMetadata()
-
 	sp.Bar.Describe("Checking metadata")
 	_ = sp.Bar.RenderBlank() // draw without progress to show the description
 
-	managerMetadata, err := sp.metadata()
+	metadata, err := gatherMetadata(sp.Manager)
 	if err != nil {
+		slog.Error("failed collecting metadata", "err", err)
 		return nil, common.FallbackPrintableMsg(err, "failed checking metadata")
-	}
-
-	if managerMetadata != nil {
-		slog.Debug("done collecting manager metadata")
-		metadata[sp.Manager.Name()] = managerMetadata
 	}
 
 	sp.advanceStep("Scanning local dependencies")
