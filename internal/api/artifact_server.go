@@ -9,9 +9,14 @@ import (
 )
 
 type SealArtifactServer struct {
-	client    http.Client
-	authToken string
-	baseUrl   string
+	client       http.Client
+	authToken    string
+	baseUrl      string
+	extraHeaders []StringPair
+}
+
+func (s *SealArtifactServer) SetExtraHeaders(headers []StringPair) {
+	s.extraHeaders = headers
 }
 
 func NewArtifactServer(
@@ -63,6 +68,11 @@ func (s SealArtifactServer) Get(uri string, params []StringPair, headers []Strin
 			headers = append(headers, authHdr)
 		}
 		common.Trace("sending auth header in bulk request")
+	}
+
+	if len(s.extraHeaders) > 0 {
+		headers = append(headers, s.extraHeaders...)
+		common.Trace("adding extra headers to request", "headers", s.extraHeaders)
 	}
 
 	responseData, statusCode, err := sendSealRequest[any](s.client, "GET", reqUrl, nil, headers, params)

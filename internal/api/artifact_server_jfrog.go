@@ -27,6 +27,10 @@ type JFrogArtifactServer struct {
 	authHeader StringPair
 }
 
+func (s *JFrogArtifactServer) SetExtraHeaders(headers []StringPair) {
+	common.Trace("Not implemented yet")
+}
+
 func NewJFrogArtifactServer(
 	client http.Client, project string, token string, baseUrl string) *JFrogArtifactServer {
 

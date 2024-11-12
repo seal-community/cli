@@ -29,6 +29,7 @@ type ArtifactServer interface {
 	// will convert response from json and populate input obj
 	// if non-pointer type is passed json marshal will return error
 	GetJsonObject(url string, headers []StringPair, params []StringPair, obj any) (int, error)
+	SetExtraHeaders(headers []StringPair)
 }
 
 type PackageQueryType int

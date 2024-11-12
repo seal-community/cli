@@ -263,3 +263,47 @@ func TestGetJsonBadObj(t *testing.T) {
 		t.Fatalf("bad err: %v", err)
 	}
 }
+
+func TestSetExtraHeaders(t *testing.T) {
+	baseurl := "http://example.com"
+	client := http.Client{}
+
+	server := NewArtifactServer(baseurl, "", "proj-id", client)
+
+	testHeaders := []StringPair{
+		{Name: "X-Custom-Header-1", Value: "Value1"},
+		{Name: "X-Custom-Header-2", Value: "Value2"},
+	}
+
+	server.SetExtraHeaders(testHeaders)
+
+	if len(server.extraHeaders) != len(testHeaders) {
+		t.Fatalf("expected %d headers, got %d", len(testHeaders), len(server.extraHeaders))
+	}
+
+	for i, header := range testHeaders {
+		if server.extraHeaders[i] != header {
+			t.Fatalf("header mismatch at index %d: expected %v, got %v", i, header, server.extraHeaders[i])
+		}
+	}
+
+	fakeRoundTripper := FakeRoundTripper{
+		statusCode: 200,
+		Validator: func(req *http.Request) {
+			for _, header := range testHeaders {
+				values := req.Header.Values(header.Name)
+				if len(values) == 0 || values[0] != header.Value {
+					t.Fatalf("header mismatch for %s: expected %s, got %v", header.Name, header.Value, values)
+				}
+			}
+		},
+	}
+
+	client.Transport = fakeRoundTripper
+	server.client = client
+
+	_, _, err := server.Get("dummy/uri", nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error during request: %v", err)
+	}
+}

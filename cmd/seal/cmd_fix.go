@@ -18,6 +18,7 @@ import (
 )
 
 const summaryFlag = "summarize"
+const SealFixModeHeader = "X-Seal-Fix-Mode"
 
 func fixModeFromString(s string) phase.FixMode {
 	modes := []phase.FixMode{phase.FixModeAll, phase.FixModeRemote, phase.FixModeLocal}
@@ -178,6 +179,8 @@ func fixCommand() *cobra.Command {
 				slog.Error("failed initializing fix", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing fix phase")
 			}
+
+			fixPhase.ArtifactServer.SetExtraHeaders([]api.StringPair{{Name: SealFixModeHeader, Value: fm}})
 
 			defer fixPhase.HideProgress() // should be gone when this is over, hide just in case
 
