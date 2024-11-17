@@ -1,4 +1,4 @@
-package nuget
+package dotnet
 
 import (
 	"cli/internal/ecosystem/shared"

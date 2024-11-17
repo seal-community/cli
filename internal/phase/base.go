@@ -4,9 +4,9 @@ import (
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
-	"cli/internal/ecosystem/dotnet"
 	"cli/internal/ecosystem/golang"
 	"cli/internal/ecosystem/java"
+	"cli/internal/ecosystem/msil"
 	"cli/internal/ecosystem/node"
 	"cli/internal/ecosystem/php"
 	"cli/internal/ecosystem/python"
@@ -107,7 +107,7 @@ func findApplicationPackageManager(configDir *config.Config, projectDir string, 
 	nodeManager, nodeErr := node.GetPackageManager(configDir, projectDir, target)
 	pythonManager, pythonErr := python.GetPackageManager(configDir, projectDir, target)
 	javaManager, javaErr := java.GetPackageManager(configDir, projectDir, target)
-	dotnetManager, dotnetErr := dotnet.GetPackageManager(configDir, projectDir, target)
+	dotnetManager, dotnetErr := msil.GetPackageManager(configDir, projectDir, target)
 	golangManager, golangErr := golang.GetPackageManager(configDir, projectDir, target)
 	phpManager, phpErr := php.GetPackageManager(configDir, projectDir, target)
 

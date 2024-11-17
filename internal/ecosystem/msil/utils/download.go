@@ -1,4 +1,4 @@
-package nuget
+package utils
 
 import (
 	"cli/internal/api"

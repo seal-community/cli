@@ -1,11 +1,11 @@
-package nuget
+package dotnet
 
 import (
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
-	"cli/internal/ecosystem/dotnet/utils"
 	"cli/internal/ecosystem/mappings"
+	"cli/internal/ecosystem/msil/utils"
 	"cli/internal/ecosystem/shared"
 	"log/slog"
 	"sort"
@@ -13,61 +13,60 @@ import (
 )
 
 const dotnetExeName = "dotnet"
-
-const NugetManagerName = "nuget"
+const dotnetManagerName = "dotnet"
 
 const ProjectAssetsFileName = "project.assets.json"
 
 const DotnetRestoreError = "Failed loading project assets, please run 'dotnet restore --force' to regenerate it"
 
 // Ordered by priority
-var nugetSuffixIndicators = []string{".csproj"}
+var dotnetSuffixIndicators = []string{".csproj"}
 
 const versionFlag = "--version"
 
-type NugetMetadata struct {
+type DotnetMetadata struct {
 	version      string
 	packagesPath string
 }
 
-type NugetPackageManager struct {
-	Config          *config.Config
-	targetDir       string
-	nugetTargetFile string
-	metadata        *NugetMetadata
+type DotnetPackageManager struct {
+	Config           *config.Config
+	targetDir        string
+	dotnetTargetFile string
+	metadata         *DotnetMetadata
 }
 
-func NewNugetManager(config *config.Config, targetDir string, targetFile string) *NugetPackageManager {
-	metadata := getNugetMetadata(targetDir)
-	m := &NugetPackageManager{Config: config, targetDir: targetDir, metadata: metadata, nugetTargetFile: targetFile}
+func NewDotnetManager(config *config.Config, targetDir string, targetFile string) *DotnetPackageManager {
+	metadata := getDotnetMetadata(targetDir)
+	m := &DotnetPackageManager{Config: config, targetDir: targetDir, metadata: metadata, dotnetTargetFile: targetFile}
 
 	return m
 }
 
-func (m *NugetPackageManager) Name() string {
-	return NugetManagerName
+func (m *DotnetPackageManager) Name() string {
+	return dotnetManagerName
 }
 
-func getNugetMetadata(targetDir string) *NugetMetadata {
+func getDotnetMetadata(targetDir string) *DotnetMetadata {
 	result, err := common.RunCmdWithArgs(targetDir, dotnetExeName, versionFlag)
 	if err != nil {
-		slog.Error("failed running nuget version", "err", err)
+		slog.Error("failed running dotnet version", "err", err)
 		return nil
 	}
 
 	if result.Code != 0 {
-		slog.Error("running nuget version returned non-zero", "result", result)
+		slog.Error("running dotnet version returned non-zero", "result", result)
 		return nil
 	}
 
-	metadata := &NugetMetadata{}
+	metadata := &DotnetMetadata{}
 	metadata.version = strings.TrimSuffix(result.Stdout, "\n")
 	metadata.packagesPath = utils.GetGlobalPackagesCachePath()
 
 	return metadata
 }
 
-func (m *NugetPackageManager) GetVersion() string {
+func (m *DotnetPackageManager) GetVersion() string {
 	if m.metadata != nil {
 		return m.metadata.version
 	}
@@ -75,11 +74,11 @@ func (m *NugetPackageManager) GetVersion() string {
 	return ""
 }
 
-func (m *NugetPackageManager) IsVersionSupported(version string) bool {
+func (m *DotnetPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *NugetPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *DotnetPackageManager) ListDependencies() (common.DependencyMap, error) {
 	result, ok := listPackages(m.targetDir)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())
@@ -97,16 +96,16 @@ func (m *NugetPackageManager) ListDependencies() (common.DependencyMap, error) {
 	return dependencyMap, nil
 }
 
-func (m *NugetPackageManager) GetProjectName() string {
+func (m *DotnetPackageManager) GetProjectName() string {
 	return "" // We might want to return the PackageId from the .csproj in the future
 }
 
-func (m *NugetPackageManager) GetFixer(workdir string) shared.DependencyFixer {
+func (m *DotnetPackageManager) GetFixer(workdir string) shared.DependencyFixer {
 	return utils.NewFixer(m.targetDir, workdir)
 }
 
-func IsNugetIndicatorFile(path string) bool {
-	for _, suffixIndicator := range nugetSuffixIndicators {
+func IsDotnetIndicatorFile(path string) bool {
+	for _, suffixIndicator := range dotnetSuffixIndicators {
 		if strings.HasSuffix(path, suffixIndicator) {
 			return true
 		}
@@ -115,9 +114,9 @@ func IsNugetIndicatorFile(path string) bool {
 	return false
 }
 
-func FindNugetIndicatorFile(path string) (string, error) {
+func FindDotnetIndicatorFile(path string) (string, error) {
 	// This function seraches all the files, which isn't ideal
-	for _, suffixIndicator := range nugetSuffixIndicators {
+	for _, suffixIndicator := range dotnetSuffixIndicators {
 		files, err := common.FindPathsWithSuffix(path, suffixIndicator)
 		if err == nil && len(files) > 0 {
 			// sorting them because Walk returns DFS results and we prefer the top level files
@@ -125,7 +124,7 @@ func FindNugetIndicatorFile(path string) (string, error) {
 				return len(files[i]) < len(files[j])
 			})
 
-			slog.Info("found nuget indicator files", "files", files, "indicator", suffixIndicator)
+			slog.Info("found dotnet indicator files", "files", files, "indicator", suffixIndicator)
 			return files[0], nil
 		}
 	}
@@ -145,22 +144,23 @@ func listPackages(targetDir string) (*common.ProcessResult, bool) {
 	return listResult, true
 }
 
-func (m *NugetPackageManager) GetEcosystem() string {
+func (m *DotnetPackageManager) GetEcosystem() string {
 	return mappings.DotnetEcosystem
 }
 
-func (m *NugetPackageManager) GetScanTargets() []string {
-	return []string{m.nugetTargetFile}
+func (m *DotnetPackageManager) GetScanTargets() []string {
+	return []string{m.dotnetTargetFile}
 }
 
-func (m *NugetPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
-	return DownloadNugetPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
+func (m *DotnetPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
+	return utils.DownloadNugetPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-func (m *NugetPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
+func (m *DotnetPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if m.Config.UseSealedNames {
-		slog.Warn("using sealed names in nuget is not supported yet")
+		slog.Warn("using sealed names in dotnet is not supported yet")
 	}
+
 	return handleFixes(m.targetDir, fixes)
 }
 
@@ -195,11 +195,11 @@ func handleFixes(projectDir string, fixes []shared.DependencyDescriptor) error {
 
 // Nuget package names are case-insensitive as stated here:
 // https://learn.microsoft.com/en-us/nuget/consume-packages/finding-and-choosing-packages
-func (m *NugetPackageManager) NormalizePackageName(name string) string {
+func (m *DotnetPackageManager) NormalizePackageName(name string) string {
 	return strings.ToLower(name)
 }
 
-func (m *NugetPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
+func (m *DotnetPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
 	slog.Warn("Silencing packages is not support for nuget")
 	return nil, nil
 }

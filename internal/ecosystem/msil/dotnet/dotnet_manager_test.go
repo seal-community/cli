@@ -1,4 +1,4 @@
-package nuget
+package dotnet
 
 import (
 	"cli/internal/api"
@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-func TestNugetManagerDetectionNoNugetFile(t *testing.T) {
+func TestDotnetManagerDetectionNoDotnetFile(t *testing.T) {
 	target, err := os.MkdirTemp("", "test_seal_cli_*")
 	if err != nil {
 		panic(err)
@@ -20,17 +20,17 @@ func TestNugetManagerDetectionNoNugetFile(t *testing.T) {
 
 	defer os.Remove(target)
 
-	indctr, err := FindNugetIndicatorFile(target)
+	indctr, err := FindDotnetIndicatorFile(target)
 	if err != nil {
 		t.Fatalf("had error %v", err)
 	}
 
 	if indctr != "" {
-		t.Fatal("detected nuget")
+		t.Fatal("detected Dotnet")
 	}
 }
 
-func TestNugetManagerDetectionNugetFile(t *testing.T) {
+func TestDotnetManagerDetectionDotnetFile(t *testing.T) {
 	target, err := os.MkdirTemp("", "test_seal_cli_*")
 	if err != nil {
 		panic(err)
@@ -38,7 +38,7 @@ func TestNugetManagerDetectionNugetFile(t *testing.T) {
 
 	defer os.Remove(target)
 
-	for _, suffixIndicator := range nugetSuffixIndicators {
+	for _, suffixIndicator := range dotnetSuffixIndicators {
 		p := filepath.Join(target, suffixIndicator)
 		f, err := os.Create(p)
 		if err != nil {
@@ -47,13 +47,13 @@ func TestNugetManagerDetectionNugetFile(t *testing.T) {
 
 		f.Close()
 
-		indctr, err := FindNugetIndicatorFile(target)
+		indctr, err := FindDotnetIndicatorFile(target)
 		if err != nil {
 			t.Fatalf("had error %v", err)
 		}
 
 		if indctr == "" {
-			t.Fatal("failed to detect nuget")
+			t.Fatal("failed to detect Dotnet")
 		}
 	}
 }
@@ -92,7 +92,7 @@ func TestHandleFixes(t *testing.T) {
 		Library: api.Package{
 			Name:           "Snappier",
 			NormalizedName: "snappier",
-			PackageManager: "nuget",
+			PackageManager: "dotnet",
 		},
 		RecommendedLibraryVersionId:     "1.1.0-sp1",
 		RecommendedLibraryVersionString: "1.1.0-sp1",
@@ -105,7 +105,7 @@ func TestHandleFixes(t *testing.T) {
 		Library: api.Package{
 			Name:           "Snappier",
 			NormalizedName: "snappier",
-			PackageManager: "nuget",
+			PackageManager: "dotnet",
 		},
 		RecommendedLibraryVersionId:     "",
 		RecommendedLibraryVersionString: "",
@@ -149,7 +149,7 @@ func TestIndicatorMatches(t *testing.T) {
 
 	for i, p := range ps {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
-			if !IsNugetIndicatorFile(p) {
+			if !IsDotnetIndicatorFile(p) {
 				t.Fatalf("failed to detect indicator path `%s`", p)
 			}
 		})
@@ -169,7 +169,7 @@ func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
 
 	for i, p := range ps {
 		t.Run(fmt.Sprintf("pth_%d", i), func(t *testing.T) {
-			if IsNugetIndicatorFile(p) {
+			if IsDotnetIndicatorFile(p) {
 				t.Fatalf("failed to detect indicator path `%s`", p)
 			}
 		})
@@ -178,7 +178,7 @@ func TestIndicatorDoesNotMatchPackageJson(t *testing.T) {
 
 func TestNormalizePackageNames(t *testing.T) {
 	c, _ := config.New(nil)
-	manager := NewNugetManager(c, "", "")
+	manager := NewDotnetManager(c, "", "")
 	names := map[string]string{
 		"aaaaa": "aaaaa",
 		"aaAAa": "aaaaa",

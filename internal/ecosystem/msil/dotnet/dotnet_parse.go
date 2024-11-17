@@ -1,10 +1,10 @@
-package nuget
+package dotnet
 
 import (
 	"cli/internal/common"
 	"cli/internal/config"
-	"cli/internal/ecosystem/dotnet/utils"
 	"cli/internal/ecosystem/mappings"
+	"cli/internal/ecosystem/msil/utils"
 	"cli/internal/ecosystem/shared"
 	"encoding/json"
 	"log/slog"
