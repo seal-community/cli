@@ -36,12 +36,12 @@ func DownloadRpmPackage(s api.ArtifactServer, name string, version string, arch 
 	)
 
 	if err != nil {
-		slog.Error("failed sending request for golang package data", "err", err, "name", name, "version", version)
+		slog.Error("failed sending request for RPM package data", "err", err, "name", name, "version", version)
 		return nil, err
 	}
 
 	if statusCode != 200 {
-		slog.Error("bad response code for golang package payload", "err", err, "status", statusCode)
+		slog.Error("bad response code for RPM package payload", "err", err, "status", statusCode, "uri", uri)
 		return nil, fmt.Errorf("bad status code golang package data; status: %d", statusCode)
 	}
 

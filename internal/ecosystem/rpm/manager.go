@@ -46,7 +46,7 @@ func getDistro(osRelease *ini.File) (string, error) {
 }
 
 func isDistroSupported(os string) bool {
-	return os == "centos" || os == "rhel"
+	return os == "centos" || os == "rhel" || os == "ol"
 }
 
 func GetPackageManager(config *config.Config, targetDir string) (shared.PackageManager, error) {
