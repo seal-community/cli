@@ -122,7 +122,8 @@ func (m *YumPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) err
 		return common.NewPrintableError("You must be root to fix OS packages")
 	}
 
-	installArgs := append([]string{"localinstall", "-y"}, m.installPaths...)
+	// --disable-repo=* is used to prevent yum from trying to fetch packages other than the ones we are installing
+	installArgs := append([]string{"localinstall", "-y", "--disablerepo=*"}, m.installPaths...)
 	installOutput, err := common.RunCmdWithArgs(m.targetDir, yumExeName, installArgs...)
 	if err != nil {
 		slog.Error("failed running yum install", "err", err)
