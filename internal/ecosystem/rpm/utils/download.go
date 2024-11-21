@@ -18,10 +18,21 @@ func getOsVersion(libraryVersion string) string {
 	return matches[1]
 }
 
+// Return version with no epoch, e.g. 1:1.2.3-4.el7 -> 1.2.3-4.el7
+func getNoEpochVersion(libraryVersion string) string {
+	reg := regexp.MustCompile(`^(\d+:)?(.*)`)
+	matches := reg.FindStringSubmatch(libraryVersion)
+	if len(matches) < 3 {
+		return ""
+	}
+	return matches[2]
+}
+
 func buildUri(name string, version string, arch string) string {
 	os := getOsVersion(version)
+	noEpochVersion := getNoEpochVersion(version)
 
-	return fmt.Sprintf("centos/%s/%s/Packages/%s-%s.%s.rpm", os, arch, name, version, arch)
+	return fmt.Sprintf("centos/%s/%s/Packages/%s-%s.%s.rpm", os, arch, name, noEpochVersion, arch)
 }
 
 func DownloadRpmPackage(s api.ArtifactServer, name string, version string, arch string) ([]byte, error) {

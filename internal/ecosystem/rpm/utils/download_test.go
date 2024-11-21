@@ -80,6 +80,11 @@ func TestBuildUri(t *testing.T) {
 			input:    []string{"acl", "2.2.53-3.el4", "noarch"},
 			expected: "centos/4/noarch/Packages/acl-2.2.53-3.el4.noarch.rpm",
 		},
+		{
+			name:     "Test 6",
+			input:    []string{"acl", "1:2.2.53-3.el4", "noarch"},
+			expected: "centos/4/noarch/Packages/acl-2.2.53-3.el4.noarch.rpm",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
