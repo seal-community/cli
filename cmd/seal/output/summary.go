@@ -41,7 +41,7 @@ func getRelativePaths(root string, paths []string) ([]string, error) {
 				return nil, err
 			}
 
-			common.Trace("converted path to relaive", "rel", path, "original", origPath)
+			common.Trace("converted path to relative", "rel", path, "original", origPath, "root", root)
 		}
 
 		relativePaths = append(relativePaths, path)

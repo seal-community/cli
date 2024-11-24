@@ -101,7 +101,8 @@ func (m *DotnetPackageManager) GetProjectName() string {
 }
 
 func (m *DotnetPackageManager) GetFixer(workdir string) shared.DependencyFixer {
-	return utils.NewFixer(m.targetDir, workdir)
+	packagesDir := utils.GetGlobalPackagesCachePath()
+	return utils.NewFixer(m.targetDir, workdir, packagesDir)
 }
 
 func IsDotnetIndicatorFile(path string) bool {
@@ -118,15 +119,22 @@ func FindDotnetIndicatorFile(path string) (string, error) {
 	// This function seraches all the files, which isn't ideal
 	for _, suffixIndicator := range dotnetSuffixIndicators {
 		files, err := common.FindPathsWithSuffix(path, suffixIndicator)
-		if err == nil && len(files) > 0 {
-			// sorting them because Walk returns DFS results and we prefer the top level files
-			sort.Slice(files, func(i, j int) bool {
-				return len(files[i]) < len(files[j])
-			})
-
-			slog.Info("found dotnet indicator files", "files", files, "indicator", suffixIndicator)
-			return files[0], nil
+		if err != nil {
+			return "", err
 		}
+
+		if len(files) == 0 {
+			slog.Debug("did not find any indicator candidates", "suffix", suffixIndicator)
+			continue
+		}
+
+		// sorting them because Walk returns DFS results and we prefer the top level files
+		sort.Slice(files, func(i, j int) bool {
+			return len(files[i]) < len(files[j])
+		})
+
+		slog.Info("found dotnet indicator files", "files", files, "indicator", suffixIndicator)
+		return files[0], nil
 	}
 
 	slog.Debug("no file found with dotnet suffix", "path", path)
@@ -152,8 +160,8 @@ func (m *DotnetPackageManager) GetScanTargets() []string {
 	return []string{m.dotnetTargetFile}
 }
 
-func (m *DotnetPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
-	return utils.DownloadNugetPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
+func (m *DotnetPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
+	return utils.DownloadNugetPackage(server, descriptor.AvailableFix.Library.NormalizedName, descriptor.AvailableFix.Version)
 }
 
 func (m *DotnetPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
@@ -193,13 +201,11 @@ func handleFixes(projectDir string, fixes []shared.DependencyDescriptor) error {
 	return nil
 }
 
-// Nuget package names are case-insensitive as stated here:
-// https://learn.microsoft.com/en-us/nuget/consume-packages/finding-and-choosing-packages
 func (m *DotnetPackageManager) NormalizePackageName(name string) string {
-	return strings.ToLower(name)
+	return utils.NormalizeName(name)
 }
 
 func (m *DotnetPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
-	slog.Warn("Silencing packages is not support for nuget")
+	slog.Warn("Silencing packages is not support for dotnet")
 	return nil, nil
 }

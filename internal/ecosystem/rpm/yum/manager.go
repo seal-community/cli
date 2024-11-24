@@ -98,12 +98,12 @@ func (m *YumPackageManager) GetScanTargets() []string {
 	return []string{"yum"} // We use yum as the target to indicate the source of the scan
 }
 
-func (m *YumPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
+func (m *YumPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
 	arch := descriptor.Locations[""].Arch // RPM packages have no location, so the map includes a single empty string key
 
 	if arch == "" {
 		slog.Error("failed to find arch for package", "name", descriptor.VulnerablePackage.Library.Name)
-		return nil, fmt.Errorf("failed to find arch for package")
+		return nil, "", fmt.Errorf("failed to find arch for package")
 	}
 
 	return utils.DownloadRpmPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, arch)

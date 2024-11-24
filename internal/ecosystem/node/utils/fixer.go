@@ -78,7 +78,7 @@ func (f *fixer) Prepare() error {
 	return nil
 }
 
-func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (bool, string, error) {
 	if _, ok := f.rollback[dep.DiskPath]; ok {
 		// will have issue in future with N branches that have been dedup'd so that they both point to the same
 		// physical path and we will want to update one but not the other:
@@ -86,23 +86,23 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 		//		D -> E -> C   : we don't want to patch
 		// also this is touchy with current logic of rollback
 		slog.Warn("dup already patched", "id", dep.Id(), "original-path", dep.DiskPath)
-		return false, nil
+		return false, "", nil
 	}
 
 	tmpName, err := getDepRollbackDir(f.projectDir, f.workdir, dep.DiskPath)
 	if err != nil {
 		slog.Error("failed formatting temp dir for dep", "err", err, "original", dep.DiskPath, "project-dir", f.projectDir)
-		return false, err
+		return false, "", err
 	}
 
 	if err := createDepRollbackDir(tmpName, dep); err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	slog.Debug("moving dep to seal tmp", "from", dep.DiskPath, "to", tmpName)
 	if err := common.Move(dep.DiskPath, tmpName); err != nil {
 		slog.Error("failed moving original to temp dir", "err", err, "original", dep.DiskPath, "tmp-path", tmpName)
-		return false, common.NewPrintableError("failed backing up package %s", dep.PrintableName())
+		return false, "", common.NewPrintableError("failed backing up package %s", dep.PrintableName())
 	}
 
 	f.rollback[dep.DiskPath] = tmpName
@@ -111,13 +111,13 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	err = os.Mkdir(dep.DiskPath, os.ModePerm)
 	if err != nil {
 		slog.Error("failed recreating original path for dep", "err", err, "original", dep.DiskPath)
-		return false, common.NewPrintableError("failed creating package folder for %s", dep.PrintableName())
+		return false, "", common.NewPrintableError("failed creating package folder for %s", dep.PrintableName())
 	}
 
 	err = UntarNpmPackage(bytes.NewReader(packageData), dep.DiskPath)
 	if err != nil {
 		slog.Error("failed untaring package", "err", err, "target", dep.DiskPath, "payloadLen", len(packageData))
-		return false, common.NewPrintableError("failed applying fix for package %s", dep.PrintableName())
+		return false, "", common.NewPrintableError("failed applying fix for package %s", dep.PrintableName())
 	}
 
 	if containsNestedNodeModules(tmpName) {
@@ -127,16 +127,16 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 		if containsNestedNodeModules(dep.DiskPath) {
 			// we might encounter conflict if package published theirs with node modules
 			slog.Warn("fixed package already contains node_modules directory", "path", dep.DiskPath)
-			return false, nil
+			return false, "", nil
 		}
 
 		if err := moveNodeModules(tmpName, dep.DiskPath); err != nil {
-			return false, err
+			return false, "", err
 		}
 	}
 
 	slog.Info("fixed package instance", "path", dep.DiskPath)
-	return true, nil
+	return true, dep.DiskPath, nil
 }
 
 func (f *fixer) rollbackDependency(from string, to string) error {
@@ -175,7 +175,7 @@ func (f *fixer) Cleanup() bool {
 	finishedOk := true
 	for orig, tmpName := range f.rollback {
 		if err := os.RemoveAll(tmpName); err != nil {
-			slog.Error("failed removing tmp dir", "orig", orig, "tmp", tmpName)
+			slog.Error("failed removing tmp dir", "orig", orig, "tmp", tmpName, "err", err)
 			finishedOk = false
 		}
 	}

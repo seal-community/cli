@@ -30,7 +30,7 @@ func (f *fixer) Prepare() error {
 
 // Fix a dependency by replacing the code in the vendor directory
 // Store a copy of the original dependency in the workdir for rollback
-func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (bool, string, error) {
 	origDepDirPath := dep.DiskPath
 	tmpDepDirPath := filepath.Join(f.workdir, dep.Name)
 
@@ -38,12 +38,12 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	tmpParentDir := filepath.Dir(tmpDepDirPath)
 	if err := os.MkdirAll(tmpParentDir, 0755); err != nil {
 		slog.Error("failed creating tmp dir", "dir", tmpDepDirPath, "err", err)
-		return false, err
+		return false, "", err
 	}
 
 	if err := common.Move(origDepDirPath, tmpDepDirPath); err != nil {
 		slog.Error("failed moving original version dir to tmp", "orig", origDepDirPath, "tmp", tmpDepDirPath, "err", err)
-		return false, common.NewPrintableError("failed backing up the original version for: %s", origDepDirPath)
+		return false, "", common.NewPrintableError("failed backing up the original version for: %s", origDepDirPath)
 	}
 
 	f.rollback[origDepDirPath] = tmpDepDirPath
@@ -51,18 +51,18 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	r, err := zip.NewReader(bytes.NewReader(packageData), int64(len(packageData)))
 	if err != nil {
 		slog.Error("failed reading package", "err", err, "availableFix", entry.AvailableFix.Id(), "packageDataLen", len(packageData))
-		return false, err
+		return false, "", err
 	}
 
 	for _, file := range r.File {
 		common.Trace("extracting file", "file", file.Name)
 		if err = common.UnzipFile(file, f.vendorDir); err != nil {
 			slog.Error("failed extracting file", "file", file.Name, "err", err)
-			return false, err
+			return false, "", err
 		}
 	}
 
-	return true, nil
+	return true, dep.DiskPath, nil
 }
 
 func rollbackDependency(from string, to string) error {
@@ -95,7 +95,7 @@ func (f *fixer) Cleanup() bool {
 	finishedOk := true
 	for orig, tmpName := range f.rollback {
 		if err := os.RemoveAll(tmpName); err != nil {
-			slog.Error("failed removing tmp dir", "orig", orig, "tmp", tmpName)
+			slog.Error("failed removing tmp dir", "orig", orig, "tmp", tmpName, "err", err)
 			finishedOk = false
 		}
 	}

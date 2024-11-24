@@ -35,10 +35,11 @@ func buildUri(name string, version string, arch string) string {
 	return fmt.Sprintf("centos/%s/%s/Packages/%s-%s.%s.rpm", os, arch, name, noEpochVersion, arch)
 }
 
-func DownloadRpmPackage(s api.ArtifactServer, name string, version string, arch string) ([]byte, error) {
+func DownloadRpmPackage(s api.ArtifactServer, name string, version string, arch string) ([]byte, string, error) {
 	defer common.ExecutionTimer().Log()
 
 	uri := buildUri(name, version, arch)
+	filename := common.FileNameFromUri(uri)
 
 	libraryData, statusCode, err := s.Get(
 		uri,
@@ -47,19 +48,19 @@ func DownloadRpmPackage(s api.ArtifactServer, name string, version string, arch 
 	)
 
 	if err != nil {
-		slog.Error("failed sending request for RPM package data", "err", err, "name", name, "version", version)
-		return nil, err
+		slog.Error("failed sending request for golang package data", "err", err, "name", name, "version", version)
+		return nil, "", err
 	}
 
 	if statusCode != 200 {
-		slog.Error("bad response code for RPM package payload", "err", err, "status", statusCode, "uri", uri)
-		return nil, fmt.Errorf("bad status code golang package data; status: %d", statusCode)
+		slog.Error("bad response code for golang package payload", "err", err, "status", statusCode)
+		return nil, "", fmt.Errorf("bad status code golang package data; status: %d", statusCode)
 	}
 
 	if len(libraryData) == 0 {
 		slog.Error("no payload content from server")
-		return nil, fmt.Errorf("no package content")
+		return nil, "", fmt.Errorf("no package content")
 	}
 
-	return libraryData, nil
+	return libraryData, filename, nil
 }

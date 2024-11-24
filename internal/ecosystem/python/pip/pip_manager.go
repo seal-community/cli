@@ -306,10 +306,10 @@ func (m *PipPackageManager) getCompatibleTags(name string, version string) ([]st
 	return res, nil
 }
 
-func (m *PipPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
+func (m *PipPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
 	compatibleTags, err := m.getCompatibleTags(descriptor.VulnerablePackage.Library.Name, descriptor.VulnerablePackage.Version)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	return utils.DownloadPythonPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, compatibleTags, m.Config.Python.OnlyBinary)

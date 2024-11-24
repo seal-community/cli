@@ -69,14 +69,14 @@ func packageDownloadWorker(ctx context.Context, artifactServer api.ArtifactServe
 
 			fixedPackage := *descriptor.AvailableFix
 			slog.Debug("downloading package", "id", fixedPackage.Id())
-			data, err := manager.DownloadPackage(artifactServer, descriptor)
+			data, name, err := manager.DownloadPackage(artifactServer, descriptor)
 			if err != nil {
 				slog.Error("failed downloading package", "err", err)
 				return common.NewPrintableError("failed downloading package %s", fixedPackage.RecommendedDescriptor())
 			}
 
 			slog.Debug("finished downloading package", "id", fixedPackage.Id())
-			downloadResultsChannel <- shared.PackageDownload{Entry: descriptor, Data: data}
+			downloadResultsChannel <- shared.PackageDownload{Entry: descriptor, Data: data, ArtifactFileName: name}
 		}
 	}
 }
@@ -134,14 +134,15 @@ func (fp *fixPhase) fixPackage(downloadedPackage shared.PackageDownload, fixer s
 	for _, depInstance := range downloadedPackage.Entry.Locations {
 		slog.Debug("fixing dependency instance", "id", packageId, "path", depInstance.DiskPath)
 
+		var fixedPath string // can be empty; e.g. yum
 		var fixed bool
-		if fixed, err = fixer.Fix(entry, &depInstance, downloadedPackage.Data); err != nil {
+		if fixed, fixedPath, err = fixer.Fix(entry, &depInstance, downloadedPackage.Data, downloadedPackage.ArtifactFileName); err != nil {
 			return common.FallbackPrintableMsg(err, "failed applying fix to %s", packageDesc), nil
 		}
 
 		if fixed {
-			slog.Info("fixed dependency instance", "id", packageId, "path", depInstance.DiskPath)
-			fixedLocations = append(fixedLocations, depInstance.DiskPath)
+			slog.Info("fixed dependency instance", "id", packageId, "fixed-path", fixedPath, "orig-path", depInstance.DiskPath)
+			fixedLocations = append(fixedLocations, fixedPath)
 		}
 	}
 
@@ -291,6 +292,13 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor) (_ []share
 	// 		relies on dependencies being installed beforehand (e.g. `npm install`)
 	// returns a list of the fixed descriptors
 	fixer := fp.Manager.GetFixer(fp.Workdir)
+	if fixer == nil {
+		// should not happend
+		mn := fp.Manager.Name()
+		slog.Error("manager returned nil fixer", "manager", mn)
+		return nil, common.FallbackPrintableMsg(err, "fixing is not supported for %s", mn)
+	}
+
 	defer cleanWorkdir(fixer, &err) // will rollback if encountered error
 
 	downloadResultsChannel := make(chan shared.PackageDownload, len(availableFixes))

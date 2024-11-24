@@ -4,10 +4,12 @@ import (
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/msil/utils"
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -192,5 +194,45 @@ func TestNormalizePackageNames(t *testing.T) {
 				t.Fatalf("failed to normalize `%s`", n)
 			}
 		})
+	}
+}
+
+func TestDownloadNugetPackage(t *testing.T) {
+
+	var manager *DotnetPackageManager
+	ver := "1.3.5-sp1"
+	lib := "MylibARR"
+
+	data := []byte("dummy")
+	code := 200
+	var err error = nil
+
+	fakeServer := &api.FakeArtifactServer{
+		Data: []byte("asd"),
+		GetValidator: func(uri string, params, extraHdrs []api.StringPair) ([]byte, int, error) {
+			if uri != "v3-flatcontainer/mylibarr/1.3.5-sp1/mylibarr.1.3.5-sp1.nupkg" {
+				t.Fatalf("bad download uri: `%s`", uri)
+			}
+
+			return data, code, err
+		},
+	}
+
+	rData, _, rErr := manager.DownloadPackage(fakeServer,
+		shared.DependencyDescriptor{
+			AvailableFix: &api.PackageVersion{
+				Version: ver,
+				Library: api.Package{
+					Name:           lib,
+					NormalizedName: utils.NormalizeName(lib),
+				},
+			},
+		})
+
+	if !slices.Equal(rData, data) {
+		t.Fatal("wrong data")
+	}
+	if rErr != err {
+		t.Fatal("wrong err")
 	}
 }

@@ -13,6 +13,7 @@ type ProcessResult struct {
 }
 
 func handleProcessResult(args []string, result *ProcessResult, err error) (*ProcessResult, error) {
+
 	if err != nil {
 		exitError, ok := err.(*exec.ExitError)
 		if !ok {
@@ -32,6 +33,8 @@ func handleProcessResult(args []string, result *ProcessResult, err error) (*Proc
 }
 
 func RunCmdWithArgs(targetDir string, exe string, args ...string) (*ProcessResult, error) {
+	Trace("running cmd", "exe", exe, "args", args)
+
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = targetDir
 	var errBuffer strings.Builder
@@ -47,6 +50,8 @@ func RunCmdWithArgs(targetDir string, exe string, args ...string) (*ProcessResul
 
 // Runs a command with arguments and returns the combined output
 func RunCmdWithArgsCombinedOutput(targetDir string, exe string, args ...string) (*ProcessResult, error) {
+	Trace("running cmd combined output", "exe", exe, "args", args)
+
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = targetDir
 	result := &ProcessResult{}

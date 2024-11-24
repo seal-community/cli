@@ -92,6 +92,8 @@ func SendHttpRequest[RequestType any](client http.Client, method string, url str
 
 	defer res.Body.Close()
 
+	slog.Debug("body size", "status", len(responseData))
+
 	if len(responseData) == 0 {
 		return nil, res.StatusCode, nil
 	}

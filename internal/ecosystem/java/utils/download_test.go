@@ -39,12 +39,16 @@ func TestDownloadMaven(t *testing.T) {
 	client := http.Client{Transport: transparentRoundTripper}
 	server := api.NewArtifactServer("http://baseurl.com", token, project, client)
 
-	data, err := DownloadMavenPackage(server, name, version)
+	data, filename, err := DownloadMavenPackage(server, name, version)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
 
 	if string(data) != fakePackageContent {
 		t.Fatalf("got %s, expected %s", string(data), fakePackageContent)
+	}
+
+	if filename != "package-1.2.3+sp1.jar" {
+		t.Fatalf("bad filename, got `%s`", filename)
 	}
 }

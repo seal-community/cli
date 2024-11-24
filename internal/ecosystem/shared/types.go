@@ -7,7 +7,10 @@ import (
 
 type DependencyFixer interface {
 	Prepare() error
-	Fix(entry DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error)
+
+	// fileName could be empty;
+	// fixedPath should be the location where the SP is placed, empty means not fixed; could be the original DiskPath if done in-place
+	Fix(entry DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (fixed bool, fixedPath string, err error)
 	Rollback() bool
 	Cleanup() bool
 }
@@ -33,8 +36,9 @@ func (d DependencyDescriptor) IsOverridden() bool {
 }
 
 type PackageDownload struct {
-	Entry DependencyDescriptor
-	Data  []byte
+	Entry            DependencyDescriptor
+	Data             []byte
+	ArtifactFileName string // name of the file downloaded, could be empty
 }
 
 type Normalizer interface {
@@ -50,7 +54,7 @@ type PackageManager interface {
 	GetFixer(workdir string) DependencyFixer
 	GetEcosystem() string
 	GetScanTargets() []string
-	DownloadPackage(server api.ArtifactServer, descriptor DependencyDescriptor) ([]byte, error)
+	DownloadPackage(server api.ArtifactServer, descriptor DependencyDescriptor) ([]byte, string, error)
 	HandleFixes(fixes []DependencyDescriptor) error
 	NormalizePackageName(name string) string
 	// Silences the given packages (silenceArray) in the given dependencies map.

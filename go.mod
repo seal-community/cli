@@ -27,7 +27,7 @@ require (
 
 require (
 	github.com/beevik/etree v1.4.1
-	github.com/hashicorp/go-version v1.6.0
+	github.com/hashicorp/go-version v1.7.0
 	github.com/whilp/git-urls v1.0.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/src-d/go-git.v4 v4.13.1

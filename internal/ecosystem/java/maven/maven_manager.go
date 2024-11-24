@@ -13,8 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	version_parse "github.com/hashicorp/go-version"
 )
 
 const sealCacheName = ".seal-m2"
@@ -61,25 +59,8 @@ func (m *MavenPackageManager) GetVersion() string {
 }
 
 func (m *MavenPackageManager) IsVersionSupported(version string) bool {
-	if version == "" {
-		slog.Error("maven version is empty")
-		return false
-	}
-
-	v, err1 := version_parse.NewVersion(version)
-	sv, err2 := version_parse.NewVersion(minimumMavenVersion)
-
-	if err1 != nil || err2 != nil {
-		slog.Warn("failed parsing maven version", "version", version)
-		return false
-	}
-
-	if v.LessThan(sv) {
-		slog.Warn("maven version is not supported", "version", version)
-		return false
-	}
-
-	return true
+	supported, _ := common.VersionAtLeast(version, minimumMavenVersion)
+	return supported
 }
 
 func IsMavenIndicatorFile(path string) bool {
@@ -146,7 +127,7 @@ func (m *MavenPackageManager) GetScanTargets() []string {
 	return []string{m.javaTargetFile}
 }
 
-func (m *MavenPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
+func (m *MavenPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
 	return utils.DownloadMavenPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 

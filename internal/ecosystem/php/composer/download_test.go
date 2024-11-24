@@ -66,11 +66,16 @@ func TestDownloadComposerSanity(t *testing.T) {
 	client := http.Client{Transport: transparentRoundTripper}
 	server := api.NewArtifactServer("http://baseurl.com", token, project, client)
 
-	data, err := downloadPackage(server, name, version)
+	data, filename, err := downloadPackage(server, name, version)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
+
 	if string(data) != fakePackageContent {
 		t.Fatalf("got %s, expected %s", string(data), fakePackageContent)
+	}
+
+	if filename != "vendor-package-0.0.1+sp1.zip" {
+		t.Fatalf("bad filename, got `%s`", filename)
 	}
 }

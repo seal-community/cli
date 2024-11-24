@@ -95,7 +95,7 @@ func getVersionUrl(libraryInfo []byte, version string, compatibleTags []string, 
 	return &candidates.targzs[0], nil
 }
 
-func DownloadPythonPackage(s api.ArtifactServer, name string, version string, compatibleTags []string, OnlyBinary bool) ([]byte, error) {
+func DownloadPythonPackage(s api.ArtifactServer, name string, version string, compatibleTags []string, OnlyBinary bool) ([]byte, string, error) {
 	defer common.ExecutionTimer().Log()
 
 	libraryInfo, statusCode, err := s.Get(
@@ -106,23 +106,23 @@ func DownloadPythonPackage(s api.ArtifactServer, name string, version string, co
 
 	if err != nil {
 		slog.Error("failed sending request for pypi libary info", "err", err, "name", name, "version", version)
-		return nil, err
+		return nil, "", err
 	}
 
 	if statusCode != 200 {
 		slog.Error("bad response code for pypi package", "err", err, "status", statusCode)
-		return nil, fmt.Errorf("bad status code for pypi info: %d", statusCode)
+		return nil, "", fmt.Errorf("bad status code for pypi info: %d", statusCode)
 	}
 
 	if len(libraryInfo) == 0 {
 		slog.Error("no content for package description", "status", statusCode)
-		return nil, fmt.Errorf("no data from server: %d", statusCode)
+		return nil, "", fmt.Errorf("no data from server: %d", statusCode)
 	}
 
 	versionDownloadUrl, err := getVersionUrl(libraryInfo, version, compatibleTags, OnlyBinary)
 	if err != nil {
 		slog.Error("failed finding version url", "err", err, "name", name, "version", version, "tags", compatibleTags)
-		return nil, err
+		return nil, "", err
 	}
 	slog.Info("found version url", "url", versionDownloadUrl.String())
 
@@ -134,17 +134,17 @@ func DownloadPythonPackage(s api.ArtifactServer, name string, version string, co
 
 	if err != nil {
 		slog.Error("failed sending request for npm package data", "err", err, "name", name, "version", version)
-		return nil, err
+		return nil, "", err
 	}
 
 	if statusCode != 200 {
 		slog.Error("bad response code for npm package payload", "err", err, "status", statusCode)
-		return nil, fmt.Errorf("bad status code for npm package data; status: %d", statusCode)
+		return nil, "", fmt.Errorf("bad status code for npm package data; status: %d", statusCode)
 	}
 
 	if len(libraryData) == 0 {
 		slog.Error("no payload content from server")
-		return nil, fmt.Errorf("no package content")
+		return nil, "", fmt.Errorf("no package content")
 	}
 
 	shaBytes := sha256.Sum256(libraryData)
@@ -153,8 +153,8 @@ func DownloadPythonPackage(s api.ArtifactServer, name string, version string, co
 	expectedSha256 := strings.TrimPrefix(versionDownloadUrl.Fragment, "sha256=")
 
 	if calcSha256 != expectedSha256 {
-		return nil, fmt.Errorf("wrong checksum for package; expected: %s ; got %s", expectedSha256, calcSha256)
+		return nil, "", fmt.Errorf("wrong checksum for package; expected: %s ; got %s", expectedSha256, calcSha256)
 	}
 
-	return libraryData, nil
+	return libraryData, common.FileNameFromURL(versionDownloadUrl), nil
 }

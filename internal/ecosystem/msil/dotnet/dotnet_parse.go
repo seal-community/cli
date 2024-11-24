@@ -61,7 +61,7 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 
 	err := json.Unmarshal([]byte(nugetOutput), &dependencyList)
 	if err != nil {
-		slog.Error("failed to unmarshal nuget output", "err", err)
+		slog.Error("failed to unmarshal dotnet output", "err", err)
 		return nil, err
 	}
 

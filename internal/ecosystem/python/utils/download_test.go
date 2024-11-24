@@ -66,12 +66,17 @@ func TestDownloadPython(t *testing.T) {
 	client := http.Client{Transport: transparentRoundTripper}
 	server := api.NewArtifactServer("http://baseurl.com", token, project, client)
 
-	data, err := DownloadPythonPackage(server, name, version, []string{"py3-none-any"}, false)
+	data, filename, err := DownloadPythonPackage(server, name, version, []string{"py3-none-any"}, false)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
+
 	if string(data) != fakePackageContent {
 		t.Fatalf("got %s, expected %s", string(data), fakePackageContent)
+	}
+
+	if filename != "python_multipart-0.0.6+sp1-py3-none-any.whl" {
+		t.Fatalf("bad filename, got `%s`", filename)
 	}
 }
 
@@ -105,7 +110,7 @@ func TestDownloadPythonNoTag(t *testing.T) {
 	client := http.Client{Transport: transparentRoundTripper}
 	server := api.NewArtifactServer("http://baseurl.com", token, project, client)
 
-	_, err := DownloadPythonPackage(server, name, version, []string{"py2-none-any"}, false)
+	_, _, err := DownloadPythonPackage(server, name, version, []string{"py2-none-any"}, false)
 	if err == nil {
 		t.Fatalf("got error %v", err)
 	}

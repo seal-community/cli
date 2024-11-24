@@ -47,12 +47,16 @@ func TestDownloadNpm(t *testing.T) {
 	client := http.Client{Transport: transparentRoundTripper}
 	server := api.NewArtifactServer("http://baseurl.com", token, project, client)
 
-	data, err := DownloadNPMPackage(server, name, version)
+	data, filename, err := DownloadNPMPackage(server, name, version)
 	if err != nil {
 		t.Fatalf("got error %v", err)
 	}
 
 	if string(data) != fakePackageContent {
 		t.Fatalf("got %s, expected %s", string(data), fakePackageContent)
+	}
+
+	if filename != "lodash-123-sp1.tgz" {
+		t.Fatalf("bad filename, got `%s`", filename)
 	}
 }

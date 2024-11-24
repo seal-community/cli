@@ -407,17 +407,17 @@ func fixDiskPathIfNeeded(dep *common.Dependency) error {
 	return nil
 }
 
-func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (bool, string, error) {
 	// update the diskpath in case the package was installed without wheel using a tgz file
 	// to use the egg-info directory instead
 	if err := fixDiskPathIfNeeded(dep); err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	backupPaths, err := getBackupPaths(dep.DiskPath)
 	if err != nil {
 		slog.Error("failed getting backup paths", "err", err)
-		return false, err
+		return false, "", err
 	}
 
 	backupPaths, dotdotPaths := splitDotdotPaths(backupPaths)
@@ -427,13 +427,13 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	err = os.MkdirAll(tmpName, os.ModePerm)
 	if err != nil {
 		slog.Error("failed creating tmp dir", "err", err)
-		return false, fmt.Errorf("failed creating backup directory for package %s", dep.PrintableName())
+		return false, "", fmt.Errorf("failed creating backup directory for package %s", dep.PrintableName())
 	}
 
 	sitePackages := filepath.Dir(dep.DiskPath)
 	err = backupDependency(*dep, sitePackages, tmpName, backupPaths)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	f.rollback[dep.DiskPath] = tmpName
@@ -441,18 +441,16 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	distInfoPath, err := f.extractPackage(sitePackages, packageData, dotdotPaths)
 	if err != nil {
 		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(packageData))
-		return false, common.FallbackPrintableMsg(err, "failed applying fix for package %s", dep.PrintableName())
+		return false, "", common.FallbackPrintableMsg(err, "failed applying fix for package %s", dep.PrintableName())
 	}
 
-	// Update diskPath so that fix summary will show a real path
+	fixedLocation := sitePackages
 	if distInfoPath != "" {
-		dep.DiskPath = filepath.Join(sitePackages, distInfoPath)
-	} else {
-		dep.DiskPath = sitePackages
+		fixedLocation = filepath.Join(sitePackages, distInfoPath)
 	}
 
-	slog.Info("fixed package instance", "path", dep.DiskPath)
-	return true, nil
+	slog.Info("fixed package instance", "path", dep.DiskPath, "fixedPath", fixedLocation)
+	return true, fixedLocation, nil
 }
 
 func (f *fixer) Rollback() bool {
@@ -505,7 +503,7 @@ func (f *fixer) Cleanup() bool {
 	finishedOk := true
 	for orig, tmpName := range f.rollback {
 		if err := os.RemoveAll(tmpName); err != nil {
-			slog.Error("failed removing tmp dir", "orig", orig, "tmp", tmpName)
+			slog.Error("failed removing tmp dir", "orig", orig, "tmp", tmpName, "err", err)
 			finishedOk = false
 		}
 	}

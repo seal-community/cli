@@ -148,32 +148,32 @@ func (f *fixer) Prepare() error {
 // copy a backup for the original artifact to the workdir (tmp location)
 // override the artifact file in the cache dir (will set it as the cache in HandleFixes)
 // add to the rollback map
-func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (bool, string, error) {
 	_, artifactId, err := SplitJavaPackageName(dep.NormalizedName)
 	if err != nil {
 		slog.Error("failed getting package name for dep", "err", err, "path", dep.Name)
-		return false, err
+		return false, "", err
 	}
 
 	origVersionDirPath := GetJavaPackagePath(f.cacheDir, dep.Name, dep.Version)
 	if origVersionDirPath == "" {
-		return false, fmt.Errorf("failed getting package path in the cache")
+		return false, "", fmt.Errorf("failed getting package path in the cache")
 	}
 
 	tmpVersionDirPath := GetJavaPackagePath(f.workdir, dep.Name, dep.Version)
 	if tmpVersionDirPath == "" {
-		return false, fmt.Errorf("failed getting temp storage path for package")
+		return false, "", fmt.Errorf("failed getting temp storage path for package")
 	}
 
 	resolvedOriginDir, err := filepath.EvalSymlinks(origVersionDirPath)
 	if err != nil {
 		slog.Error("failed resolving symlink", "err", err, "path", origVersionDirPath)
-		return false, err
+		return false, "", err
 	}
 
 	if filepath.Clean(origVersionDirPath) != resolvedOriginDir {
 		slog.Error("original artifact is symlink", "path", origVersionDirPath, "resolved", resolvedOriginDir)
-		return false, common.NewPrintableError("cannot fix %s:%s - located behind a symbolic link", dep.Name, dep.Version)
+		return false, "", common.NewPrintableError("cannot fix %s:%s - located behind a symbolic link", dep.Name, dep.Version)
 	}
 
 	artifactFileName := GetPackageFileName(artifactId, dep.Version)
@@ -182,12 +182,12 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 
 	if err := os.MkdirAll(tmpVersionDirPath, 0755); err != nil {
 		slog.Error("failed making backup dirs", "err", err, "path", tmpVersionDirPath)
-		return false, err
+		return false, "", err
 	}
 
 	if err := common.Move(artifactPath, bkupPath); err != nil {
 		slog.Error("failed renaming artifact", "err", err, "from", artifactPath, "to", bkupPath)
-		return false, err
+		return false, "", err
 	}
 
 	f.rollback[artifactPath] = bkupPath
@@ -197,17 +197,17 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	jarFile, err := os.OpenFile(artifactPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		slog.Error("failed creating file", "err", err, "path", jarFile)
-		return false, fmt.Errorf("failed creating jar file: %w", err)
+		return false, "", fmt.Errorf("failed creating jar file: %w", err)
 	}
 	defer jarFile.Close()
 
 	_, err = jarFile.Write(packageData)
 	if err != nil {
 		slog.Error("failed fixing package", "err", err, "path", jarFile)
-		return false, fmt.Errorf("failed writing to jar file: %w", err)
+		return false, "", fmt.Errorf("failed writing to jar file: %w", err)
 	}
 
-	return true, nil
+	return true, dep.DiskPath, nil
 }
 
 func (f *fixer) Rollback() bool {
@@ -228,7 +228,8 @@ func (f *fixer) Rollback() bool {
 func (f *fixer) Cleanup() bool {
 	// remove the tmp dir (workdir) as we succeeded fixing and we don't need it anymore
 	if err := os.RemoveAll(f.workdir); err != nil {
-		slog.Error("failed removing tmp dir", "dir", f.workdir)
+		slog.Error("failed removing tmp dir", "dir", f.workdir, "err", err)
+		return false
 	}
 	return true
 }

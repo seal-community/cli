@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
-
-	"github.com/Masterminds/semver/v3"
 )
 
 const composerJsonFilename = "composer.json"
@@ -53,19 +51,8 @@ func (m *ComposerPackageManager) GetVersion() string {
 }
 
 func (m *ComposerPackageManager) IsVersionSupported(version string) bool {
-	composerVersion, err := semver.NewVersion(version)
-	if err != nil {
-		slog.Error("failed parsing composer version", "err", err)
-		return false
-	}
-
-	minVer, err := semver.NewVersion(MinimalSupportedVersion)
-	if err != nil {
-		slog.Error("failed parsing min composer version", "err", err)
-		return false
-	}
-
-	return composerVersion.Compare(minVer) >= 0
+	supported, _ := common.VersionAtLeast(version, MinimalSupportedVersion)
+	return supported
 }
 
 func (m *ComposerPackageManager) ListDependencies() (common.DependencyMap, error) {
@@ -118,7 +105,7 @@ func (m *ComposerPackageManager) GetScanTargets() []string {
 	return []string{m.composerTargetFile}
 }
 
-func (m *ComposerPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
+func (m *ComposerPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
 	return downloadPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 

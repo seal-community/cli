@@ -105,7 +105,7 @@ func (m *YarnPackageManager) GetScanTargets() []string {
 	return m.npmManager.GetScanTargets()
 }
 
-func (m *YarnPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
+func (m *YarnPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
 	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 

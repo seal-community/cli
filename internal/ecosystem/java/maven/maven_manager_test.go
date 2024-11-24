@@ -8,6 +8,25 @@ import (
 	"testing"
 )
 
+func TestIsVersionSupported(t *testing.T) {
+	var m *MavenPackageManager
+	if m.IsVersionSupported("3.3.0") {
+		t.Fatal("should not support version")
+	}
+
+	if m.IsVersionSupported("") {
+		t.Fatal("should not support empty version")
+	}
+
+	if !m.IsVersionSupported(minimumMavenVersion) {
+		t.Fatal("should support version 3.3.1")
+	}
+
+	if !m.IsVersionSupported("1003.3.1") {
+		t.Fatal("should support newer version")
+	}
+
+}
 func TestIndicatorMatches(t *testing.T) {
 	ps := []string{
 		`/b/pom.xml`,

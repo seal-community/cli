@@ -1,12 +1,13 @@
 package common
 
 import (
-	"github.com/otiai10/copy"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/otiai10/copy"
 )
 
 var CliCWD string // the working directory the cli started running from
@@ -55,6 +56,18 @@ func OpenFile(p string) (*os.File, error) {
 	}
 
 	return f, err
+}
+
+func DumpBytes(path string, data []byte) error {
+	f, err := CreateFile(path)
+	if err != nil {
+		slog.Error("failed creating file", "path", path, "err", err)
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write(data)
+	return err
 }
 
 func PathExists(path string) (bool, error) {

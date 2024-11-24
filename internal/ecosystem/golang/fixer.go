@@ -78,7 +78,7 @@ func removeVersionPath(path, version string) string {
 
 // Fix a dependency by replacing the code in the vendor directory
 // Store a copy of the original dependency in the workdir for rollback
-func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (bool, string, error) {
 	origDepDirPath := filepath.Join(f.vendorDir, dep.Name)
 	tmpDepDirPath := filepath.Join(f.workdir, dep.Name)
 
@@ -86,12 +86,12 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	tmpParentDir := filepath.Dir(tmpDepDirPath)
 	if err := os.MkdirAll(tmpParentDir, 0755); err != nil {
 		slog.Error("failed creating tmp dir", "dir", tmpDepDirPath, "err", err)
-		return false, err
+		return false, "", err
 	}
 
 	if err := common.Move(origDepDirPath, tmpDepDirPath); err != nil {
 		slog.Error("failed moving original version dir to tmp", "orig", origDepDirPath, "tmp", tmpDepDirPath, "err", err)
-		return false, common.NewPrintableError("failed backing up the original version for: %s", origDepDirPath)
+		return false, "", common.NewPrintableError("failed backing up the original version for: %s", origDepDirPath)
 	}
 
 	f.rollback[origDepDirPath] = tmpDepDirPath
@@ -99,7 +99,7 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 	r, err := zip.NewReader(bytes.NewReader(packageData), int64(len(packageData)))
 	if err != nil {
 		slog.Error("failed reading package", "err", err, "availableFix", entry.AvailableFix.Id(), "packageDataLen", len(packageData))
-		return false, err
+		return false, "", err
 	}
 
 	for _, file := range r.File {
@@ -108,10 +108,11 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 		common.Trace("extracting file", "file", file.Name)
 		err = common.UnzipFile(file, f.vendorDir)
 		if err != nil {
-			return false, err
+			return false, "", err
 		}
 	}
-	return true, nil
+
+	return true, dep.DiskPath, nil
 }
 
 // Rollback the changes made to the vendor directory
@@ -145,7 +146,8 @@ func (f *fixer) Rollback() bool {
 // Remove workdir
 func (f *fixer) Cleanup() bool {
 	if err := os.RemoveAll(f.workdir); err != nil {
-		slog.Error("failed removing tmp dir", "dir", f.workdir)
+		slog.Error("failed removing tmp dir", "dir", f.workdir, "err", err)
+		return false
 	}
 
 	return true

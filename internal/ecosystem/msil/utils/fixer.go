@@ -18,9 +18,10 @@ import (
 var ignore = []string{"[Content_Types].xml", "_rels", "package"}
 
 type fixer struct {
-	rollback   map[string]string // original-dependency-path -> tmp-location
-	projectDir string
-	workdir    string
+	rollback    map[string]string // original-dependency-path -> tmp-location
+	projectDir  string
+	workdir     string
+	packagesDir string
 }
 
 func (*fixer) Cleanup() bool {
@@ -123,22 +124,28 @@ func (f *fixer) Prepare() error {
 }
 
 // extract the data to the <HOME>/.nuget/packages/<Package>/<Version> cache folder
-func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte) (bool, error) {
+func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (bool, string, error) {
 	sealedVersion := entry.AvailableFix.Version
-	location := filepath.Join(GetGlobalPackagesCachePath(), dep.NormalizedName, sealedVersion)
+	location := filepath.Join(f.packagesDir, dep.NormalizedName, sealedVersion)
 	packageName := fmt.Sprintf("%s.%s.nupkg", dep.Name, sealedVersion)
 	err := savePackageFiles(location, packageName, packageData)
-	return err == nil, err
+	if err != nil {
+		return false, "", err
+	}
+
+	return true, location, err
 }
 
 func (*fixer) Rollback() bool {
 	return true // No need to rollback files, we dont modify the source version
 }
 
-func NewFixer(projectDir string, workdir string) shared.DependencyFixer {
+// packagesDir is the cache where all the packages are stored
+func NewFixer(projectDir string, workdir string, packagesDir string) shared.DependencyFixer {
 	return &fixer{
-		projectDir: projectDir,
-		workdir:    workdir,
-		rollback:   make(map[string]string, 100),
+		projectDir:  projectDir,
+		workdir:     workdir,
+		rollback:    make(map[string]string, 100),
+		packagesDir: packagesDir,
 	}
 }

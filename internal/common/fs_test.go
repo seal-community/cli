@@ -149,3 +149,60 @@ func TestIsDirEmpty(t *testing.T) {
 		t.Fatalf("expected %v to not be empty", target)
 	}
 }
+
+func TestDumpBytes(t *testing.T) {
+	d, err := os.MkdirTemp("", "test_seal_cli_*")
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.Remove(d)
+
+	content := "as;lfal1"
+	fpath := filepath.Join(d, "f.bin")
+
+	if err := DumpBytes(fpath, []byte(content)); err != nil {
+		t.Fatalf("failed dump bytes %v", err)
+	}
+
+	data, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatalf("failed read file %v", err)
+	}
+
+	datastr := string(data)
+	if datastr != content {
+		t.Fatalf("failed wrong content got `%s` expected `%s`", data, content)
+	}
+}
+
+func TestDumpBytesExists(t *testing.T) {
+	d, err := os.MkdirTemp("", "test_seal_cli_*")
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.Remove(d)
+
+	content := "as;lfal1"
+	contentNew := "123123"
+	fpath := filepath.Join(d, "f.bin")
+
+	if err := DumpBytes(fpath, []byte(content)); err != nil {
+		t.Fatalf("failed dump bytes %v", err)
+	}
+
+	if err := DumpBytes(fpath, []byte(contentNew)); err != nil {
+		t.Fatalf("failed dump bytes %v", err)
+	}
+
+	dataNew, err := os.ReadFile(fpath)
+	if err != nil {
+		t.Fatalf("failed read file %v", err)
+	}
+
+	datastrNew := string(dataNew)
+	if datastrNew != contentNew {
+		t.Fatalf("failed wrong content got `%s` expected `%s`", datastrNew, contentNew)
+	}
+}

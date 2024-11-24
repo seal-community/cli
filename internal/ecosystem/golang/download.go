@@ -23,10 +23,11 @@ func buildUri(name string, version string) string {
 	return fmt.Sprintf("%s/@v/v%s.zip", caseEncode(name), caseEncode(version))
 }
 
-func DownloadPackage(s api.ArtifactServer, name string, version string) ([]byte, error) {
+func DownloadPackage(s api.ArtifactServer, name string, version string) ([]byte, string, error) {
 	defer common.ExecutionTimer().Log()
 
 	uri := buildUri(name, version)
+	filename := common.FileNameFromUri(uri)
 
 	libraryData, statusCode, err := s.Get(
 		uri,
@@ -35,18 +36,18 @@ func DownloadPackage(s api.ArtifactServer, name string, version string) ([]byte,
 
 	if err != nil {
 		slog.Error("failed sending request for golang package data", "err", err, "name", name, "version", version)
-		return nil, err
+		return nil, filename, err
 	}
 
 	if statusCode != 200 {
 		slog.Error("bad response code for golang package payload", "err", err, "status", statusCode)
-		return nil, fmt.Errorf("bad status code golang package data; status: %d", statusCode)
+		return nil, filename, fmt.Errorf("bad status code golang package data; status: %d", statusCode)
 	}
 
 	if len(libraryData) == 0 {
 		slog.Error("no payload content from server")
-		return nil, fmt.Errorf("no package content")
+		return nil, filename, fmt.Errorf("no package content")
 	}
 
-	return libraryData, nil
+	return libraryData, filename, nil
 }

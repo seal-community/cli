@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
 	"golang.org/x/mod/modfile"
 )
 
@@ -57,19 +56,8 @@ func (m *GolangPackageManager) GetVersion() string {
 }
 
 func (m *GolangPackageManager) IsVersionSupported(version string) bool {
-	golangVersion, err := semver.NewVersion(version)
-	if err != nil {
-		slog.Error("failed parsing go version", "err", err)
-		return false
-	}
-
-	minVer, err := semver.NewVersion(MinimalSupportedVersion)
-	if err != nil {
-		slog.Error("failed parsing min go version", "err", err)
-		return false
-	}
-
-	return golangVersion.Compare(minVer) >= 0
+	supported, _ := common.VersionAtLeast(version, MinimalSupportedVersion)
+	return supported
 }
 
 func (m *GolangPackageManager) parseGoMod(targetDir string) error {
@@ -118,7 +106,7 @@ func (m *GolangPackageManager) GetScanTargets() []string {
 	return []string{m.golangTargetFile}
 }
 
-func (m *GolangPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, error) {
+func (m *GolangPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
 	return DownloadPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
