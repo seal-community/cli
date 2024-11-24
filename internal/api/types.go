@@ -13,12 +13,19 @@ type Page[T interface{}] struct {
 	Offset int `json:"offset"`
 }
 
+type PublicPackage struct {
+	Name           string `json:"library_name"`
+	Version        string `json:"library_version"`
+	PackageManager string `json:"library_package_manager"`
+}
+
 type Vulnerability struct {
-	CVE              string  `json:"cve,omitempty"`
-	MaliciousID      string  `json:"malicious_id,omitempty"`
-	SnykID           string  `json:"snyk_id,omitempty"`
-	GitHubAdvisoryID string  `json:"github_advisory_id,omitempty"`
-	UnifiedScore     float32 `json:"unified_score,omitempty"`
+	CVE              string          `json:"cve,omitempty"`
+	MaliciousID      string          `json:"malicious_id,omitempty"`
+	SnykID           string          `json:"snyk_id,omitempty"`
+	GitHubAdvisoryID string          `json:"github_advisory_id,omitempty"`
+	UnifiedScore     float32         `json:"unified_score,omitempty"`
+	EmbeddedVia      []PublicPackage `json:"embedded_via,omitempty"`
 }
 
 func (VulnerabilityObject Vulnerability) PreferredId() string {
@@ -105,4 +112,17 @@ func (p *PackageVersion) RecommendedDescriptor() string {
 
 func (p *PackageVersion) Ecosystem() string {
 	return mappings.BackendManagerToEcosystem(p.Library.PackageManager)
+}
+
+func (p *PackageVersion) PublicPackage() PublicPackage {
+	return PublicPackage{
+		Name:           p.Library.Name,
+		Version:        p.Version,
+		PackageManager: p.Library.PackageManager,
+	}
+}
+
+// Vulnerabilities are equivalent if they have the same CVE, MaliciousID, SnykID and GitHubAdvisoryID
+func (v *Vulnerability) Equivalent(other Vulnerability) bool {
+	return v.CVE == other.CVE && v.MaliciousID == other.MaliciousID && v.SnykID == other.SnykID && v.GitHubAdvisoryID == other.GitHubAdvisoryID
 }

@@ -155,3 +155,7 @@ func (m *GolangPackageManager) SilencePackages(silenceArray []string, allDepende
 	slog.Warn("Silencing packages is not support for golang")
 	return nil, nil
 }
+
+func (m *GolangPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

@@ -20,7 +20,6 @@ func TestEmptyParseDependencies(t *testing.T) {
 
 func TestFullParseDependencies(t *testing.T) {
 	expectedDependencies := map[string]bool{
-		"com.example.app:example-app:jar:1.0-SNAPSHOT":        true,
 		"junit:junit:jar:4.11:test":                           true,
 		"org.springframework:spring-beans:jar:5.3.12:compile": true,
 		"net.minidev:json-smart:jar:2.4.8:compile":            true,
@@ -48,9 +47,6 @@ func TestFullParseDependencies(t *testing.T) {
 
 func TestModulesParseDependencies(t *testing.T) {
 	expectedDependencies := map[string]bool{
-		"com.example.app:parent-project:pom:1.0-SNAPSHOT":     true,
-		"com.example.app:module-a:jar:1.0-SNAPSHOT":           true,
-		"com.example.app:module-b:jar:1.0-SNAPSHOT":           true,
 		"junit:junit:jar:3.8.1:test":                          true,
 		"org.springframework:spring-beans:jar:5.3.12:compile": true,
 		"net.minidev:json-smart:jar:2.4.8:compile":            true,

@@ -164,3 +164,7 @@ func (m *ComposerPackageManager) SilencePackages(silenceArray []string, allDepen
 	slog.Warn("Silencing packages is not support for composer")
 	return nil, nil
 }
+
+func (m *ComposerPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

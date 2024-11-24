@@ -16,6 +16,7 @@ type Dependency struct {
 	Link           bool        `json:"-"` // currently useful for pnpm - is a link to another place
 	Arch           string      `json:"-"` // currently useful for rpm - architecture of the package
 	TmpPath        string      `json:"-"` // currently useful for rpm - temporary path for the package
+	IsShaded       bool        `json:"-"` // currently useful for maven - is a shaded package
 }
 
 func (d *Dependency) HasAlias() bool {

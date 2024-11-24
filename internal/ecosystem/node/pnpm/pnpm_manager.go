@@ -153,3 +153,7 @@ func (m *PnpmPackageManager) SilencePackages(silenceArray []string, allDependenc
 	slog.Warn("Silencing packages is not support for pnpm")
 	return nil, nil
 }
+
+func (m *PnpmPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

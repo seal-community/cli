@@ -124,6 +124,12 @@ func (sp *scanPhase) Scan(generateActivity bool) (*ScanResult, error) {
 		return nil, common.FallbackPrintableMsg(err, "server error")
 	}
 
+	vulnerable, err = sp.Manager.ConsolidateVulnerabilities(vulnerable, dependencyMap)
+	if err != nil {
+		slog.Error("failed consolidating vulnerabilities", "err", err)
+		return nil, err
+	}
+
 	result := &ScanResult{
 		Vulnerable:      *vulnerable,
 		AllDependencies: dependencyMap,

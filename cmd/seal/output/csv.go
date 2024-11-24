@@ -4,6 +4,7 @@ import (
 	"cli/internal/api"
 	"cli/internal/common"
 	"encoding/csv"
+	"fmt"
 	"io"
 	"log/slog"
 	"strings"
@@ -14,8 +15,27 @@ type CsvExporter struct {
 }
 
 const csvSubTextSeparator = "|" // used to separate list within a csv field
+const csvEmbedTestSeparator = "&"
 const csvCanSealTrueValue = "TRUE"
 const csvCanSealFalseValue = "FALSE"
+
+func formatVulnCsv(vuln api.Vulnerability) string {
+	if len(vuln.EmbeddedVia) == 0 {
+		return vuln.PreferredId()
+	}
+
+	names := make([]string, 0, len(vuln.EmbeddedVia))
+	for _, p := range vuln.EmbeddedVia {
+		names = append(names, p.Name)
+	}
+
+	embeddingVerb := "shaded"
+
+	vulnFormat := "%s(via %s %s)"
+
+	return fmt.Sprintf(vulnFormat, vuln.PreferredId(), embeddingVerb, strings.Join(names, csvEmbedTestSeparator))
+
+}
 
 func (e CsvExporter) Handle(vulnerablePackages []api.PackageVersion, allDeps common.DependencyMap) error {
 	w := csv.NewWriter(e.Writer)
@@ -53,10 +73,10 @@ func (e CsvExporter) Handle(vulnerablePackages []api.PackageVersion, allDeps com
 		}
 
 		// in csv we don't care how many vulnerability ids we have
-		combinedIds := vulnPackage.OpenVulnerabilities[0].PreferredId()
+		combinedIds := formatVulnCsv(vulnPackage.OpenVulnerabilities[0])
 		// must have at least 1, so okay to slice
 		for _, vulnerability := range vulnPackage.OpenVulnerabilities[1:] {
-			combinedIds = strings.Join([]string{combinedIds, vulnerability.PreferredId()}, csvSubTextSeparator)
+			combinedIds = strings.Join([]string{combinedIds, formatVulnCsv(vulnerability)}, csvSubTextSeparator)
 		}
 
 		lineParts := []string{

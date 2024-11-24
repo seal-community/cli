@@ -49,7 +49,31 @@ func formatVuln(vulnerability api.Vulnerability) string {
 		color = common.AnsiLightRed
 	}
 
-	return fmt.Sprintf("%s %s", common.Colorize(id, color), formattedScore)
+	additional := ""
+	if len(vulnerability.EmbeddedVia) > 0 {
+		names := make([]string, 0, len(vulnerability.EmbeddedVia))
+		for _, p := range vulnerability.EmbeddedVia {
+			names = append(names, p.Name)
+		}
+
+		var msg string
+		if len(names) > 1 {
+			msg = "\n"
+			for _, name := range names {
+				msg += fmt.Sprintf("	%s\n", name)
+			}
+			// remove last newline
+			msg = msg[:len(msg)-1]
+		} else {
+			msg = names[0]
+		}
+
+		embedding_verb := "shaded"
+
+		additional = fmt.Sprintf(" via %s %s", embedding_verb, msg)
+	}
+
+	return fmt.Sprintf("%s %s%s", common.Colorize(id, color), formattedScore, additional)
 }
 
 func (p ConsolePrinter) Handle(vulnerablePackages []api.PackageVersion, allDeps common.DependencyMap) error {

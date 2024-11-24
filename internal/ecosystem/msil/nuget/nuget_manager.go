@@ -243,3 +243,7 @@ func (m *NugetManager) SilencePackages(silenceArray []string, allDependencies co
 	slog.Warn("Silencing packages is not support for nuget")
 	return nil, nil
 }
+
+func (m *NugetManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

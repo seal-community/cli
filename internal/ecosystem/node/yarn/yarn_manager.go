@@ -125,3 +125,7 @@ func (m *YarnPackageManager) SilencePackages(silenceArray []string, allDependenc
 	slog.Warn("Silencing packages is not support for yarn")
 	return nil, nil
 }
+
+func (m *YarnPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

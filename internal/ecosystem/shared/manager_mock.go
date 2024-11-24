@@ -67,3 +67,7 @@ func (m *FakePackageManager) NormalizePackageName(name string) string {
 func (m *FakePackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
 	return nil, nil
 }
+
+func (m *FakePackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

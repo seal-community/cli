@@ -209,3 +209,7 @@ func (m *DotnetPackageManager) SilencePackages(silenceArray []string, allDepende
 	slog.Warn("Silencing packages is not support for dotnet")
 	return nil, nil
 }
+
+func (m *DotnetPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

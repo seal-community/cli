@@ -195,3 +195,7 @@ func (m *NpmPackageManager) SilencePackages(silenceArray []string, allDependenci
 	slog.Warn("Silencing packages is not support for npm")
 	return nil, nil
 }
+
+func (m *NpmPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

@@ -331,3 +331,7 @@ func (m *PipPackageManager) SilencePackages(silenceArray []string, allDependenci
 	slog.Warn("Silencing packages is not support for pip")
 	return nil, nil
 }
+
+func (m *PipPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}

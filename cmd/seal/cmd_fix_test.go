@@ -5,7 +5,7 @@ import (
 	"cli/internal/api"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/phase"
-	"slices"
+	"reflect"
 	"testing"
 )
 
@@ -70,7 +70,7 @@ func TestOverrideFilterSanity(t *testing.T) {
 		t.Fatalf("wrong package manager %s", overriddenPackage.Library.PackageManager)
 	}
 
-	if !slices.Equal(overriddenPackage.OpenVulnerabilities, vulnPackage.OpenVulnerabilities) {
+	if !reflect.DeepEqual(overriddenPackage.OpenVulnerabilities, vulnPackage.OpenVulnerabilities) {
 		t.Fatalf("wrong open vulns %v; expected %v", overriddenPackage.Library.PackageManager, vulnPackage.OpenVulnerabilities)
 	}
 

@@ -146,3 +146,7 @@ func (m *YumPackageManager) SilencePackages(silenceArray []string, allDependenci
 	slog.Warn("Silencing packages is not support for yum")
 	return nil, nil
 }
+
+func (m *YumPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+	return vulnerablePackages, nil
+}
