@@ -82,8 +82,9 @@ func (f *packagesConfFixer) nugetUpdate(library string, version string) error {
 		"-Version", version,
 		"-Source", f.privateSourcesPath,
 		"-RepositoryPath", f.packagesDirPath,
-		"-Safe",       // will not update if major/minor are not the same
-		"-PreRelease", // IMPORTANT: otherwise won't apply our SP due to the hyphen
+		"-Safe",                            // will not update if major/minor are not the same
+		"-PreRelease",                      // IMPORTANT: otherwise won't apply our SP due to the hyphen
+		"-FileConflictAction", "Overwrite", // IMPORTANT: otherwise will hang on user prompt for overwriting - happend when package like jQuery.Validation which copies file to the project dir
 	)
 
 	if err != nil {
