@@ -37,9 +37,8 @@ const SealEnvPrefix = "SEAL_"
 
 // boolean env vars will need to be set to a value XXX=1 or XXX=true; otherwise will not detect it
 type NpmConfig struct {
-	ProdOnlyDeps       bool `yaml:"prod-only"             env:"PROD_ONLY"`            // this affects the output of npm list command; only affects direct deps
-	IgnoreExtraneous   bool `yaml:"ignore-extraneous"     env:"IGNORE_EXTRA"`         // will ignore packages that are marked as extraneous (like `npm i XXX --no-save`)
-	UpdatePackageNames bool `yaml:"update-package-names"  env:"UPDATE_PACKAGE_NAMES"` // will update lock file so that fixed packages will have our name
+	ProdOnlyDeps     bool `yaml:"prod-only"             env:"PROD_ONLY"`    // this affects the output of npm list command; only affects direct deps
+	IgnoreExtraneous bool `yaml:"ignore-extraneous"     env:"IGNORE_EXTRA"` // will ignore packages that are marked as extraneous (like `npm i XXX --no-save`)
 }
 
 type PnpmConfig struct {

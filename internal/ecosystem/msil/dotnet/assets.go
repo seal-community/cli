@@ -9,7 +9,7 @@ import (
 	"github.com/iancoleman/orderedmap"
 )
 
-func UpdateProjectAssetsfile(assets *orderedmap.OrderedMap, fixes []shared.DependencyDescriptor) error {
+func UpdateProjectAssetsFile(assets *orderedmap.OrderedMap, fixes []shared.DependencyDescriptor) error {
 	for _, fix := range fixes {
 		name := fix.VulnerablePackage.Library.Name
 		fromVersion := fix.VulnerablePackage.Version

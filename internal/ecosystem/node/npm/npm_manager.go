@@ -158,10 +158,11 @@ func (m *NpmPackageManager) DownloadPackage(server api.ArtifactServer, descripto
 	return utils.DownloadNPMPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
 }
 
-// according to config, update lock file with the seal prefix
+// according to config, update package names to make scanners happy
+// tested with:
+//   - grype 83
 func (m *NpmPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
-	// backwards compatibility for the previous config value
-	if !(m.Config.Npm.UpdatePackageNames || m.Config.UseSealedNames) {
+	if !m.Config.UseSealedNames {
 		slog.Debug("not updating package lock")
 		return nil
 	}
@@ -181,6 +182,26 @@ func (m *NpmPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) err
 	if err := common.JsonSave(lock, filepath.Join(m.targetDir, npmLockFileName)); err != nil {
 		slog.Error("failed saving updated lockfile", "err", err)
 		return common.FallbackPrintableMsg(err, "failed saving new package-lock.json")
+	}
+
+	// update the package lock file of each library with the seal prefix
+	if err := addSealPrefixToPackageJsonFiles(fixes); err != nil {
+		slog.Error("failed updating lockfile with seal prefix", "err", err)
+		return common.FallbackPrintableMsg(err, "failed updating package.json with seal prefix")
+	}
+
+	return nil
+}
+
+func addSealPrefixToPackageJsonFiles(fixes []shared.DependencyDescriptor) error {
+	for _, fix := range fixes {
+		for _, diskPath := range fix.FixedLocations {
+			slog.Info("changing package to sealed name", "id", fix.VulnerablePackage.Library.Name, "path", diskPath)
+			if err := utils.AddSealPrefixToPackageJsonFile(diskPath); err != nil {
+				slog.Error("failed changing package to sealed name", "Library Name", fix.VulnerablePackage.Library.Name, "err", err)
+				return err
+			}
+		}
 	}
 
 	return nil

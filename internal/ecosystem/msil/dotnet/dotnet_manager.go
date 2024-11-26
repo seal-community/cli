@@ -187,7 +187,7 @@ func handleFixes(projectDir string, fixes []shared.DependencyDescriptor) error {
 			return common.NewPrintableError(DotnetRestoreError)
 		}
 
-		if err := UpdateProjectAssetsfile(assets, fixes); err != nil {
+		if err := UpdateProjectAssetsFile(assets, fixes); err != nil {
 			slog.Error("failed updating project.assets.json", "err", err)
 			return common.FallbackPrintableMsg(err, "failed updating project.assets.json")
 		}
