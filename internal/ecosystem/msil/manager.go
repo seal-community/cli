@@ -43,6 +43,12 @@ func GetPackageManager(config *config.Config, targetDir string, targetFile strin
 		return nuget.NewNugetManager(config, targetDir, targetFile, format, "", "")
 	}
 
-	slog.Info("detect dotnet supported format - creating dotnet manager", "target-file", targetFile, "target-dir", targetDir, "format", format)
-	return dotnet.NewDotnetManager(config, targetDir, targetFile), nil
+	if format == utils.FormatSdk {
+		slog.Info("detect dotnet supported format - creating dotnet manager", "target-file", targetFile, "target-dir", targetDir, "format", format)
+		return dotnet.NewDotnetManager(config, targetDir, targetFile), nil
+	}
+
+	// we do not support migrated project format yet
+	slog.Error("unsupported dotnet project", "format", format)
+	return nil, fmt.Errorf("unsupported project format %v", format)
 }
