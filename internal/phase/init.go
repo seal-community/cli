@@ -193,6 +193,9 @@ func getArtifactServerUrl(manager shared.PackageManager, conf *config.Config) st
 
 	case mappings.RpmEcosystem:
 		return api.RpmServer
+
+	case mappings.DebEcosystem:
+		return api.DebServer
 	}
 
 	slog.Error("could not match artifact server to manager", "ecosystem", ecosystem, "manager", manager.Name())

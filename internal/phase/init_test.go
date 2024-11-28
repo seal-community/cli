@@ -91,6 +91,7 @@ func TestGetArtifactServerUrl(t *testing.T) {
 		{mappings.JavaEcosystem, api.MavenServer},
 		{mappings.NodeEcosystem, api.NpmServer},
 		{mappings.GolangEcosystem, api.GolangServer},
+		{mappings.DebEcosystem, api.DebServer},
 		{"bad123", ""},
 	}
 
@@ -118,6 +119,7 @@ func TestGetJfrogArtifactRepo(t *testing.T) {
 		{mappings.DotnetEcosystem, ""},
 		{mappings.NodeEcosystem, ""},
 		{mappings.GolangEcosystem, ""},
+		{mappings.DebEcosystem, ""},
 		{"bad123", ""},
 	}
 

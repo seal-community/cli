@@ -14,6 +14,7 @@ func TestEcosystemConversion(t *testing.T) {
 		{GolangManager, "golang"},
 		{ComposerManager, "php"},
 		{RpmManager, "rpm"},
+		{DebGManager, "deb"},
 		{"asdasdasda", ""},
 	}
 
@@ -38,6 +39,7 @@ func TestManagerToEcosystemConversion(t *testing.T) {
 		{GolangEcosystem, "GO"},
 		{PhpEcosystem, "Composer"},
 		{RpmEcosystem, "RPM"},
+		{DebEcosystem, "DEB"},
 		{"asdasdasda", ""},
 	}
 

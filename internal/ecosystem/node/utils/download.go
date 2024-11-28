@@ -3,6 +3,7 @@ package utils
 import (
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/shared"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -52,25 +53,10 @@ func DownloadNPMPackage(s api.ArtifactServer, name string, version string) ([]by
 		return nil, filename, fmt.Errorf("could not parse package url: %s", versionInfo.Distribution.Tarball)
 	}
 
-	libraryData, statusCode, err := s.Get(
-		tarUrl.RequestURI(), // has to be relative to the artifact server base
-		nil,
-		nil,
-	)
-
+	libraryData, err := shared.DownloadFile(s, tarUrl.RequestURI())
 	if err != nil {
-		slog.Error("failed sending request for npm package data", "err", err, "name", name, "version", version)
+		slog.Error("failed getting npm package data", "err", err, "name", name, "version", version)
 		return nil, filename, err
-	}
-
-	if statusCode != 200 {
-		slog.Error("bad response code for npm package payload", "err", err, "status", statusCode)
-		return nil, filename, fmt.Errorf("bad status code for npm package data; status: %d", statusCode)
-	}
-
-	if len(libraryData) == 0 {
-		slog.Error("no payload content from server")
-		return nil, filename, fmt.Errorf("no package content")
 	}
 
 	shaBytes := sha1.Sum(libraryData)

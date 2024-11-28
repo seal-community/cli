@@ -15,3 +15,13 @@ func TestVersionAtLeast(t *testing.T) {
 		t.Fatalf("wrongly unsupported version err %v valid:%v", err, valid)
 	}
 }
+
+func TestGetNoEpochVersion(t *testing.T) {
+	if epoch, version := GetNoEpochVersion("1:2.8.6"); epoch != "1" || version != "2.8.6" {
+		t.Fatalf("wrongly parsed epoch %s version %s", epoch, version)
+	}
+
+	if epoch, version := GetNoEpochVersion("2.8.6"); epoch != "" || version != "2.8.6" {
+		t.Fatalf("wrongly parsed epoch %s version %s", epoch, version)
+	}
+}

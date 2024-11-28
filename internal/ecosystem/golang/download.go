@@ -3,6 +3,7 @@ package golang
 import (
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/shared"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -29,24 +30,11 @@ func DownloadPackage(s api.ArtifactServer, name string, version string) ([]byte,
 	uri := buildUri(name, version)
 	filename := common.FileNameFromUri(uri)
 
-	libraryData, statusCode, err := s.Get(
-		uri,
-		nil, nil,
-	)
+	libraryData, err := shared.DownloadFile(s, uri)
 
 	if err != nil {
 		slog.Error("failed sending request for golang package data", "err", err, "name", name, "version", version)
 		return nil, filename, err
-	}
-
-	if statusCode != 200 {
-		slog.Error("bad response code for golang package payload", "err", err, "status", statusCode)
-		return nil, filename, fmt.Errorf("bad status code golang package data; status: %d", statusCode)
-	}
-
-	if len(libraryData) == 0 {
-		slog.Error("no payload content from server")
-		return nil, filename, fmt.Errorf("no package content")
 	}
 
 	return libraryData, filename, nil

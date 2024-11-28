@@ -40,7 +40,7 @@ func (m *YumPackageManager) Fix(entry shared.DependencyDescriptor, dep *common.D
 	// so that the manager can install them all in one transaction
 	m.installPaths = append(m.installPaths, packagePath)
 
-	return true, dep.DiskPath, nil // diskpath is empty for yum
+	return true, "", nil // diskpath is empty for yum
 }
 
 // Fix does not change anything, so there's no rollback
