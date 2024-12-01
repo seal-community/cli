@@ -4,6 +4,7 @@ import (
 	"cli/internal/common"
 	"io"
 	"log/slog"
+	"regexp"
 	"strings"
 
 	"github.com/beevik/etree"
@@ -74,6 +75,71 @@ func (p *pomXML) GetArtifactId() string {
 	return artifactId.Text()
 }
 
+func (p *pomXML) findProperty(project *etree.Element, propertyName string) string {
+	// find the property in the properties tag
+	slog.Debug("looking for property", "property", propertyName)
+	properties := project.SelectElement("properties")
+	if properties == nil {
+		slog.Error("failed finding properties element")
+		return ""
+	}
+
+	property := properties.SelectElement(strings.Trim(propertyName, "${}"))
+	if property == nil {
+		slog.Error("failed finding property element", "property", propertyName)
+		return ""
+	}
+
+	return property.Text()
+}
+
+// Resolve version from pom.xml, supporting only properties
+// https://maven.apache.org/pom.html#Properties
+// Not parsing other expressions since it is not needed
+// Not using `mvn help:evaluate` since this runs on each pom.xml and when looking for shaded dependencies, it's too slow
+func (p *pomXML) resolveValue(value *etree.Element, project *etree.Element) string {
+	valueText := value.Text()
+	if !strings.Contains(valueText, "${") {
+		slog.Debug("value does not contain a property", "value", valueText)
+		return valueText
+	}
+	slog.Debug("resolving value", "value", valueText)
+	re := regexp.MustCompile(`(?U)\$\{(.+)\}`)
+
+	resolved := ""
+	lastIdx := 0
+	matches := re.FindAllStringSubmatchIndex(valueText, -1)
+
+	if len(matches) == 0 {
+		slog.Error("failed finding matches", "value", valueText)
+		return ""
+	}
+
+	for _, match := range matches {
+		exprStart := match[0]
+		exprEnd := match[1]
+		valueStart := match[2]
+		valueEnd := match[3]
+		resolved = resolved + valueText[lastIdx:exprStart]
+
+		extracted := valueText[valueStart:valueEnd]
+
+		propertyValue := p.findProperty(project, extracted)
+		if propertyValue == "" {
+			slog.Error("failed finding property", "propertyName", extracted, "value", propertyValue)
+			return ""
+		}
+
+		resolved = resolved + propertyValue
+		lastIdx = exprEnd
+	}
+
+	resolved = resolved + valueText[lastIdx:] // remainder
+
+	slog.Debug("resolved value", "resolved", resolved)
+	return resolved
+}
+
 func (p *pomXML) GetVersion() string {
 	project := p.Document.SelectElement(projectTag)
 	if project == nil {
@@ -83,7 +149,7 @@ func (p *pomXML) GetVersion() string {
 
 	version := project.SelectElement(versionTag)
 	if version != nil {
-		return version.Text()
+		return p.resolveValue(version, project)
 	}
 
 	// if version is missing, it is assumed to be the parent's version
@@ -99,7 +165,7 @@ func (p *pomXML) GetVersion() string {
 		return ""
 	}
 
-	return version.Text()
+	return p.resolveValue(version, parent)
 }
 
 func (p *pomXML) GetPackageId() string {
