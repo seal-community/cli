@@ -142,7 +142,7 @@ func (m *YumPackageManager) NormalizePackageName(name string) string {
 	return name
 }
 
-func (m *YumPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
+func (m *YumPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
 	slog.Warn("Silencing packages is not support for yum")
 	return nil, nil
 }

@@ -64,6 +64,12 @@ type PackageVersion struct {
 	OriginVersionId                 string          `json:"origin_version_id"`
 }
 
+type SilenceRule struct {
+	Manager string `json:"manager"`
+	Library string `json:"library"`
+	Version string `json:"version"`
+}
+
 type Metadata map[string]interface{}
 
 func (p *PackageVersion) CanBeFixed() bool {

@@ -18,6 +18,8 @@ type Backend interface {
 	CheckAuthenticationValid() error
 
 	InitializeProject(displayName string) (*ProjectDescriptor, error)
+
+	QuerySilenceRules() ([]SilenceRule, error)
 }
 
 var ArtifactServerUnsupportedMethod = errors.New("unsupported http method")

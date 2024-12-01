@@ -59,7 +59,7 @@ type PackageManager interface {
 	NormalizePackageName(name string) string
 	// Silences the given packages (silenceArray) in the given dependencies map.
 	// returns a map of all the silenced package ids to a list of the paths they were silenced in
-	SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error)
+	SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error)
 
 	// Callback allowing the manager to consolidate and manipulate scan results
 	ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error)

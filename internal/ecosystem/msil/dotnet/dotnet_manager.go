@@ -205,7 +205,7 @@ func (m *DotnetPackageManager) NormalizePackageName(name string) string {
 	return utils.NormalizeName(name)
 }
 
-func (m *DotnetPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
+func (m *DotnetPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
 	slog.Warn("Silencing packages is not support for dotnet")
 	return nil, nil
 }

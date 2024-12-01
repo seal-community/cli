@@ -293,20 +293,11 @@ func (m *MavenPackageManager) NormalizePackageName(name string) string {
 	return name
 }
 
-func parseSilenceInput(silenceEntry string) (string, string) {
-	silenceParts := strings.Split(silenceEntry, "@")
-	if len(silenceParts) != 2 {
-		return "", ""
-	}
-
-	return silenceParts[0], silenceParts[1]
-}
-
-func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
+func (m *MavenPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
 	// make sure the seal-m2 folder exists, initialized and set as the cache dir
 	df := m.GetFixer(m.targetDir)
 	if err := df.Prepare(); err != nil {
-		slog.Error("failed preparing folders", err)
+		slog.Error("failed preparing folders", "err", err)
 		return nil, err
 	}
 
@@ -316,13 +307,17 @@ func (m *MavenPackageManager) SilencePackages(silenceArray []string, allDependen
 
 	silencePackagesIds := make(map[string]bool, 0)
 	for _, silenceEntry := range silenceArray {
-		packageName, packageVersion := parseSilenceInput(silenceEntry)
-		if packageName == "" || packageVersion == "" {
+		// to support silence in the format of "library@version" that is used in the cli command, we accept empty manager as wildcard
+		if silenceEntry.Manager != mappings.MavenManager && silenceEntry.Manager != "" {
+			continue
+		}
+
+		if silenceEntry.Library == "" || silenceEntry.Version == "" {
 			slog.Warn("failed parsing silence entry", "entry", silenceEntry)
 			return nil, common.NewPrintableError("failed parsing silence entry %s", silenceEntry)
 		}
 
-		silencePackagesIds[common.DependencyId(mappings.MavenManager, m.NormalizePackageName(packageName), packageVersion)] = true
+		silencePackagesIds[common.DependencyId(mappings.MavenManager, m.NormalizePackageName(silenceEntry.Library), silenceEntry.Version)] = true
 	}
 
 	// silenced package id to list of jar paths

@@ -50,6 +50,10 @@ func (be *fakeBackend) CheckAuthenticationValid() error {
 	return nil
 }
 
+func (be *fakeBackend) QuerySilenceRules() ([]api.SilenceRule, error) {
+	panic("not implemented")
+}
+
 func (be *fakeBackend) InitializeProject(displayName string) (*api.ProjectDescriptor, error) {
 	panic("not implemented")
 }

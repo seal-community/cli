@@ -213,7 +213,18 @@ func (fp *fixPhase) queryRemoteConfigPackages(vulnerablePackages []api.PackageVe
 
 	slog.Debug("got fixes info", "count", len(*fixes))
 	return *fixes, nil
+}
 
+// query the BE for silence rules, return a list of packageName:version
+func (fp *fixPhase) QuerySilenceRules() ([]api.SilenceRule, error) {
+	rules, err := fp.Backend.QuerySilenceRules()
+	if err != nil {
+		slog.Error("failed querying silence rules", "err", err)
+		return nil, common.NewPrintableError("failed querying silence rules")
+	}
+
+	slog.Debug("got silence rules", "count", len(rules))
+	return rules, nil
 }
 
 // combine fix + vulnerable + dependency information for same package

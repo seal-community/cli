@@ -13,12 +13,27 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 const summaryFlag = "summarize"
 const SealFixModeHeader = "X-Seal-Fix-Mode"
+
+func getSilenceRules(v []string) ([]api.SilenceRule, error) {
+	var rules []api.SilenceRule
+	for _, entry := range v {
+		silenceParts := strings.Split(entry, "@")
+		if len(silenceParts) != 2 {
+			slog.Error("silence entry is not in correct format", "rule", entry)
+			return nil, common.NewPrintableError("silence entry %s is not in correct format", entry)
+		}
+		rules = append(rules, api.SilenceRule{Library: silenceParts[0], Version: silenceParts[1]})
+	}
+
+	return rules, nil
+}
 
 func fixModeFromString(s string) phase.FixMode {
 	modes := []phase.FixMode{phase.FixModeAll, phase.FixModeRemote, phase.FixModeLocal}
@@ -162,7 +177,12 @@ func fixCommand() *cobra.Command {
 			summaryPath := getArgString(cmd, summaryFlag)
 			configPath := getArgString(cmd, configFileKey)
 			fm := getArgString(cmd, modeFlag)
-			silenceArray := getArgArray(cmd, silenceFlag)
+			silenceArgArray := getArgArray(cmd, silenceFlag)
+			silenceArray, err := getSilenceRules(silenceArgArray)
+
+			if err != nil {
+				return common.FallbackPrintableMsg(err, "failed parsing silence rules")
+			}
 
 			fixModeUsed := fixModeFromString(fm)
 			if fixModeUsed == "" {
@@ -189,6 +209,11 @@ func fixCommand() *cobra.Command {
 				return common.NewPrintableError("silencing packages is not supported when not using sealed names")
 			}
 
+			if fixModeUsed == phase.FixModeRemote && len(silenceArray) > 0 {
+				slog.Error("silencing specific packages in command line is not supported in remote mode")
+				return common.NewPrintableError("silencing specific packages in command line is not supported in remote mode")
+			}
+
 			actionsFilePath := getArgString(cmd, actionsFileKey)
 			if actionsFilePath == "" {
 				actionsFilePath = filepath.Join(targetDir, actions.ActionFileName)
@@ -209,6 +234,14 @@ func fixCommand() *cobra.Command {
 				if err := updateScanResultAccordingToActionsFile(result, actionsFilePath, fixPhase.Manager); err != nil {
 					return common.FallbackPrintableMsg(err, "failed using actions file")
 				}
+			}
+
+			if fixModeUsed == phase.FixModeRemote {
+				silenceArray, err = fixPhase.QuerySilenceRules()
+				if err != nil {
+					return common.FallbackPrintableMsg(err, "failed querying for silence rules")
+				}
+				slog.Debug("silence rules", "count", len(silenceArray))
 			}
 
 			if len(result.Vulnerable) == 0 {
@@ -261,6 +294,6 @@ func fixCommand() *cobra.Command {
 
 	cmd.Flags().String(summaryFlag, "", "output fix summary to path")
 	cmd.Flags().String(modeFlag, "local", fmt.Sprintf("Fix mode, options: [%s|%s|%s]", phase.FixModeLocal, phase.FixModeRemote, phase.FixModeAll))
-	cmd.Flags().StringArray(silenceFlag, []string{}, "silence false-positive packages in the format of 'packageName:version'")
+	cmd.Flags().StringArray(silenceFlag, []string{}, "silence false-positive packages in the format of 'packageName@version'")
 	return cmd
 }

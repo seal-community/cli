@@ -216,3 +216,8 @@ func (s CliJfrogServer) InitializeProject(displayName string) (*ProjectDescripto
 
 	return &resp, nil
 }
+
+func (s CliJfrogServer) QuerySilenceRules() ([]SilenceRule, error) {
+	slog.Warn("silence rules not supported for JFrog")
+	return []SilenceRule{}, nil
+}

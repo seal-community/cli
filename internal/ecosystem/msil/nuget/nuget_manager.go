@@ -239,7 +239,7 @@ func (m *NugetManager) NormalizePackageName(name string) string {
 	return utils.NormalizeName(name)
 }
 
-func (m *NugetManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
+func (m *NugetManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
 	slog.Warn("Silencing packages is not support for nuget")
 	return nil, nil
 }

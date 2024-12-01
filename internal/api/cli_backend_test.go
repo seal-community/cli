@@ -438,3 +438,38 @@ func TestPayloadify(t *testing.T) {
 		t.Fatalf("bad payload: `%s`", jsonData)
 	}
 }
+
+func TestQuerySilenceRules(t *testing.T) {
+	authToken := "thisisjustatribute"
+	proj := "proj-id"
+
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200,
+		jsonContent: `[
+			{
+				"library": "name",
+				"version": "version",
+				"manager": "npm"
+			}
+		]`,
+		Validator: func(r *http.Request) {
+			if r.Method != "GET" {
+				t.Fatalf("bad method %s", r.Method)
+			}
+
+			if r.URL.Path != fmt.Sprintf("/authenticated/v1/scanner_exclusions/%s", proj) {
+				t.Fatalf("bad url %s", r.URL.Path)
+			}
+		},
+	}
+
+	client := http.Client{Transport: fakeRoundTripper}
+	server := NewCliServer(authToken, proj, client)
+	rules, err := server.QuerySilenceRules()
+
+	if err != nil || len(rules) != 1 {
+		t.Fatalf("failed send unitest %v, rules: %v", err, rules)
+	}
+	if rules[0].Library != "name" || rules[0].Version != "version" || rules[0].Manager != "npm" {
+		t.Fatalf("bad rule %v", rules[0])
+	}
+}

@@ -135,8 +135,7 @@ func (m *DPKGPackageManager) NormalizePackageName(name string) string {
 	// dpkg does not require normalization
 	return name
 }
-
-func (m *DPKGPackageManager) SilencePackages(silenceArray []string, allDependencies common.DependencyMap) (map[string][]string, error) {
+func (m *DPKGPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
 	slog.Warn("Silencing packages is not support for dpkg")
 	return nil, nil
 }

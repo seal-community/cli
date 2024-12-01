@@ -222,3 +222,31 @@ func TestFixModeParsing(t *testing.T) {
 		t.Fatalf("failed to parse unknown mode")
 	}
 }
+
+func TestGetSilenceRules(t *testing.T) {
+	tests := []struct {
+		input    []string
+		expected []api.SilenceRule
+	}{
+		{[]string{"name@version"}, []api.SilenceRule{{Library: "name", Version: "version"}}},
+		{[]string{"name@version@other"}, nil},
+		{[]string{"name"}, nil},
+	}
+
+	for _, test := range tests {
+		rules, err := getSilenceRules(test.input)
+		if test.expected == nil {
+			if err == nil || rules != nil {
+				t.Fatalf("failed to parse `%v`", test.input)
+			}
+			continue
+		}
+		if len(rules) != len(test.expected) {
+			for i, r := range rules {
+				if r != test.expected[i] {
+					t.Fatalf("failed to parse `%s`", test.input)
+				}
+			}
+		}
+	}
+}

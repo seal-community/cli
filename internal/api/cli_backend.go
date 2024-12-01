@@ -169,6 +169,36 @@ func (s CliServer) QueryRemoteConfig(query []RemoteOverrideQuery) (*Page[Package
 	return data, nil
 }
 
+func (s CliServer) QuerySilenceRules() ([]SilenceRule, error) {
+	if s.authToken == "" {
+		slog.Error("missing auth token for querying remote config")
+		return nil, MissingTokenForApiRequest
+	}
+
+	headers := []StringPair{BuildBasicAuthHeader(s.authToken)}
+
+	data, statusCode, err := sendSealApiRequest[any, []SilenceRule](
+		s.client,
+		"GET",
+		fmt.Sprintf("/authenticated/v1/scanner_exclusions/%s", s.project),
+		nil,
+		headers,
+		nil,
+	)
+
+	if statusCode != 200 {
+		slog.Error("server returned bad status code for query", "status", statusCode, "err", err)
+		return nil, BadServerResponseCode
+	}
+
+	if err != nil {
+		slog.Error("http error", "err", err, "status", statusCode)
+		return nil, err
+	}
+
+	return *data, nil
+}
+
 func (s CliServer) CheckAuthenticationValid() error {
 	defer common.ExecutionTimer().Log()
 
