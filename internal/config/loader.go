@@ -65,6 +65,13 @@ type BlackDuckConfig struct {
 	VersionName string          `yaml:"blackduck-project-version-name"      env:"PROJECT_VERSION_NAME"`
 }
 
+type DependabotConfig struct {
+	Url   string          `yaml:"dependabot-url"                       env:"URL"`
+	Token SensitiveString `yaml:"dependabot-token"                     env:"TOKEN"`
+	Owner string          `yaml:"dependabot-owner" env:"OWNER"`
+	Repo  string          `yaml:"dependabot-repo" env:"REPO"`
+}
+
 type ProjectInfo struct {
 	Targets []string `yaml:"targets"` // list of scan targets
 }
@@ -90,7 +97,8 @@ type Config struct {
 	Python   PythonConfig    `yaml:"python"         envPrefix:"PYTHON_"`
 	Composer ComposerConfig  `yaml:"composer"       envPrefix:"PHPCOMPOSER_"`
 
-	BlackDuck BlackDuckConfig `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
+	BlackDuck  BlackDuckConfig  `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
+	Dependabot DependabotConfig `yaml:"dependabot" envPrefix:"DEPENDABOT_"`
 
 	JFrog JFrogConfig `yaml:"jfrog" envPrefix:"JFROG_"`
 

@@ -1,0 +1,127 @@
+{
+    "number": 28,
+    "state": "dismissed",
+    "dependency": {
+        "package": {
+            "ecosystem": "npm",
+            "name": "ejs"
+        },
+        "manifest_path": "package-lock.json",
+        "scope": "runtime"
+    },
+    "security_advisory": {
+        "ghsa_id": "GHSA-ghr5-ch3p-vcr6",
+        "cve_id": "CVE-2024-33883",
+        "summary": "ejs lacks certain pollution protection",
+        "description": "The ejs (aka Embedded JavaScript templates) package before 3.1.10 for Node.js lacks certain pollution protection.",
+        "severity": "medium",
+        "identifiers": [
+            {
+                "value": "GHSA-ghr5-ch3p-vcr6",
+                "type": "GHSA"
+            },
+            {
+                "value": "CVE-2024-33883",
+                "type": "CVE"
+            }
+        ],
+        "references": [
+            {
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-33883"
+            },
+            {
+                "url": "https://github.com/mde/ejs/commit/e469741dca7df2eb400199e1cdb74621e3f89aa5"
+            },
+            {
+                "url": "https://github.com/mde/ejs/compare/v3.1.9...v3.1.10"
+            },
+            {
+                "url": "https://security.netapp.com/advisory/ntap-20240605-0003"
+            },
+            {
+                "url": "https://github.com/advisories/GHSA-ghr5-ch3p-vcr6"
+            }
+        ],
+        "published_at": "2024-04-28T18:30:31Z",
+        "updated_at": "2024-08-02T15:45:54Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+            {
+                "package": {
+                    "ecosystem": "npm",
+                    "name": "ejs"
+                },
+                "severity": "medium",
+                "vulnerable_version_range": "< 3.1.10",
+                "first_patched_version": {
+                    "identifier": "3.1.10"
+                }
+            }
+        ],
+        "cvss": {
+            "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+            "score": 4.0
+        },
+        "cvss_severities": {
+            "cvss_v3": {
+                "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                "score": 4.0
+            },
+            "cvss_v4": {
+                "vector_string": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N",
+                "score": 6.9
+            }
+        },
+        "cwes": [
+            {
+                "cwe_id": "CWE-693",
+                "name": "Protection Mechanism Failure"
+            },
+            {
+                "cwe_id": "CWE-1321",
+                "name": "Improperly Controlled Modification of Object Prototype Attributes ('Prototype Pollution')"
+            }
+        ]
+    },
+    "security_vulnerability": {
+        "package": {
+            "ecosystem": "npm",
+            "name": "ejs"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": "< 3.1.10",
+        "first_patched_version": {
+            "identifier": "3.1.10"
+        }
+    },
+    "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/28",
+    "html_url": "https://github.com/owner-id/repo-id/security/dependabot/28",
+    "created_at": "2024-11-25T09:52:49Z",
+    "updated_at": "2024-11-28T09:21:37Z",
+    "dismissed_at": "2024-11-28T09:21:37Z",
+    "dismissed_by": {
+        "login": "myusername",
+        "id": 160627872,
+        "node_id": "U_kgDOCZL8oA",
+        "avatar_url": "https://avatars.githubusercontent.com/u/160627872?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/myusername",
+        "html_url": "https://github.com/myusername",
+        "followers_url": "https://api.github.com/users/myusername/followers",
+        "following_url": "https://api.github.com/users/myusername/following{/other_user}",
+        "gists_url": "https://api.github.com/users/myusername/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/myusername/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/myusername/subscriptions",
+        "organizations_url": "https://api.github.com/users/myusername/orgs",
+        "repos_url": "https://api.github.com/users/myusername/repos",
+        "events_url": "https://api.github.com/users/myusername/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/myusername/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+    },
+    "dismissed_reason": "fix_started",
+    "dismissed_comment": "vulnerability patched by seal-security",
+    "fixed_at": null,
+    "auto_dismissed_at": null
+}

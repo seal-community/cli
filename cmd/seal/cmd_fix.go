@@ -5,6 +5,7 @@ import (
 	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/clients/blackduck"
+	"cli/internal/clients/dependabot"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/phase"
@@ -277,6 +278,7 @@ func fixCommand() *cobra.Command {
 
 				slog.Info("checking callbacks")
 				fixPhase.HandleCallbacks(fixes, &blackduck.BlackDuckCallback{Config: fixPhase.Config})
+				fixPhase.HandleCallbacks(fixes, &dependabot.DependabotCallback{Config: fixPhase.Config})
 			}
 
 			silenced := make(map[string][]string, 0)
