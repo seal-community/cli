@@ -66,10 +66,10 @@ type BlackDuckConfig struct {
 }
 
 type DependabotConfig struct {
-	Url   string          `yaml:"dependabot-url"                       env:"URL"`
-	Token SensitiveString `yaml:"dependabot-token"                     env:"TOKEN"`
-	Owner string          `yaml:"dependabot-owner" env:"OWNER"`
-	Repo  string          `yaml:"dependabot-repo" env:"REPO"`
+	Url   string          `yaml:"url"       env:"URL"`
+	Token SensitiveString `yaml:"token"     env:"TOKEN"`
+	Owner string          `yaml:"owner"     env:"OWNER"`
+	Repo  string          `yaml:"repo"      env:"REPO"`
 }
 
 type ProjectInfo struct {
