@@ -26,7 +26,7 @@ const versionFlag = "--version"
 
 type DotnetMetadata struct {
 	version      string
-	packagesPath string
+	packagesPath string // location of installed packages; as of now the global packages under the user folder
 }
 
 type DotnetPackageManager struct {
@@ -101,8 +101,7 @@ func (m *DotnetPackageManager) GetProjectName() string {
 }
 
 func (m *DotnetPackageManager) GetFixer(workdir string) shared.DependencyFixer {
-	packagesDir := utils.GetGlobalPackagesCachePath()
-	return utils.NewFixer(m.targetDir, workdir, packagesDir)
+	return newFixer(workdir, m.dotnetTargetFile, m.targetDir, m.metadata.packagesPath)
 }
 
 func IsDotnetIndicatorFile(path string) bool {
@@ -143,8 +142,12 @@ func FindDotnetIndicatorFile(path string) (string, error) {
 
 // runs: dotnet list package --include-transitive --format json
 func listPackages(targetDir string) (*common.ProcessResult, bool) {
-	args := []string{"list", "package", "--include-transitive", "--format", "json"}
-	listResult, err := common.RunCmdWithArgs(targetDir, dotnetExeName, args...)
+	listResult, err := common.RunCmdWithArgs(targetDir, dotnetExeName,
+		"list", "package",
+		"--include-transitive",
+		"--format", "json",
+	)
+
 	if err != nil {
 		return nil, false
 	}
@@ -167,35 +170,6 @@ func (m *DotnetPackageManager) DownloadPackage(server api.ArtifactServer, descri
 func (m *DotnetPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if m.Config.UseSealedNames {
 		slog.Warn("using sealed names in dotnet is not supported yet")
-	}
-
-	return handleFixes(m.targetDir, fixes)
-}
-
-func handleFixes(projectDir string, fixes []shared.DependencyDescriptor) error {
-	slog.Info("updating project.assets.json with fixes", "count", len(fixes))
-	assetsPaths, err := common.FindPathsWithSuffix(projectDir, ProjectAssetsFileName)
-	for _, assetsPath := range assetsPaths {
-		if err != nil {
-			slog.Error("failed getting project.assets.json path", "err", err)
-			return common.NewPrintableError(DotnetRestoreError)
-		}
-
-		assets := common.JsonLoad(assetsPath)
-		if assets == nil {
-			slog.Error("failed loading project.assets.json in", "dir", assetsPath)
-			return common.NewPrintableError(DotnetRestoreError)
-		}
-
-		if err := UpdateProjectAssetsFile(assets, fixes); err != nil {
-			slog.Error("failed updating project.assets.json", "err", err)
-			return common.FallbackPrintableMsg(err, "failed updating project.assets.json")
-		}
-
-		if err := common.JsonSave(assets, assetsPath); err != nil {
-			slog.Error("failed saving updated project.assets.json", "err", err, "path", assetsPath)
-			return common.FallbackPrintableMsg(err, "failed saving new project.assets.json")
-		}
 	}
 
 	return nil

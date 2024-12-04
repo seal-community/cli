@@ -46,6 +46,8 @@ type Normalizer interface {
 }
 
 type PackageManager interface {
+	Normalizer
+
 	Name() string
 	GetVersion() string
 	IsVersionSupported(version string) bool
@@ -56,7 +58,6 @@ type PackageManager interface {
 	GetScanTargets() []string
 	DownloadPackage(server api.ArtifactServer, descriptor DependencyDescriptor) ([]byte, string, error)
 	HandleFixes(fixes []DependencyDescriptor) error
-	NormalizePackageName(name string) string
 	// Silences the given packages (silenceArray) in the given dependencies map.
 	// returns a map of all the silenced package ids to a list of the paths they were silenced in
 	SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error)

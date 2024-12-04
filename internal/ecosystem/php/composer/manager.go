@@ -33,7 +33,10 @@ func (m *ComposerPackageManager) Name() string {
 }
 
 func (m *ComposerPackageManager) GetVersion() string {
-	versionOutput, err := common.RunCmdWithArgs(m.targetDir, composerExe, "--version", "--no-ansi")
+	versionOutput, err := common.RunCmdWithArgs(m.targetDir, composerExe,
+		"--version",
+		"--no-ansi", // strip color codes
+	)
 	if err != nil {
 		slog.Error("failed running composer --version", "err", err)
 		return ""

@@ -116,3 +116,21 @@ func TestParseWithoutRestoreDependencies(t *testing.T) {
 		t.Fatalf("expected error message to start with 'Error: No assets file was found', got: %v", err.Error())
 	}
 }
+
+func TestShouldSkip(t *testing.T) {
+	if !shouldSkip(NugetPackage{Name: "", RequestedVersion: "", ResolvedVersion: ""}) {
+		t.Fatalf("should skip empty")
+	}
+
+	if !shouldSkip(NugetPackage{Name: "", ResolvedVersion: "12.1"}) {
+		t.Fatalf("should skip no name")
+	}
+
+	if !shouldSkip(NugetPackage{Name: "name", ResolvedVersion: ""}) {
+		t.Fatalf("should skip empty version")
+	}
+
+	if shouldSkip(NugetPackage{Name: "name", ResolvedVersion: "12.1"}) {
+		t.Fatalf("should not skip")
+	}
+}

@@ -46,7 +46,7 @@ type dependencyParser struct {
 	normalizer shared.Normalizer
 }
 
-func (parser *dependencyParser) shouldSkip(p *NugetPackage) bool {
+func shouldSkip(p NugetPackage) bool {
 	if p.Name == "" || p.ResolvedVersion == "" {
 		slog.Warn("empty dependency")
 		return true
@@ -79,7 +79,7 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 	for _, project := range dependencyList.Projects {
 		for _, framework := range project.Frameworks {
 			for _, pkg := range framework.TopLevelPackages {
-				if parser.shouldSkip(&pkg) {
+				if shouldSkip(pkg) {
 					continue
 				}
 
@@ -87,7 +87,7 @@ func (parser *dependencyParser) Parse(nugetOutput string, projectDir string) (co
 			}
 
 			for _, pkg := range framework.TransitivePackages {
-				if parser.shouldSkip(&pkg) {
+				if shouldSkip(pkg) {
 					continue
 				}
 
