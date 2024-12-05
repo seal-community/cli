@@ -218,6 +218,37 @@ func (s CliJfrogServer) InitializeProject(displayName string) (*ProjectDescripto
 }
 
 func (s CliJfrogServer) QuerySilenceRules() ([]SilenceRule, error) {
-	slog.Warn("silence rules not supported for JFrog")
-	return []SilenceRule{}, nil
+	uri := fmt.Sprintf("/scanner_exclusions/%s", s.project)
+	target, err := url.JoinPath(s.baseUrl, uri)
+	if err != nil {
+		slog.Error("failed building target url for jfrog", "err", err, "baseUrl", s.baseUrl, "uri", uri)
+		return nil, err
+	}
+
+	resp, statusCode, err := sendSealRequest[[]byte](
+		s.client,
+		"GET",
+		target,
+		nil,
+		[]StringPair{s.authHeader},
+		nil,
+	)
+
+	if statusCode != 200 {
+		slog.Error("server returned bad status code for query", "status", statusCode, "err", err)
+		return nil, BadServerResponseCode
+	}
+
+	if err != nil {
+		slog.Error("http error", "err", err, "status", statusCode)
+		return nil, err
+	}
+
+	var data []SilenceRule
+	if err = json.Unmarshal(resp, &data); err != nil {
+		slog.Error("failed unmarshal response body", "body", string(resp))
+		return nil, err
+	}
+
+	return data, nil
 }
