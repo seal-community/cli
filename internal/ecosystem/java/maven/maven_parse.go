@@ -121,6 +121,11 @@ func (parser *dependencyParser) findShadedDependencies(jarPath string, parent *c
 
 	shadedDeps := make([]*common.Dependency, 0)
 	for dep := range deps {
+		if dep.version == "" || dep.name == "" {
+			slog.Info("failed getting shaded dep info, skipping", "path", jarPath, "package", dep)
+			continue
+		}
+
 		newDep := &common.Dependency{
 			Name:           dep.name,
 			NormalizedName: parser.normalizer.NormalizePackageName(dep.name),
