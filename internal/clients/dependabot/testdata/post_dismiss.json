@@ -1,127 +1,113 @@
 {
-    "number": 28,
-    "state": "dismissed",
-    "dependency": {
-        "package": {
-            "ecosystem": "npm",
-            "name": "ejs"
-        },
-        "manifest_path": "package-lock.json",
-        "scope": "runtime"
+  "number": 30,
+  "state": "dismissed",
+  "dependency": {
+    "package": {
+      "ecosystem": "npm",
+      "name": "smol-toml"
     },
-    "security_advisory": {
-        "ghsa_id": "GHSA-ghr5-ch3p-vcr6",
-        "cve_id": "CVE-2024-33883",
-        "summary": "ejs lacks certain pollution protection",
-        "description": "The ejs (aka Embedded JavaScript templates) package before 3.1.10 for Node.js lacks certain pollution protection.",
-        "severity": "medium",
-        "identifiers": [
-            {
-                "value": "GHSA-ghr5-ch3p-vcr6",
-                "type": "GHSA"
-            },
-            {
-                "value": "CVE-2024-33883",
-                "type": "CVE"
-            }
-        ],
-        "references": [
-            {
-                "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-33883"
-            },
-            {
-                "url": "https://github.com/mde/ejs/commit/e469741dca7df2eb400199e1cdb74621e3f89aa5"
-            },
-            {
-                "url": "https://github.com/mde/ejs/compare/v3.1.9...v3.1.10"
-            },
-            {
-                "url": "https://security.netapp.com/advisory/ntap-20240605-0003"
-            },
-            {
-                "url": "https://github.com/advisories/GHSA-ghr5-ch3p-vcr6"
-            }
-        ],
-        "published_at": "2024-04-28T18:30:31Z",
-        "updated_at": "2024-08-02T15:45:54Z",
-        "withdrawn_at": null,
-        "vulnerabilities": [
-            {
-                "package": {
-                    "ecosystem": "npm",
-                    "name": "ejs"
-                },
-                "severity": "medium",
-                "vulnerable_version_range": "< 3.1.10",
-                "first_patched_version": {
-                    "identifier": "3.1.10"
-                }
-            }
-        ],
-        "cvss": {
-            "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
-            "score": 4.0
-        },
-        "cvss_severities": {
-            "cvss_v3": {
-                "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
-                "score": 4.0
-            },
-            "cvss_v4": {
-                "vector_string": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N",
-                "score": 6.9
-            }
-        },
-        "cwes": [
-            {
-                "cwe_id": "CWE-693",
-                "name": "Protection Mechanism Failure"
-            },
-            {
-                "cwe_id": "CWE-1321",
-                "name": "Improperly Controlled Modification of Object Prototype Attributes ('Prototype Pollution')"
-            }
-        ]
-    },
-    "security_vulnerability": {
+    "manifest_path": "package-lock.json",
+    "scope": "runtime"
+  },
+  "security_advisory": {
+    "ghsa_id": "GHSA-pqhp-25j4-6hq9",
+    "cve_id": null,
+    "summary": "smol-toml has a Denial of Service via malicious TOML document using deeply nested inline tables",
+    "description": "### Summary\nAn attacker can send a maliciously crafted TOML to cause the parser to crash because of a stack overflow caused by a deeply nested inline structure. A similar problem occurs when attempting to stringify deeply nested objects.\n\nThe library does not limit the maximum exploration depth while parsing or producing TOML documents, nor does it offer a way to do so.\n\n### Proof of concept\n```js\nrequire(\"smol-toml\").parse(\"e=\" + \"{e=\".repeat(9999) + \"{}\" + \"}\".repeat(9999))\n```\n\n### Impact\nApplications which parse arbitrary TOML documents may suffer availability issues if they receive malicious input. If uncaught, the crash may cause the application itself to crash. The impact is deemed minor, as the function is already likely to throw errors on invalid input and therefore to properly handle errors.\n\nDue to the design of most JavaScript runtimes, the uncontrolled recursion does not lead to excessive memory usage and the execution is quickly aborted.\n\nAs a reminder, it is **strongly** advised when working with untrusted user input to expect errors to occur and to appropriately catch them.\n\n### Patches\nVersion 1.3.1 offers a mechanism to limit the exploration depth before halting with a `TomlError` when parsing, with a default cap of 1000. A same mechanism has been implemented for stringifying objects.\n\n**Please note that the parser will *still* throw an error upon such cases.** It is, however, a now-controlled and documented behavior of the library.\n\n### Workarounds\nWrap all invocations of `parse` and `stringify` in a try/catch block.",
+    "severity": "medium",
+    "identifiers": [
+      {
+        "value": "GHSA-pqhp-25j4-6hq9",
+        "type": "GHSA"
+      }
+    ],
+    "references": [
+      {
+        "url": "https://github.com/squirrelchat/smol-toml/security/advisories/GHSA-pqhp-25j4-6hq9"
+      },
+      {
+        "url": "https://github.com/squirrelchat/smol-toml/commit/405108ba090f0fc78f99aa2f0d6721e499b0ff27"
+      },
+      {
+        "url": "https://github.com/advisories/GHSA-pqhp-25j4-6hq9"
+      }
+    ],
+    "published_at": "2024-11-22T20:40:49Z",
+    "updated_at": "2024-11-22T20:40:50Z",
+    "withdrawn_at": null,
+    "vulnerabilities": [
+      {
         "package": {
-            "ecosystem": "npm",
-            "name": "ejs"
+          "ecosystem": "npm",
+          "name": "smol-toml"
         },
         "severity": "medium",
-        "vulnerable_version_range": "< 3.1.10",
+        "vulnerable_version_range": "<= 1.3.0",
         "first_patched_version": {
-            "identifier": "3.1.10"
+          "identifier": "1.3.1"
         }
+      }
+    ],
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+      "score": 5.3
     },
-    "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/28",
-    "html_url": "https://github.com/owner-id/repo-id/security/dependabot/28",
-    "created_at": "2024-11-25T09:52:49Z",
-    "updated_at": "2024-11-28T09:21:37Z",
-    "dismissed_at": "2024-11-28T09:21:37Z",
-    "dismissed_by": {
-        "login": "myusername",
-        "id": 160627872,
-        "node_id": "U_kgDOCZL8oA",
-        "avatar_url": "https://avatars.githubusercontent.com/u/160627872?v=4",
-        "gravatar_id": "",
-        "url": "https://api.github.com/users/myusername",
-        "html_url": "https://github.com/myusername",
-        "followers_url": "https://api.github.com/users/myusername/followers",
-        "following_url": "https://api.github.com/users/myusername/following{/other_user}",
-        "gists_url": "https://api.github.com/users/myusername/gists{/gist_id}",
-        "starred_url": "https://api.github.com/users/myusername/starred{/owner}{/repo}",
-        "subscriptions_url": "https://api.github.com/users/myusername/subscriptions",
-        "organizations_url": "https://api.github.com/users/myusername/orgs",
-        "repos_url": "https://api.github.com/users/myusername/repos",
-        "events_url": "https://api.github.com/users/myusername/events{/privacy}",
-        "received_events_url": "https://api.github.com/users/myusername/received_events",
-        "type": "User",
-        "user_view_type": "public",
-        "site_admin": false
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+        "score": 5.3
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": 0.0
+      }
     },
-    "dismissed_reason": "fix_started",
-    "dismissed_comment": "vulnerability patched by seal-security",
-    "fixed_at": null,
-    "auto_dismissed_at": null
+    "cwes": [
+      {
+        "cwe_id": "CWE-674",
+        "name": "Uncontrolled Recursion"
+      }
+    ]
+  },
+  "security_vulnerability": {
+    "package": {
+      "ecosystem": "npm",
+      "name": "smol-toml"
+    },
+    "severity": "medium",
+    "vulnerable_version_range": "<= 1.3.0",
+    "first_patched_version": {
+      "identifier": "1.3.1"
+    }
+  },
+  "url": "https://api.github.com/repos/Shaked-Seal-Test/ghas-test/dependabot/alerts/30",
+  "html_url": "https://github.com/Shaked-Seal-Test/ghas-test/security/dependabot/30",
+  "created_at": "2024-11-28T13:26:45Z",
+  "updated_at": "2024-12-02T11:44:46Z",
+  "dismissed_at": "2024-12-02T11:44:46Z",
+  "dismissed_by": {
+    "login": "shakedseal1",
+    "id": 160627872,
+    "node_id": "U_kgDOCZL8oA",
+    "avatar_url": "https://avatars.githubusercontent.com/u/160627872?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/shakedseal1",
+    "html_url": "https://github.com/shakedseal1",
+    "followers_url": "https://api.github.com/users/shakedseal1/followers",
+    "following_url": "https://api.github.com/users/shakedseal1/following{/other_user}",
+    "gists_url": "https://api.github.com/users/shakedseal1/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/shakedseal1/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/shakedseal1/subscriptions",
+    "organizations_url": "https://api.github.com/users/shakedseal1/orgs",
+    "repos_url": "https://api.github.com/users/shakedseal1/repos",
+    "events_url": "https://api.github.com/users/shakedseal1/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/shakedseal1/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "dismissed_reason": "fix_started",
+  "dismissed_comment": "vulnerability patched by seal-security.",
+  "fixed_at": null,
+  "auto_dismissed_at": null
 }

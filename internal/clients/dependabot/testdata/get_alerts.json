@@ -1,5 +1,207 @@
 [
     {
+        "number": 30,
+        "state": "dismissed",
+        "dependency": {
+            "package": {
+                "ecosystem": "npm",
+                "name": "smol-toml"
+            },
+            "manifest_path": "package-lock.json",
+            "scope": "runtime"
+        },
+        "security_advisory": {
+            "ghsa_id": "GHSA-pqhp-25j4-6hq9",
+            "cve_id": null,
+            "summary": "smol-toml has a Denial of Service via malicious TOML document using deeply nested inline tables",
+            "description": "### Summary\nAn attacker can send a maliciously crafted TOML to cause the parser to crash because of a stack overflow caused by a deeply nested inline structure. A similar problem occurs when attempting to stringify deeply nested objects.\n\nThe library does not limit the maximum exploration depth while parsing or producing TOML documents, nor does it offer a way to do so.\n\n### Proof of concept\n```js\nrequire(\"smol-toml\").parse(\"e=\" + \"{e=\".repeat(9999) + \"{}\" + \"}\".repeat(9999))\n```\n\n### Impact\nApplications which parse arbitrary TOML documents may suffer availability issues if they receive malicious input. If uncaught, the crash may cause the application itself to crash. The impact is deemed minor, as the function is already likely to throw errors on invalid input and therefore to properly handle errors.\n\nDue to the design of most JavaScript runtimes, the uncontrolled recursion does not lead to excessive memory usage and the execution is quickly aborted.\n\nAs a reminder, it is **strongly** advised when working with untrusted user input to expect errors to occur and to appropriately catch them.\n\n### Patches\nVersion 1.3.1 offers a mechanism to limit the exploration depth before halting with a `TomlError` when parsing, with a default cap of 1000. A same mechanism has been implemented for stringifying objects.\n\n**Please note that the parser will *still* throw an error upon such cases.** It is, however, a now-controlled and documented behavior of the library.\n\n### Workarounds\nWrap all invocations of `parse` and `stringify` in a try/catch block.",
+            "severity": "medium",
+            "identifiers": [
+                {
+                    "value": "GHSA-pqhp-25j4-6hq9",
+                    "type": "GHSA"
+                }
+            ],
+            "references": [
+                {
+                    "url": "https://github.com/squirrelchat/smol-toml/security/advisories/GHSA-pqhp-25j4-6hq9"
+                },
+                {
+                    "url": "https://github.com/squirrelchat/smol-toml/commit/405108ba090f0fc78f99aa2f0d6721e499b0ff27"
+                },
+                {
+                    "url": "https://github.com/advisories/GHSA-pqhp-25j4-6hq9"
+                }
+            ],
+            "published_at": "2024-11-22T20:40:49Z",
+            "updated_at": "2024-11-22T20:40:50Z",
+            "withdrawn_at": null,
+            "vulnerabilities": [
+                {
+                    "package": {
+                        "ecosystem": "npm",
+                        "name": "smol-toml"
+                    },
+                    "severity": "medium",
+                    "vulnerable_version_range": "<= 1.3.0",
+                    "first_patched_version": {
+                        "identifier": "1.3.1"
+                    }
+                }
+            ],
+            "cvss": {
+                "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                "score": 5.3
+            },
+            "cvss_severities": {
+                "cvss_v3": {
+                    "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                    "score": 5.3
+                },
+                "cvss_v4": {
+                    "vector_string": null,
+                    "score": 0.0
+                }
+            },
+            "cwes": [
+                {
+                    "cwe_id": "CWE-674",
+                    "name": "Uncontrolled Recursion"
+                }
+            ]
+        },
+        "security_vulnerability": {
+            "package": {
+                "ecosystem": "npm",
+                "name": "smol-toml"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": "<= 1.3.0",
+            "first_patched_version": {
+                "identifier": "1.3.1"
+            }
+        },
+        "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/30",
+        "html_url": "https://github.com/owner-id/repo-id/security/dependabot/30",
+        "created_at": "2024-11-28T13:26:45Z",
+        "updated_at": "2024-11-28T13:26:45Z",
+        "dismissed_at": null,
+        "dismissed_by": null,
+        "dismissed_reason": "fix_started",
+        "dismissed_comment": "vulnerability patched by seal-security",
+        "fixed_at": null,
+        "auto_dismissed_at": null
+    },
+    {
+        "number": 29,
+        "state": "open",
+        "dependency": {
+            "package": {
+                "ecosystem": "npm",
+                "name": "ansi-html"
+            },
+            "manifest_path": "package-lock.json",
+            "scope": "runtime"
+        },
+        "security_advisory": {
+            "ghsa_id": "GHSA-whgm-jr23-g3j9",
+            "cve_id": "CVE-2021-23424",
+            "summary": "Uncontrolled Resource Consumption in ansi-html",
+            "description": "This affects all versions of package ansi-html. If an attacker provides a malicious string, it will get stuck processing the input for an extremely long time.",
+            "severity": "high",
+            "identifiers": [
+                {
+                    "value": "GHSA-whgm-jr23-g3j9",
+                    "type": "GHSA"
+                },
+                {
+                    "value": "CVE-2021-23424",
+                    "type": "CVE"
+                }
+            ],
+            "references": [
+                {
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-23424"
+                },
+                {
+                    "url": "https://github.com/Tjatse/ansi-html/issues/19"
+                },
+                {
+                    "url": "https://snyk.io/vuln/SNYK-JS-ANSIHTML-1296849"
+                },
+                {
+                    "url": "https://github.com/ioet/time-tracker-ui/security/advisories/GHSA-4fjc-8q3h-8r69"
+                },
+                {
+                    "url": "https://github.com/Tjatse/ansi-html/commit/8142b25bca3133ea060bcc1889277dc482327a63"
+                },
+                {
+                    "url": "https://snyk.io/vuln/SNYK-JAVA-ORGWEBJARSNPM-1567198"
+                },
+                {
+                    "url": "https://github.com/advisories/GHSA-whgm-jr23-g3j9"
+                }
+            ],
+            "published_at": "2021-09-02T17:15:24Z",
+            "updated_at": "2023-11-28T23:50:48Z",
+            "withdrawn_at": null,
+            "vulnerabilities": [
+                {
+                    "package": {
+                        "ecosystem": "npm",
+                        "name": "ansi-html"
+                    },
+                    "severity": "high",
+                    "vulnerable_version_range": "< 0.0.8",
+                    "first_patched_version": {
+                        "identifier": "0.0.8"
+                    }
+                }
+            ],
+            "cvss": {
+                "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "score": 7.5
+            },
+            "cvss_severities": {
+                "cvss_v3": {
+                    "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                    "score": 7.5
+                },
+                "cvss_v4": {
+                    "vector_string": null,
+                    "score": 0.0
+                }
+            },
+            "cwes": [
+                {
+                    "cwe_id": "CWE-400",
+                    "name": "Uncontrolled Resource Consumption"
+                }
+            ]
+        },
+        "security_vulnerability": {
+            "package": {
+                "ecosystem": "npm",
+                "name": "ansi-html"
+            },
+            "severity": "high",
+            "vulnerable_version_range": "< 0.0.8",
+            "first_patched_version": {
+                "identifier": "0.0.8"
+            }
+        },
+        "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/29",
+        "html_url": "https://github.com/owner-id/repo-id/security/dependabot/29",
+        "created_at": "2024-11-28T13:26:45Z",
+        "updated_at": "2024-11-28T13:26:45Z",
+        "dismissed_at": null,
+        "dismissed_by": null,
+        "dismissed_reason": null,
+        "dismissed_comment": null,
+        "fixed_at": null,
+        "auto_dismissed_at": null
+    },
+    {
         "number": 28,
         "state": "open",
         "dependency": {
@@ -98,7 +300,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/28",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/28",
         "created_at": "2024-11-25T09:52:49Z",
-        "updated_at": "2024-11-25T09:52:49Z",
+        "updated_at": "2024-12-02T09:58:57Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -279,7 +481,117 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/27",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/27",
         "created_at": "2024-11-25T09:52:49Z",
-        "updated_at": "2024-11-25T09:52:49Z",
+        "updated_at": "2024-12-02T09:58:57Z",
+        "dismissed_at": null,
+        "dismissed_by": null,
+        "dismissed_reason": null,
+        "dismissed_comment": null,
+        "fixed_at": null,
+        "auto_dismissed_at": null
+    },
+    {
+        "number": 26,
+        "state": "open",
+        "dependency": {
+            "package": {
+                "ecosystem": "npm",
+                "name": "postcss"
+            },
+            "manifest_path": "package-lock.json",
+            "scope": "runtime"
+        },
+        "security_advisory": {
+            "ghsa_id": "GHSA-7fh5-64p2-3v2j",
+            "cve_id": "CVE-2023-44270",
+            "summary": "PostCSS line return parsing error",
+            "description": "An issue was discovered in PostCSS before 8.4.31. It affects linters using PostCSS to parse external Cascading Style Sheets (CSS). There may be `\\r` discrepancies, as demonstrated by `@font-face{ font:(\\r/*);}` in a rule.\n\nThis vulnerability affects linters using PostCSS to parse external untrusted CSS. An attacker can prepare CSS in such a way that it will contains parts parsed by PostCSS as a CSS comment. After processing by PostCSS, it will be included in the PostCSS output in CSS nodes (rules, properties) despite being originally included in a comment.",
+            "severity": "medium",
+            "identifiers": [
+                {
+                    "value": "GHSA-7fh5-64p2-3v2j",
+                    "type": "GHSA"
+                },
+                {
+                    "value": "CVE-2023-44270",
+                    "type": "CVE"
+                }
+            ],
+            "references": [
+                {
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-44270"
+                },
+                {
+                    "url": "https://github.com/postcss/postcss/commit/58cc860b4c1707510c9cd1bc1fa30b423a9ad6c5"
+                },
+                {
+                    "url": "https://github.com/postcss/postcss/blob/main/lib/tokenize.js#L25"
+                },
+                {
+                    "url": "https://github.com/postcss/postcss/releases/tag/8.4.31"
+                },
+                {
+                    "url": "https://github.com/github/advisory-database/issues/2820"
+                },
+                {
+                    "url": "https://github.com/advisories/GHSA-7fh5-64p2-3v2j"
+                }
+            ],
+            "published_at": "2023-09-30T00:31:10Z",
+            "updated_at": "2023-11-05T05:05:37Z",
+            "withdrawn_at": null,
+            "vulnerabilities": [
+                {
+                    "package": {
+                        "ecosystem": "npm",
+                        "name": "postcss"
+                    },
+                    "severity": "medium",
+                    "vulnerable_version_range": "< 8.4.31",
+                    "first_patched_version": {
+                        "identifier": "8.4.31"
+                    }
+                }
+            ],
+            "cvss": {
+                "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+                "score": 5.3
+            },
+            "cvss_severities": {
+                "cvss_v3": {
+                    "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+                    "score": 5.3
+                },
+                "cvss_v4": {
+                    "vector_string": null,
+                    "score": 0.0
+                }
+            },
+            "cwes": [
+                {
+                    "cwe_id": "CWE-74",
+                    "name": "Improper Neutralization of Special Elements in Output Used by a Downstream Component ('Injection')"
+                },
+                {
+                    "cwe_id": "CWE-144",
+                    "name": "Improper Neutralization of Line Delimiters"
+                }
+            ]
+        },
+        "security_vulnerability": {
+            "package": {
+                "ecosystem": "npm",
+                "name": "postcss"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": "< 8.4.31",
+            "first_patched_version": {
+                "identifier": "8.4.31"
+            }
+        },
+        "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/26",
+        "html_url": "https://github.com/owner-id/repo-id/security/dependabot/26",
+        "created_at": "2024-11-25T09:52:49Z",
+        "updated_at": "2024-12-02T09:58:57Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -408,7 +720,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/25",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/25",
         "created_at": "2024-11-25T09:52:49Z",
-        "updated_at": "2024-11-25T09:52:49Z",
+        "updated_at": "2024-12-02T09:58:57Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -504,7 +816,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/24",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/24",
         "created_at": "2024-11-25T09:52:48Z",
-        "updated_at": "2024-11-25T09:52:48Z",
+        "updated_at": "2024-12-02T09:58:57Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -619,7 +931,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/23",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/23",
         "created_at": "2024-11-25T09:52:48Z",
-        "updated_at": "2024-11-25T09:52:48Z",
+        "updated_at": "2024-12-02T09:58:56Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -725,7 +1037,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/22",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/22",
         "created_at": "2024-11-25T09:52:48Z",
-        "updated_at": "2024-11-25T09:52:48Z",
+        "updated_at": "2024-12-02T09:58:56Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -828,7 +1140,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/21",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/21",
         "created_at": "2024-11-25T09:52:48Z",
-        "updated_at": "2024-11-25T09:52:48Z",
+        "updated_at": "2024-12-02T09:58:56Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -1000,7 +1312,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/20",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/20",
         "created_at": "2024-11-25T09:52:48Z",
-        "updated_at": "2024-11-25T09:52:48Z",
+        "updated_at": "2024-12-02T07:38:40Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -1175,7 +1487,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/19",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/19",
         "created_at": "2024-11-25T09:52:48Z",
-        "updated_at": "2024-11-25T09:52:48Z",
+        "updated_at": "2024-12-02T07:38:40Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -1306,7 +1618,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/18",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/18",
         "created_at": "2024-11-25T09:52:48Z",
-        "updated_at": "2024-11-25T09:52:48Z",
+        "updated_at": "2024-12-02T07:38:40Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -1464,7 +1776,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/17",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/17",
         "created_at": "2024-11-25T09:52:48Z",
-        "updated_at": "2024-11-25T09:52:48Z",
+        "updated_at": "2024-12-02T09:58:56Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,
@@ -1570,7 +1882,7 @@
         "url": "https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/16",
         "html_url": "https://github.com/owner-id/repo-id/security/dependabot/16",
         "created_at": "2024-11-25T09:52:47Z",
-        "updated_at": "2024-11-25T09:52:47Z",
+        "updated_at": "2024-12-02T09:58:56Z",
         "dismissed_at": null,
         "dismissed_by": null,
         "dismissed_reason": null,

@@ -18,6 +18,7 @@ type requestValidatorCallback func(*http.Request)
 var pathToJsonFile = map[string]string{
 	"https://api.github.com/repos/owner-id/repo-id/dependabot/alerts":    "get_alerts.json",
 	"https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/28": "post_dismiss.json",
+	"https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/30": "post_dismiss.json",
 }
 
 type fakeRoundTripper struct {
@@ -205,9 +206,9 @@ func TestGetProjectAlerts(t *testing.T) {
 		t.Fatalf("failed to get projects: %v", err)
 	}
 
-	if len(*projects) != 12 {
+	if len(*projects) != 15 {
 		t.Log(*projects)
-		t.Fatalf("expected 12 projects, got %d", len(*projects))
+		t.Fatalf("expected 15 projects, got %d", len(*projects))
 	}
 
 	fakeRoundTripper.CheckUrlCounter(
@@ -312,8 +313,8 @@ func TestGetAllVunerabilitiesInProject(t *testing.T) {
 	close(vulnerabilitiesChannel)
 
 	foundVulns := <-answerChannel
-	if foundVulns != 12 {
-		t.Fatalf("Expected 12, got %d", foundVulns)
+	if foundVulns != 15 {
+		t.Fatalf("Expected 15, got %d", foundVulns)
 	}
 
 	fakeRoundTripper.CheckUrlCounter(

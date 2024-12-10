@@ -1,6 +1,7 @@
 package blackduck
 
 import (
+	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
 	"cli/internal/ecosystem/shared"
@@ -134,7 +135,7 @@ func handleAppliedFixes(bdProject string, c *BlackDuckClient, fixes []shared.Dep
 	return nil
 }
 
-func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes []shared.DependencyDescriptor) error {
+func (b *BlackDuckCallback) HandleAppliedFixes(projectDir string, fixes []shared.DependencyDescriptor, vulnerable []api.PackageVersion) error {
 	bdConfg := b.Config.BlackDuck
 	c := NewClient(bdConfg)
 	return handleAppliedFixes(bdConfg.Project, c, fixes)

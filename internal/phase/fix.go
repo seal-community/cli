@@ -28,7 +28,7 @@ const (
 )
 
 type PostFixRunner interface {
-	HandleAppliedFixes(projectDir string, fixes []shared.DependencyDescriptor) error
+	HandleAppliedFixes(projectDir string, fixes []shared.DependencyDescriptor, vulnerable []api.PackageVersion) error
 	ShouldSkip() bool
 	GetStepDescription() string
 }
@@ -149,7 +149,7 @@ func (fp *fixPhase) fixPackage(downloadedPackage shared.PackageDownload, fixer s
 	return nil, fixedLocations
 }
 
-func (fp *fixPhase) HandleCallbacks(fixes []shared.DependencyDescriptor, callbacks ...PostFixRunner) {
+func (fp *fixPhase) HandleCallbacks(fixes []shared.DependencyDescriptor, vulnerable []api.PackageVersion, callbacks ...PostFixRunner) {
 	defer fp.advanceStep("") // must mirror the minimum steps count for this command
 	if len(callbacks) == 0 {
 		slog.Debug("no callbacks to run")
@@ -168,7 +168,7 @@ func (fp *fixPhase) HandleCallbacks(fixes []shared.DependencyDescriptor, callbac
 		}
 
 		slog.Debug("Running callback")
-		if err := callback.HandleAppliedFixes(fp.BaseDir, fixes); err != nil {
+		if err := callback.HandleAppliedFixes(fp.BaseDir, fixes, vulnerable); err != nil {
 			slog.Warn("callback failed", "err", err) // Failings here should show a warning, and not stop the process
 		}
 	}
