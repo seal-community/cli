@@ -97,6 +97,10 @@ func findShadedDependenciesFromJar(jarPath string) (map[shadedDependency]bool, m
 	return pomXmlDeps, pomPropertiesDeps, nil
 }
 
+func shouldSkipDependency(dep shadedDependency) bool {
+	return dep.version == "" || dep.name == ""
+}
+
 // Finds the shaded dependencies in a jar file and returns them as a list of dependencies
 // Java only supports one level of shading, so we can assume that the dependencies are direct under `parent`
 func (parser *dependencyParser) findShadedDependencies(jarPath string, parent *common.Dependency) ([]*common.Dependency, error) {
@@ -121,8 +125,8 @@ func (parser *dependencyParser) findShadedDependencies(jarPath string, parent *c
 
 	shadedDeps := make([]*common.Dependency, 0)
 	for dep := range deps {
-		if dep.version == "" || dep.name == "" {
-			slog.Info("failed getting shaded dep info, skipping", "path", jarPath, "package", dep)
+		if shouldSkipDependency(dep) {
+			slog.Warn("failed getting shaded dep info, skipping", "path", jarPath, "package", dep)
 			continue
 		}
 
