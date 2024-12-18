@@ -4,14 +4,21 @@ import (
 	"cli/internal/common"
 	"cli/internal/config"
 	"cli/internal/ecosystem/deb/dpkg"
+	"cli/internal/ecosystem/deb/dpkgless"
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"log/slog"
+	"os/exec"
 	"runtime"
 )
 
 func isDistroSupported(os string) bool {
 	return os == "debian" || os == "ubuntu"
+}
+
+func isDpkgAvaliable() bool {
+	_, err := exec.LookPath("dpkg")
+	return err == nil
 }
 
 func GetPackageManager(config *config.Config, targetDir string) (shared.PackageManager, error) {
@@ -32,6 +39,11 @@ func GetPackageManager(config *config.Config, targetDir string) (shared.PackageM
 		return nil, common.NewPrintableError("OS does not support dpkg")
 	}
 
-	slog.Debug("OS supports dpkg", "os", os)
-	return dpkg.NewDPKGManager(config, targetDir), nil
+	if isDpkgAvaliable() {
+		slog.Debug("OS supports dpkg", "os", os)
+		return dpkg.NewDpkgManager(config, targetDir), nil
+	}
+
+	slog.Debug("dpkg not found, using dpkgless")
+	return dpkgless.NewDpkglessManager(config, targetDir), nil
 }

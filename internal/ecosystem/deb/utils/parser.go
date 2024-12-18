@@ -1,4 +1,4 @@
-package dpkg
+package utils
 
 import (
 	"cli/internal/common"
@@ -10,7 +10,7 @@ import (
 
 var InstalledStatuses = []string{"install ok installed", "install ok half-installed", "failed-config"}
 
-func parseDPKGVersion(dpkgVersionOutput string) string {
+func ParseDpkgVersion(dpkgVersionOutput string) string {
 	lines := strings.Split(dpkgVersionOutput, "\n")
 	versionLine := strings.TrimSpace(lines[0])
 	// example: Debian 'dpkg' package management program version 1.20.13 (amd64).
@@ -19,7 +19,7 @@ func parseDPKGVersion(dpkgVersionOutput string) string {
 }
 
 // Use dpkg to list installed packages
-func parseDPKGQueryInstalled(dpkgList string) (common.DependencyMap, error) {
+func ParseDpkgQueryInstalled(dpkgList string) (common.DependencyMap, error) {
 	deps := make(common.DependencyMap)
 	lines := strings.Split(dpkgList, "\n")
 

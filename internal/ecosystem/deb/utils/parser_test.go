@@ -1,4 +1,4 @@
-package dpkg
+package utils
 
 import (
 	"cli/internal/ecosystem/mappings"
@@ -9,7 +9,7 @@ func TestParseDPKGVersion(t *testing.T) {
 	dpkgOutput := `Debian 'dpkg' package management program version 1.20.13 (amd64).
 This is free software; see the GNU General Public License version 2 or
 later for copying conditions. There is NO warranty.`
-	version := parseDPKGVersion(dpkgOutput)
+	version := ParseDpkgVersion(dpkgOutput)
 	if version != "1.20.13" {
 		t.Errorf("expected version 1.20.13, got %s", version)
 	}
@@ -19,7 +19,7 @@ func TestParseDPKGListInstalled(t *testing.T) {
 	dpkgQueryOutput := `tar 1.34+dfsg-1.2+deb12u1 amd64  install ok installed
 tzdata 2024a-0+deb12u1 all  install ok installed
 `
-	deps, err := parseDPKGQueryInstalled(dpkgQueryOutput)
+	deps, err := ParseDpkgQueryInstalled(dpkgQueryOutput)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -67,7 +67,7 @@ tzdata 2024a-0+deb12u1 all  install ok installed
 func TestParseDPKGListInstalledNoPrefix(t *testing.T) {
 	dpkgQueryOutput := `tar 1.34+dfsg-1.2+deb12u1 amd64 not-installed
 `
-	deps, err := parseDPKGQueryInstalled(dpkgQueryOutput)
+	deps, err := ParseDpkgQueryInstalled(dpkgQueryOutput)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestParseDPKGListInstalledNoPrefix(t *testing.T) {
 
 func TestParseDPKGListInstalledEmpty(t *testing.T) {
 	dpkgOutput := ``
-	deps, err := parseDPKGQueryInstalled(dpkgOutput)
+	deps, err := ParseDpkgQueryInstalled(dpkgOutput)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

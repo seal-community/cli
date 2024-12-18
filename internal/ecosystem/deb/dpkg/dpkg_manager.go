@@ -16,43 +16,43 @@ const dpkgExeName = "dpkg"
 const dpkgQueryExeName = "dpkg-query"
 const dpkgQueryFormat = "${Package} ${Version} ${Architecture} ${Status}\n"
 
-const DPKGManagerName = "DPKG"
+const DpkgManagerName = "DPKG"
 
-type DPKGPackageManager struct {
+type DpkgPackageManager struct {
 	Config       *config.Config
 	targetDir    string
 	workDir      string // The directory where the fixer will run
 	installPaths []string
 }
 
-func NewDPKGManager(config *config.Config, targetDir string) *DPKGPackageManager {
-	m := &DPKGPackageManager{Config: config, targetDir: targetDir, installPaths: make([]string, 0)}
+func NewDpkgManager(config *config.Config, targetDir string) *DpkgPackageManager {
+	m := &DpkgPackageManager{Config: config, targetDir: targetDir, installPaths: make([]string, 0)}
 	return m
 }
 
-func (m *DPKGPackageManager) Name() string {
-	return DPKGManagerName
+func (m *DpkgPackageManager) Name() string {
+	return DpkgManagerName
 }
 
-func (m *DPKGPackageManager) GetVersion() string {
+func (m *DpkgPackageManager) GetVersion() string {
 	versionOutput, err := common.RunCmdWithArgs(m.targetDir, dpkgExeName, "--version")
 	if err != nil || versionOutput.Code != 0 {
 		slog.Error("failed running dpkg version", "err", err)
 		return ""
 	}
 
-	version := parseDPKGVersion(versionOutput.Stdout)
+	version := utils.ParseDpkgVersion(versionOutput.Stdout)
 	slog.Debug("got dpkg version", "version", version)
 
 	return version
 }
 
 // dpkg is always supported on debian based OS and we support all versions of dpkg
-func (m *DPKGPackageManager) IsVersionSupported(version string) bool {
+func (m *DpkgPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *DPKGPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *DpkgPackageManager) ListDependencies() (common.DependencyMap, error) {
 	// -W: show information on all packages, -f: format the output as specified in dpkgQueryFormat
 	listOutput, err := common.RunCmdWithArgs(m.targetDir, dpkgQueryExeName, "-W", "-f", dpkgQueryFormat)
 	if err != nil || listOutput.Code != 0 {
@@ -60,7 +60,7 @@ func (m *DPKGPackageManager) ListDependencies() (common.DependencyMap, error) {
 		return nil, err
 	}
 
-	deps, err := parseDPKGQueryInstalled(listOutput.Stdout)
+	deps, err := utils.ParseDpkgQueryInstalled(listOutput.Stdout)
 	if err != nil {
 		slog.Error("failed parsing dpkg-query show output", "err", err)
 		return nil, err
@@ -69,14 +69,14 @@ func (m *DPKGPackageManager) ListDependencies() (common.DependencyMap, error) {
 	return deps, nil
 }
 
-func (m *DPKGPackageManager) GetProjectName() string {
+func (m *DpkgPackageManager) GetProjectName() string {
 
 	// When running in OS mode, user must provide the project
 	// So, we return an empty string
 	return ""
 }
 
-func (m *DPKGPackageManager) GetFixer(workdir string) shared.DependencyFixer {
+func (m *DpkgPackageManager) GetFixer(workdir string) shared.DependencyFixer {
 	// In Debian, the fixer logic is very limited, and requires passing information back to the manager for HandleFixes
 	// So, we create a single object that implements both PackageManager and DependencyFixer interfaces
 	// This way, the manager can pass installPaths around easily
@@ -84,15 +84,15 @@ func (m *DPKGPackageManager) GetFixer(workdir string) shared.DependencyFixer {
 	return m
 }
 
-func (m *DPKGPackageManager) GetEcosystem() string {
+func (m *DpkgPackageManager) GetEcosystem() string {
 	return mappings.DebEcosystem
 }
 
-func (m *DPKGPackageManager) GetScanTargets() []string {
+func (m *DpkgPackageManager) GetScanTargets() []string {
 	return []string{"dpkg"} // We use dpkg as the target to indicate the source of the scan
 }
 
-func (m *DPKGPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
+func (m *DpkgPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
 	arch := descriptor.Locations[""].Arch // Debian packages have no location, so the map includes a single empty string key
 
 	if arch == "" {
@@ -105,7 +105,7 @@ func (m *DPKGPackageManager) DownloadPackage(server api.ArtifactServer, descript
 
 // Installs all the sealed libraries in one dpkg transaction
 // In case any of the sealed libraries cause conflicts, dpkg will fail the whole transaction
-func (m *DPKGPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
+func (m *DpkgPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
 	if len(m.installPaths) == 0 {
 		slog.Debug("no libraries to install via dpkg")
 		return nil
@@ -131,15 +131,15 @@ func (m *DPKGPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) er
 	return nil
 }
 
-func (m *DPKGPackageManager) NormalizePackageName(name string) string {
+func (m *DpkgPackageManager) NormalizePackageName(name string) string {
 	// dpkg does not require normalization
 	return name
 }
-func (m *DPKGPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
+func (m *DpkgPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
 	slog.Warn("Silencing packages is not support for dpkg")
 	return nil, nil
 }
 
-func (m *DPKGPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
+func (m *DpkgPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
 	return vulnerablePackages, nil
 }

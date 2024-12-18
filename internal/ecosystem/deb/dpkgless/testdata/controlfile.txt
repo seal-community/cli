@@ -1,0 +1,18 @@
+Package: zlib1g
+Source: zlib
+Version: 1:1.2.11.dfsg-2+deb11u2+sp1
+Architecture: amd64
+Maintainer: Mark Brown <broonie@debian.org>
+Installed-Size: 167
+Depends: libc6 (>= 2.14)
+Conflicts: zlib1 (<= 1:1.0.4-7)
+Breaks: libxml2 (<< 2.7.6.dfsg-2), texlive-binaries (<< 2009-12)
+Provides: libz1, zlib1g (= 1:1.2.11.dfsg-2+deb11u2)
+Section: libs
+Priority: required
+Multi-Arch: same
+Homepage: http://zlib.net/
+Description: compression library - runtime
+ zlib is a library implementing the deflate compression method found
+  in gzip and PKZIP.  This package includes the shared library.
+
