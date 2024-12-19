@@ -72,7 +72,7 @@ func packageDownloadWorker(ctx context.Context, artifactServer api.ArtifactServe
 			data, name, err := manager.DownloadPackage(artifactServer, descriptor)
 			if err != nil {
 				slog.Error("failed downloading package", "err", err)
-				return common.NewPrintableError("failed downloading package %s", fixedPackage.RecommendedDescriptor())
+				return common.NewPrintableError("failed downloading package %s", fixedPackage.Descriptor())
 			}
 
 			slog.Debug("finished downloading package", "id", fixedPackage.Id())
