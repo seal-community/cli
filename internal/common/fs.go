@@ -195,3 +195,18 @@ func ConvertSymLinkToFile(path string) error {
 
 	return nil
 }
+
+func ListDir(path string) ([]string, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		slog.Error("failed reading dir", "err", err, "path", path)
+		return nil, err
+	}
+
+	res := make([]string, 0, len(entries))
+	for _, e := range entries {
+		res = append(res, e.Name())
+	}
+
+	return res, nil
+}

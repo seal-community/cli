@@ -13,6 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/exp/maps"
 )
 
 const pipExeName = "pip"
@@ -76,14 +78,6 @@ func getPipMetadata(targetDir string) *pipMetadata {
 func (m *PipPackageManager) GetVersion() string {
 	if m.metadata != nil {
 		return m.metadata.version
-	}
-
-	return ""
-}
-
-func (m *PipPackageManager) getSitePackages() string {
-	if m.metadata != nil {
-		return m.metadata.sitePackagesPath
 	}
 
 	return ""
@@ -215,12 +209,8 @@ func parseCompatibleTags(debugOutput string) ([]string, error) {
 	return tags, nil
 }
 
-func (m *PipPackageManager) getHostCompatibleTags() ([]string, error) {
-	if m.compatibleTags != nil {
-		return m.compatibleTags, nil
-	}
-
-	result, err := common.RunCmdWithArgs(m.targetDir, pipExeName, "debug", "--verbose")
+func getHostCompatibleTags(targetDir string) ([]string, error) {
+	result, err := common.RunCmdWithArgs(targetDir, pipExeName, "debug", "--verbose")
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +224,6 @@ func (m *PipPackageManager) getHostCompatibleTags() ([]string, error) {
 		return nil, err
 	}
 
-	m.compatibleTags = tags
 	return tags, nil
 }
 
@@ -253,15 +242,9 @@ func parseWheelTags(wheel string) []string {
 	return tags
 }
 
-func (m *PipPackageManager) getPackageCompatibleTags(name string, version string) ([]string, error) {
-	distInfo := utils.DistInfoPath(name, version)
-
-	sitePackagesPath := m.getSitePackages()
-	if sitePackagesPath == "" {
-		return nil, fmt.Errorf("site packages path not found")
-	}
-
-	whlPath := filepath.Join(sitePackagesPath, distInfo, whlFilename)
+// works only on .dist-info install path
+func getPackageCompatibleTags(path string) ([]string, error) {
+	whlPath := filepath.Join(path, whlFilename)
 	if exists, err := common.PathExists(whlPath); err != nil || !exists {
 		return nil, fmt.Errorf("whl file not found")
 	}
@@ -273,41 +256,65 @@ func (m *PipPackageManager) getPackageCompatibleTags(name string, version string
 	}
 
 	tags := parseWheelTags(string(whl))
-	slog.Debug("parsed wheel tags", "name", name, "version", version, "tags", tags)
+	slog.Debug("parsed wheel tags", "path", path)
 
 	return tags, nil
 }
 
-// Finds the compatible tags to use when choosing a .whl file to download.
-// Tries to get the tags of the existing installation + the compatible tags from the host in this order.
-// If one fails, the other is used. If both faield, fail.
-func (m *PipPackageManager) getCompatibleTags(name string, version string) ([]string, error) {
-	slog.Info("getting package compatible tags", "name", name, "version", version)
-	compatibleTags, err1 := m.getPackageCompatibleTags(name, version)
-	pipCompatibleTags, err2 := m.getHostCompatibleTags()
+// Finds the compatible tags to use for choosing a .whl file to download.
+// Tries to get the tags of the existing installation(if dist-info) + the compatible tags from the host in this order.
+// If one fails, the other is used. If both failed, fail.
+func (m *PipPackageManager) getAllCompatibleTags(dep common.Dependency) ([]string, error) {
 
-	res := make([]string, 0)
-	if err1 == nil {
-		res = append(res, compatibleTags...)
-	} else {
-		slog.Warn("failed getting package compatible tags", "err", err1)
+	errs := make([]error, 0, 2)
+	allTags := make([]string, 0, len(m.compatibleTags))
+
+	if strings.HasSuffix(dep.DiskPath, ".dist-info") {
+		slog.Debug("gettig dist info package compatible tags", "target", dep.DiskPath)
+		packageTags, err := getPackageCompatibleTags(dep.DiskPath)
+		if err != nil {
+			// allowing to fail with just a warning, preserve best effort logic
+			slog.Warn("couldn't get package compatible tags", "err", err)
+			errs = append(errs, err)
+		}
+
+		allTags = append(allTags, packageTags...)
 	}
 
-	if err2 == nil {
-		res = append(res, pipCompatibleTags...)
-	} else {
-		slog.Warn("failed getting host compatible tags", "err", err2)
+	if m.compatibleTags == nil {
+		slog.Info("gettig host compatible tags", "target", m.targetDir)
+		hostTags, err := getHostCompatibleTags(m.targetDir)
+		if err != nil {
+			slog.Warn("failed getting host compatible tags", "err", err)
+			errs = append(errs, err)
+		}
+
+		slog.Info("host tags found", "count", len(hostTags))
+		m.compatibleTags = hostTags
 	}
 
-	if len(res) == 0 {
-		return nil, errors.Join(err1, err2)
+	allTags = append(allTags, m.compatibleTags...)
+
+	if len(errs) > 0 {
+		slog.Error("could not find any compatible tags", "errs", errs)
+		return nil, errors.Join(errs...)
 	}
 
-	return res, nil
+	return allTags, nil
 }
 
 func (m *PipPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
-	compatibleTags, err := m.getCompatibleTags(descriptor.VulnerablePackage.Library.Name, descriptor.VulnerablePackage.Version)
+
+	if len(descriptor.Locations) != 1 {
+		// python should only have one location, should not happen
+		slog.Error("bad locations number", "id", descriptor.VulnerablePackage.Id(), "locs", descriptor.Locations)
+		return nil, "", fmt.Errorf("bad number of dependency locations for python")
+	}
+
+	dep := maps.Values(descriptor.Locations)[0]
+
+	slog.Info("getting package compatible tags", "id", descriptor.VulnerablePackage.Id(), "diskPath", dep.DiskPath)
+	compatibleTags, err := m.getAllCompatibleTags(dep)
 	if err != nil {
 		return nil, "", err
 	}
@@ -319,12 +326,13 @@ func (m *PipPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) err
 	if m.Config.UseSealedNames {
 		slog.Warn("using sealed names in pip is not supported yet")
 	}
+
 	return nil
 }
 
 // pip is case insensitive and doesn't distinguish between hyphens and underscores.
 func (m *PipPackageManager) NormalizePackageName(name string) string {
-	return strings.Replace(strings.ToLower(name), "_", "-", -1)
+	return utils.NormalizePackageName(name)
 }
 
 func (m *PipPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {

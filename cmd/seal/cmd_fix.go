@@ -74,7 +74,7 @@ func loadActionsFile(actionsFilePath string) (*actions.ActionsFile, error) {
 			return nil, common.NewPrintableError("could not open actions file in %s", actionsFilePath)
 		}
 
-		slog.Info("actions file not found", "path", actions.FailedParsingActionYamlInvalid)
+		slog.Info("actions file not found; ignoring", "path", actionsFilePath)
 		return nil, nil
 
 	} else {

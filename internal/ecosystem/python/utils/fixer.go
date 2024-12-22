@@ -13,7 +13,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -124,35 +123,6 @@ func getSourceName(payload []byte) (string, error) {
 	return strings.TrimSuffix(header.Name, "/"), nil
 }
 
-// Given a site-packages directory and the source package name, find the dist-info or egg-info directory
-func findSitePackagesInfo(sitePackagesPath string, srcName string) (string, error) {
-	slog.Info("finding dist-info directory", "site-packages", sitePackagesPath, "src-name", srcName)
-	distInfoCandidates, err := os.ReadDir(sitePackagesPath)
-	if err != nil {
-		slog.Error("failed reading site-packages", "err", err)
-		return "", err
-	}
-
-	distInfoPath := ""
-	for _, d := range distInfoCandidates {
-		fname := d.Name()
-		ext := path.Ext(fname)
-		slog.Info("checking file", "file", fname, "ext", ext)
-		if strings.HasPrefix(EscapePackageName(fname), EscapePackageName(srcName)) && (ext == ".dist-info" || ext == ".egg-info") {
-			distInfoPath = fname
-			break
-		}
-	}
-	slog.Debug("found dist-info directory", "path", distInfoPath)
-
-	if distInfoPath == "" {
-		slog.Error("failed finding dist-info directory", "name", srcName)
-		return "", fmt.Errorf("failed finding dist-info directory")
-	}
-
-	return distInfoPath, nil
-}
-
 func writePipOutput(output string) (string, error) {
 	// write the pip output to a file and do not remove it, so user can inspect it
 	pipOutput, err := os.CreateTemp("", "seal-pip-output-*.log")
@@ -172,7 +142,7 @@ func writePipOutput(output string) (string, error) {
 	return pipOutput.Name(), nil
 }
 
-func (f *fixer) extractSourcePackage(sitePackagesPath string, payload []byte) (string, error) {
+func (f *fixer) extractSourcePackage(sitePackagesPath string, dep common.Dependency, payload []byte) (string, error) {
 	srcName, err := getSourceName(payload)
 	if err != nil {
 		slog.Error("failed getting source name", "err", err)
@@ -203,6 +173,7 @@ func (f *fixer) extractSourcePackage(sitePackagesPath string, payload []byte) (s
 		return "", err
 	}
 
+	common.Trace("pip source installed", "output", pr.Stdout)
 	if pr.Code != 0 {
 		slog.Error("pip failed installing source package", "exitcode", pr.Code, "path", tmpPath)
 
@@ -216,23 +187,19 @@ func (f *fixer) extractSourcePackage(sitePackagesPath string, payload []byte) (s
 		return "", common.NewPrintableError("failed installing %s from source, this is probably an issue with pip, check its output at %s", srcName, pipOutput)
 	}
 
-	distInfoPath, err := findSitePackagesInfo(sitePackagesPath, srcName)
-	if err != nil {
-		return "", err
-	}
+	f.rollbackRemove = append(f.rollbackRemove, dep.DiskPath)
 
-	f.rollbackRemove = append(f.rollbackRemove, filepath.Join(sitePackagesPath, distInfoPath))
-
+	distInfoPath := filepath.Join(sitePackagesPath, fmt.Sprintf("%s.dist-info", srcName))
 	return distInfoPath, nil
 }
 
-func (f *fixer) extractPackage(sitePackagesPath string, payload []byte, dotdotPaths []string) (string, error) {
+func (f *fixer) extractPackage(sitePackagesPath string, dep common.Dependency, payload []byte, dotdotPaths []string) (string, error) {
 	// check if the payload is a zip file, which means it's a wheel
 	if bytes.Equal(payload[:4], []byte{'P', 'K', 3, 4}) {
 		return f.extractWhlPackage(sitePackagesPath, payload, dotdotPaths)
 	}
 
-	return f.extractSourcePackage(sitePackagesPath, payload)
+	return f.extractSourcePackage(sitePackagesPath, dep, payload)
 }
 
 func parseRecordFile(recordFile io.Reader) ([]string, error) {
@@ -376,44 +343,7 @@ func getBackupPaths(path string) ([]string, error) {
 	return nil, fmt.Errorf("failed reading RECORD and installed-files.txt files for path %s", path)
 }
 
-// Since a python dependency defaults to the dist-info disk path, we need to check if it exists
-// and in the low chance it doesn't, and there's an egg-info instead, we should replace
-// the disk path value to the egg-info path.
-func fixDiskPathIfNeeded(dep *common.Dependency) error {
-	sitePackages := filepath.Dir(dep.DiskPath)
-	tmpPath := filepath.Join(sitePackages, DistInfoPath(dep.Name, dep.Version))
-	diskPath := ""
-	if exists, err := common.PathExists(tmpPath); err == nil && exists {
-		diskPath = tmpPath
-	} else if err != nil {
-		slog.Error("failed checking disk path", "err", err, "name", dep.Name, "version", dep.Version)
-		return err
-	}
-
-	tmpPath = FindEggInfoPath(sitePackages, dep.Name, dep.Version)
-	if exists, err := common.PathExists(tmpPath); err == nil && exists {
-		diskPath = tmpPath
-	} else if err != nil {
-		slog.Error("failed checking disk path", "err", err, "name", dep.Name, "version", dep.Version)
-		return err
-	}
-
-	if diskPath == "" {
-		slog.Error("failed finding disk path", "name", dep.Name, "version", dep.Version)
-		return common.NewPrintableError("failed finding disk path for %s", dep.PrintableName())
-	}
-
-	dep.DiskPath = diskPath
-	return nil
-}
-
 func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (bool, string, error) {
-	// update the diskpath in case the package was installed without wheel using a tgz file
-	// to use the egg-info directory instead
-	if err := fixDiskPathIfNeeded(dep); err != nil {
-		return false, "", err
-	}
-
 	backupPaths, err := getBackupPaths(dep.DiskPath)
 	if err != nil {
 		slog.Error("failed getting backup paths", "err", err)
@@ -438,7 +368,7 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 
 	f.rollback[dep.DiskPath] = tmpName
 
-	distInfoPath, err := f.extractPackage(sitePackages, packageData, dotdotPaths)
+	distInfoPath, err := f.extractPackage(sitePackages, *dep, packageData, dotdotPaths)
 	if err != nil {
 		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(packageData))
 		return false, "", common.FallbackPrintableMsg(err, "failed applying fix for package %s", dep.PrintableName())

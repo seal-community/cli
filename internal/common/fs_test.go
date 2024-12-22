@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"testing"
@@ -204,5 +205,38 @@ func TestDumpBytesExists(t *testing.T) {
 	datastrNew := string(dataNew)
 	if datastrNew != contentNew {
 		t.Fatalf("failed wrong content got `%s` expected `%s`", datastrNew, contentNew)
+	}
+}
+
+func TestListDir(t *testing.T) {
+	d, err := os.MkdirTemp("", "test_seal_cli_*")
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.Remove(d)
+
+	content := "as;lfal1"
+	fname := "f.bin"
+	dname := "dd"
+	fpath := filepath.Join(d, fname)
+	dpath := filepath.Join(d, dname)
+
+	if err := DumpBytes(fpath, []byte(content)); err != nil {
+		panic(err)
+	}
+
+	if err := os.Mkdir(dpath, os.ModePerm); err != nil {
+		panic(err)
+
+	}
+
+	entries, err := ListDir(d)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+
+	if !slices.Equal(entries, []string{dname, fname}) {
+		t.Fatalf("failed list: %v", entries)
 	}
 }

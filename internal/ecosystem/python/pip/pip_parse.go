@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"path/filepath"
 	"strings"
 )
 
@@ -37,9 +36,15 @@ func (parser *dependencyParser) shouldSkip(p *PythonPackage) bool {
 	return false
 }
 
-func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, p *PythonPackage, sitePackages string) *common.Dependency {
+func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, p *PythonPackage, sitePackages string) error {
 	common.Trace("adding dep", "name", p.Name, "version", p.Version, "editableProjectLocation", p.EditableProjectLocation)
-	diskPath := filepath.Join(sitePackages, utils.DistInfoPath(p.Name, p.Version))
+
+	// find the install directory of the package, either a '.dist-info' or 'egg-info' folder
+	diskPath, err := utils.FindSitePackagesFolderForPackage(sitePackages, p.Name, p.Version)
+	if err != nil {
+		slog.Error("failed getting site packages folder", "err", err, "name", p.Name, "version", p.Version)
+		return err
+	}
 
 	newDep := &common.Dependency{
 		Name:           p.Name,
@@ -55,7 +60,7 @@ func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, p *Pyt
 	}
 
 	deps[key] = append(deps[key], newDep)
-	return newDep
+	return nil
 }
 
 func (parser *dependencyParser) Parse(pipOutput string, projectDir string) (common.DependencyMap, error) {
@@ -89,7 +94,10 @@ func (parser *dependencyParser) Parse(pipOutput string, projectDir string) (comm
 			slog.Warn("skipping dep", "name", p.Name, "version", p.Version, "index", i)
 			continue
 		}
-		_ = parser.addDepInstance(deps, &p, sitePackages)
+
+		if err := parser.addDepInstance(deps, &p, sitePackages); err != nil {
+			slog.Warn("could not add dep instance - skipping", "err", err, "package", p)
+		}
 	}
 
 	slog.Info("root package", "direct_deps", len(dependencyList))
