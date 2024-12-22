@@ -1,6 +1,7 @@
 package dpkg
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -32,6 +33,10 @@ func NewDpkgManager(config *config.Config, targetDir string) *DpkgPackageManager
 
 func (m *DpkgPackageManager) Name() string {
 	return DpkgManagerName
+}
+
+func (m *DpkgPackageManager) Class() actions.ManagerClass {
+	return actions.OsManager
 }
 
 func (m *DpkgPackageManager) GetVersion() string {

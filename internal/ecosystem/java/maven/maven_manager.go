@@ -1,6 +1,7 @@
 package maven
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -43,6 +44,10 @@ func NewMavenManager(config *config.Config, javaFile string, targetDir string) *
 
 func (m *MavenPackageManager) Name() string {
 	return mavenManagerName
+}
+
+func (m *MavenPackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func (m *MavenPackageManager) GetVersion() string {
@@ -116,7 +121,7 @@ func (m *MavenPackageManager) GetProjectName() string {
 }
 
 func (m *MavenPackageManager) GetFixer(workdir string) shared.DependencyFixer {
-	return utils.NewFixer(m.targetDir, filepath.Join(workdir, ".m2"), m.cacheDir)
+	return newFixer(m.targetDir, filepath.Join(workdir, ".m2"), m.cacheDir)
 }
 
 func (m *MavenPackageManager) GetEcosystem() string {
@@ -129,28 +134,6 @@ func (m *MavenPackageManager) GetScanTargets() []string {
 
 func (m *MavenPackageManager) DownloadPackage(server api.ArtifactServer, descriptor shared.DependencyDescriptor) ([]byte, string, error) {
 	return utils.DownloadMavenPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version)
-}
-
-// Overwrites the jar file in diskPath to a new jar containing the sealed names
-func changeToSealedName(packageName, packageOriginalVersion, diskPath string) error {
-	groupId, artifactId, err := utils.SplitJavaPackageName(packageName)
-	if err != nil {
-		slog.Error("failed getting package name for dependency", "err", err, "path", packageName)
-		return common.NewPrintableError("failed getting package name for dependency %s", packageName)
-	}
-
-	newJarPath, err := utils.CreateSealedNameJar(diskPath, groupId, artifactId, packageOriginalVersion)
-	if err != nil {
-		slog.Error("failed changing to sealed name", "err", err, "path", diskPath)
-		return common.NewPrintableError("failed changing package %s to sealed name", packageName)
-	}
-
-	if err = common.Move(newJarPath, diskPath); err != nil {
-		slog.Error("failed renaming sealed file", "err", err, "from", newJarPath, "to", diskPath)
-		return err
-	}
-
-	return nil
 }
 
 // HandleFixes will create a metadata file for each package in the fixes map to indicate it was fixed
@@ -166,11 +149,9 @@ func (m *MavenPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) e
 		}
 
 		if m.Config.UseSealedNames {
-			for _, diskPath := range fix.FixedLocations {
-				slog.Info("changing package to sealed name", "id", fix.VulnerablePackage.Library.Name, "path", diskPath)
-				if err := changeToSealedName(fix.VulnerablePackage.Library.Name, fix.AvailableFix.OriginVersionString, diskPath); err != nil {
-					return common.FallbackPrintableMsg(err, "failed changing %s to sealed name", fix.VulnerablePackage.Library.Name)
-				}
+			err := utils.SealJarName(fix)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -286,11 +267,8 @@ func setCacheDir(projectDir string, newCacheDir string) error {
 	return nil
 }
 
-// all maven packages are supposed to be lower case according to
-// https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html
-// However, there are some packages that doesn't follow this rule and the current behavior is case sensitive
 func (m *MavenPackageManager) NormalizePackageName(name string) string {
-	return name
+	return utils.NormalizePackageName(name)
 }
 
 func (m *MavenPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
@@ -305,175 +283,9 @@ func (m *MavenPackageManager) SilencePackages(silenceArray []api.SilenceRule, al
 		return nil, err
 	}
 
-	silencePackagesIds := make(map[string]bool, 0)
-	for _, silenceEntry := range silenceArray {
-		// to support silence in the format of "library@version" that is used in the cli command, we accept empty manager as wildcard
-		if silenceEntry.Manager != mappings.MavenManager && silenceEntry.Manager != "" {
-			continue
-		}
-
-		if silenceEntry.Library == "" || silenceEntry.Version == "" {
-			slog.Warn("failed parsing silence entry", "entry", silenceEntry)
-			return nil, common.NewPrintableError("failed parsing silence entry %s", silenceEntry)
-		}
-
-		silencePackagesIds[common.DependencyId(mappings.MavenManager, m.NormalizePackageName(silenceEntry.Library), silenceEntry.Version)] = true
-	}
-
-	// silenced package id to list of jar paths
-	silenced := make(map[string][]string, 0)
-	for _, depList := range allDependencies {
-		for _, dep := range depList {
-			s, err := utils.ShouldSilence(*dep, silencePackagesIds)
-			if err != nil {
-				return nil, err
-			}
-
-			if !s {
-				continue
-			}
-
-			_, ok := silencePackagesIds[dep.Id()]
-			silencedPackages, err := utils.SilenceJar(*dep, silencePackagesIds, ok)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, silencedPackage := range silencedPackages {
-				silenced[silencedPackage] = append(silenced[silencedPackage], dep.DiskPath)
-			}
-		}
-	}
-
-	return silenced, nil
-}
-
-// Consolidates vulnerabilities by removing embedded packages, based on backend info
-func consolidateVulnerabilitiesBackendInfo(vulnerablePackages []api.PackageVersion, parents map[string]bool) []api.PackageVersion {
-	// Start by removing embedded entries based on backend info
-	embeddedPackages := make(map[api.PublicPackage]bool, 0)
-
-	for _, vulnerablePackage := range vulnerablePackages {
-		for _, v := range vulnerablePackage.OpenVulnerabilities {
-			for _, embeddedPackage := range v.EmbeddedVia {
-				embeddedPackages[embeddedPackage] = true
-			}
-		}
-	}
-
-	// remove embedded packages from the list
-	backendConsolidated := make([]api.PackageVersion, 0)
-	for _, vulnerablePackage := range vulnerablePackages {
-		_, backendEmbedded := embeddedPackages[vulnerablePackage.PublicPackage()]
-		_, isParent := parents[vulnerablePackage.Id()]
-
-		if !backendEmbedded || isParent {
-			backendConsolidated = append(backendConsolidated, vulnerablePackage)
-		} else {
-			slog.Debug("skipping embedded package", "package", vulnerablePackage.Id())
-		}
-	}
-
-	return backendConsolidated
-}
-
-func getEmbeddedVulnerablePackage(embeddingPackage api.PackageVersion, vulnerablePackages []api.PackageVersion, allDependencies common.DependencyMap) []api.PackageVersion {
-	embeddedPackageToParent := make(map[string]string, 0)
-	for _, depList := range allDependencies {
-		for _, dep := range depList {
-			if dep.Parent != nil && dep.Parent.Id() == embeddingPackage.Id() {
-				embeddedPackageToParent[dep.Id()] = dep.Parent.Id()
-			}
-		}
-	}
-
-	embeddedVulnerablePackages := make([]api.PackageVersion, 0)
-	for _, potentialEmbeddedVulnPackage := range vulnerablePackages {
-		// if embeddedVulnPackage is not embedded under vulnerablePackage, skip
-		if _, ok := embeddedPackageToParent[potentialEmbeddedVulnPackage.Id()]; !ok {
-			continue
-		}
-
-		embeddedVulnerablePackages = append(embeddedVulnerablePackages, potentialEmbeddedVulnPackage)
-	}
-
-	return embeddedVulnerablePackages
-}
-
-// Consolidates vulnerabilities by removing embedded packages, based on CLI info
-func consolidateVulnerabilitiesCliInfo(vulnerablePackages []api.PackageVersion, allDependencies common.DependencyMap, parents map[string]bool) []api.PackageVersion {
-	cliConsolidated := make([]api.PackageVersion, 0)
-
-	for _, vulnerablePackage := range vulnerablePackages {
-		// Only take the top level packages
-		if _, ok := parents[vulnerablePackage.Id()]; !ok {
-			continue
-		}
-
-		embeddedVulnerablePackages := getEmbeddedVulnerablePackage(vulnerablePackage, vulnerablePackages, allDependencies)
-
-		// Take vulnerabilities from the embedded packages
-		openVulns := make([]api.Vulnerability, 0)
-		for _, embeddedVulnPackage := range embeddedVulnerablePackages {
-
-			for _, embeddedVuln := range embeddedVulnPackage.OpenVulnerabilities {
-				// if embeddedVuln is equal to one of vulnerablePackage.OpenVulnerabilities, consolidate them and update Embedded via
-				// If embeddedVuln is not in the list, add it to the list, and update the embedded via
-				updated := false
-				for j, embeddingVuln := range vulnerablePackage.OpenVulnerabilities {
-
-					if embeddedVuln.Equivalent(embeddingVuln) {
-						// Only add if not exists already
-						alreadyExists := false
-						for _, embeddedVia := range embeddingVuln.EmbeddedVia {
-							if embeddedVia == embeddedVulnPackage.PublicPackage() {
-								alreadyExists = true
-								break
-							}
-						}
-
-						if !alreadyExists {
-							slog.Debug("consolidating vulnerabilities of embedding and embedded", "vuln", embeddedVulnPackage.Id(), "embedding", vulnerablePackage.Id())
-							embeddingVuln.EmbeddedVia = append(embeddingVuln.EmbeddedVia, embeddedVulnPackage.PublicPackage())
-							vulnerablePackage.OpenVulnerabilities[j] = embeddingVuln
-						}
-
-						updated = true
-						break
-					}
-				}
-
-				if !updated {
-					// Not found, add it to the list
-					slog.Debug("adding new vulnerability from embedded", "vuln", embeddedVulnPackage.Id(), "embedding", vulnerablePackage.Id())
-					embeddingVuln := embeddedVuln // copy the struct
-					embeddingVuln.EmbeddedVia = append(embeddingVuln.EmbeddedVia, embeddedVulnPackage.PublicPackage())
-					openVulns = append(openVulns, embeddingVuln)
-				}
-			}
-		}
-
-		// Add the parent package to the list
-		vulnerablePackage.OpenVulnerabilities = append(vulnerablePackage.OpenVulnerabilities, openVulns...)
-		cliConsolidated = append(cliConsolidated, vulnerablePackage)
-	}
-
-	return cliConsolidated
+	return utils.SilencePackages(silenceArray, allDependencies, m)
 }
 
 func (m *MavenPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
-	parents := make(map[string]bool, 0)
-	for _, depList := range allDependencies {
-		for _, dep := range depList {
-			if dep.Parent == nil {
-				parents[dep.Id()] = true
-			}
-		}
-	}
-
-	backendConsolidated := consolidateVulnerabilitiesBackendInfo(*vulnerablePackages, parents)
-
-	cliConsolidated := consolidateVulnerabilitiesCliInfo(backendConsolidated, allDependencies, parents)
-
-	return &cliConsolidated, nil
+	return utils.ConsolidateVulnerabilities(vulnerablePackages, allDependencies)
 }

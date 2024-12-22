@@ -1,6 +1,7 @@
 package pip
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -50,6 +51,10 @@ func NewPipManager(config *config.Config, pythonFile string, targetDir string) *
 
 func (m *PipPackageManager) Name() string {
 	return PipManagerName
+}
+
+func (m *PipPackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func getPipMetadata(targetDir string) *pipMetadata {

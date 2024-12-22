@@ -166,9 +166,16 @@ func fixCommand() *cobra.Command {
 				}
 			}()
 
-			target := extractTarget(args)
+			filesystemValue := getArgString(cmd, filesystemFlag)
+			osValue := getArgBool(cmd, osFlag)
 
-			targetDir := common.GetTargetDir(target)
+			target, targetType := extractTarget(args, filesystemValue, osValue)
+			if targetType == common.UnknownTarget {
+				slog.Error("invalid target", "target", target)
+				return common.NewPrintableError("invalid target `%s`", target)
+			}
+
+			targetDir := common.GetTargetDir(target, targetType)
 			if targetDir == "" {
 				slog.Error("bad target input", "target", target)
 				return common.NewPrintableError("target not found `%s`", target)
@@ -195,7 +202,7 @@ func fixCommand() *cobra.Command {
 			uploadScanActivity := getArgBool(cmd, uploadResultsKey)
 
 			// IMPORTANT - after this point printing directly to console would mess up the progress bar, msg should be used instead
-			fixPhase, err := phase.NewFixPhase(target, configPath, verbosity == 0)
+			fixPhase, err := phase.NewFixPhase(target, targetType, configPath, verbosity == 0)
 			if err != nil {
 				slog.Error("failed initializing fix", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing fix phase")

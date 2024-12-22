@@ -16,22 +16,22 @@ const artifactIdTag = "artifactId"
 const versionTag = "version"
 const parentTag = "parent"
 
-type pomXML struct {
+type PomXML struct {
 	Document etree.Document
 }
 
 var FailedSealingError = common.NewPrintableError("failed sealing pom.xml file")
 
-func ReadPomXMLFromFile(reader io.Reader) *pomXML {
+func ReadPomXMLFromFile(reader io.Reader) *PomXML {
 	doc := etree.NewDocument()
 	if _, err := doc.ReadFrom(reader); err != nil {
 		slog.Error("failed reading pom.xml", "err", err)
 		return nil
 	}
-	return &pomXML{Document: *doc}
+	return &PomXML{Document: *doc}
 }
 
-func (p *pomXML) GetGroupId() string {
+func (p *PomXML) GetGroupId() string {
 	project := p.Document.SelectElement(projectTag)
 	if project == nil {
 		slog.Error("failed selecting project element")
@@ -59,7 +59,7 @@ func (p *pomXML) GetGroupId() string {
 	return groupId.Text()
 }
 
-func (p *pomXML) GetArtifactId() string {
+func (p *PomXML) GetArtifactId() string {
 	project := p.Document.SelectElement(projectTag)
 	if project == nil {
 		slog.Error("failed selecting project element")
@@ -75,7 +75,7 @@ func (p *pomXML) GetArtifactId() string {
 	return artifactId.Text()
 }
 
-func (p *pomXML) findProperty(project *etree.Element, propertyName string) string {
+func (p *PomXML) findProperty(project *etree.Element, propertyName string) string {
 	// find the property in the properties tag
 	slog.Debug("looking for property", "property", propertyName)
 	properties := project.SelectElement("properties")
@@ -97,7 +97,7 @@ func (p *pomXML) findProperty(project *etree.Element, propertyName string) strin
 // https://maven.apache.org/pom.html#Properties
 // Not parsing other expressions since it is not needed
 // Not using `mvn help:evaluate` since this runs on each pom.xml and when looking for shaded dependencies, it's too slow
-func (p *pomXML) resolveValue(value *etree.Element, project *etree.Element) string {
+func (p *PomXML) resolveValue(value *etree.Element, project *etree.Element) string {
 	valueText := value.Text()
 	if !strings.Contains(valueText, "${") {
 		slog.Debug("value does not contain a property", "value", valueText)
@@ -140,7 +140,7 @@ func (p *pomXML) resolveValue(value *etree.Element, project *etree.Element) stri
 	return resolved
 }
 
-func (p *pomXML) GetVersion() string {
+func (p *PomXML) GetVersion() string {
 	project := p.Document.SelectElement(projectTag)
 	if project == nil {
 		slog.Error("failed selecting project element")
@@ -168,7 +168,7 @@ func (p *pomXML) GetVersion() string {
 	return p.resolveValue(version, parent)
 }
 
-func (p *pomXML) GetPackageId() string {
+func (p *PomXML) GetPackageId() string {
 	groupId := p.GetGroupId()
 	artifactId := p.GetArtifactId()
 	version := p.GetVersion()
@@ -181,7 +181,7 @@ func (p *pomXML) GetPackageId() string {
 	return packageDependencyId(groupId, artifactId, version)
 }
 
-func (p *pomXML) GetAsReader() io.ReadCloser {
+func (p *PomXML) GetAsReader() io.ReadCloser {
 	s, err := p.Document.WriteToString()
 	if err != nil {
 		slog.Error("failed writing pom.xml", "err", err)
@@ -190,7 +190,7 @@ func (p *pomXML) GetAsReader() io.ReadCloser {
 	return io.NopCloser(strings.NewReader(s))
 }
 
-func (p *pomXML) Silence() error {
+func (p *PomXML) Silence() error {
 	slog.Info("Changing groupId in pom.xml")
 
 	project := p.Document.SelectElement(projectTag)
@@ -221,7 +221,7 @@ func (p *pomXML) Silence() error {
 	return nil
 }
 
-func (p *pomXML) GetPomProperties() *PomProperties {
+func (p *PomXML) GetPomProperties() *PomProperties {
 	artifactId := p.GetArtifactId()
 	groupId := p.GetGroupId()
 	version := p.GetVersion()

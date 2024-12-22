@@ -1,6 +1,7 @@
 package pnpm
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -27,6 +28,10 @@ func NewPnpmManager(config *config.Config, targetDir string) *PnpmPackageManager
 
 func (m *PnpmPackageManager) Name() string {
 	return PnpmManager
+}
+
+func (m *PnpmPackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func (m *PnpmPackageManager) GetProjectName() string {

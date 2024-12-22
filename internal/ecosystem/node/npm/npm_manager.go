@@ -1,6 +1,7 @@
 package npm
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -31,6 +32,10 @@ func NewNpmManager(config *config.Config, targetDir string) *NpmPackageManager {
 
 func (m *NpmPackageManager) Name() string {
 	return NpmManagerName
+}
+
+func (m *NpmPackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func (m *NpmPackageManager) GetVersion() string {

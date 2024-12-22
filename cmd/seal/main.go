@@ -26,6 +26,8 @@ const verboseFlagKey = "verbose"
 const actionsFileKey = "actions-file-path"
 const configFileKey = "config-file-path"
 const uploadResultsKey = "upload-scan-results"
+const filesystemFlag = "fs"
+const osFlag = "os"
 
 var SubCommandError = errors.New("") // used to differentiate between cobra usage error and our errors
 
@@ -87,6 +89,8 @@ func rootCmd() *cobra.Command {
 	cmd.PersistentFlags().String(configFileKey, "", "path to config file")
 	cmd.PersistentFlags().String(actionsFileKey, "", "path to actions file")
 	cmd.PersistentFlags().Bool(uploadResultsKey, false, "upload scan results to server")
+	cmd.PersistentFlags().String(filesystemFlag, "", "which files to use")
+	cmd.PersistentFlags().Bool(osFlag, false, "use OS mode, no target file needed")
 	return cmd
 }
 

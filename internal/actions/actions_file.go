@@ -40,10 +40,23 @@ type Override struct {
 type VersionOverrideMap map[string]Override
 type LibraryOverrideMap map[string]VersionOverrideMap
 
+type ManagerClass string
+
+const (
+	ManifestManager ManagerClass = "manifest"
+	// OsManager is used to scan and fix artifacts in the OS
+	OsManager ManagerClass = "os"
+
+	// FilesManager are used to scan and fix artifacts in a directory
+	// For example, a Java FilesTarget is used to scan and fix JAR files in a directory
+	FilesManager ManagerClass = "files"
+)
+
 type ProjectManagerSection struct {
-	Ecosystem string `yaml:"ecosystem" validate:"required"` // currently only node is supported
-	Name      string `yaml:"name" validate:"required"`      // like yarn, pnpm, etc
-	Version   string `yaml:"version" validate:"required"`
+	Ecosystem string       `yaml:"ecosystem" validate:"required"` // currently only node is supported
+	Name      string       `yaml:"name" validate:"required"`      // like yarn, pnpm, etc
+	Version   string       `yaml:"version" validate:"required"`
+	Class     ManagerClass `yaml:"class"` // optional, default should be manifest so it's backwards compatible
 }
 
 type ProjectSection struct {

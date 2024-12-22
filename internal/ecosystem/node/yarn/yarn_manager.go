@@ -1,6 +1,7 @@
 package yarn
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -48,6 +49,10 @@ func IsYarnIndicatorFile(path string) bool {
 
 func (m *YarnPackageManager) Name() string {
 	return YarnManagerName
+}
+
+func (m *YarnPackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func (m *YarnPackageManager) GetProjectName() string {

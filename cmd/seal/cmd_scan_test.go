@@ -55,6 +55,7 @@ projects:
       ecosystem: fakeecosystem # to not confuse the user, and allow backend to tell internal 'manager'
       name: fakename
       version: 1.2.3
+      class: manifest
 
     overrides:
       lodash:

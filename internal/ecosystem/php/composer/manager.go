@@ -1,6 +1,7 @@
 package composer
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -30,6 +31,10 @@ func NewComposerManager(config *config.Config, targetFile string, targetDir stri
 
 func (m *ComposerPackageManager) Name() string {
 	return ComposerManagerName
+}
+
+func (m *ComposerPackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func (m *ComposerPackageManager) GetVersion() string {

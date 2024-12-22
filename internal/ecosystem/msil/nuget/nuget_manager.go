@@ -2,6 +2,7 @@ package nuget
 
 import (
 	"bufio"
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -136,6 +137,10 @@ func NewNugetManager(config *config.Config, targetDir string, targetFile string,
 
 func (m *NugetManager) Name() string {
 	return nugetManagerName
+}
+
+func (m *NugetManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func (m *NugetManager) GetVersion() string {

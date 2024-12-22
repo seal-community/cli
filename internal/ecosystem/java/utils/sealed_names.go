@@ -3,8 +3,10 @@ package utils
 import (
 	"archive/zip"
 	"bufio"
+	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/ecosystem/mappings"
+	"cli/internal/ecosystem/shared"
 	"fmt"
 	"io"
 	"log/slog"
@@ -25,6 +27,8 @@ const manifestFileName = "MANIFEST.MF"
 //  2. META-INF/maven/<groupId>/<artifactId>/pom.properties - changing the version to be the original one
 //     The artifactId to be the original one, and the groupId to be "seal"
 //  3. META-INF/maven/<groupId>/<artifactId>/pom.xml - changing the groupId to be "seal"
+//
+// Caller should handle returned file's removal
 func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (string, error) {
 	slog.Info("Creating new sealed name jar", "jarPath", jarPath)
 
@@ -39,7 +43,7 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 	}
 	defer origReader.Close()
 
-	sealedNameFile, err := os.CreateTemp("./.seal", "tmp_jar")
+	sealedNameFile, err := os.CreateTemp("", "tmp_jar")
 	if err != nil {
 		slog.Error("failed creating sealed file", "err", err, "path", jarPath)
 		return "", err
@@ -222,6 +226,7 @@ func ShouldSilence(dependency common.Dependency, packagesToSilence map[string]bo
 // if the package id is in the packagesToSilence map (acting as a set for convenience).
 // If silenceMainManifest is true, it will also change the groupId in the main manifest file.
 // Returns the path to the new jar and a map (set) of the silenced packages.
+// Caller should handle returned file's removal
 func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, silenceMainManifest bool) (string, map[string]bool, error) {
 	manifestFilePath := filepath.ToSlash(filepath.Join("META-INF", manifestFileName))
 
@@ -233,7 +238,7 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 	}
 	defer origReader.Close()
 
-	sealedNameFile, err := os.CreateTemp("./.seal", "tmp_jar")
+	sealedNameFile, err := os.CreateTemp("", "tmp_jar")
 	if err != nil {
 		slog.Error("failed creating sealed file", "err", err, "path", jarPath)
 		return "", nil, err
@@ -395,4 +400,81 @@ func SilenceJar(dep common.Dependency, packagesToSilence map[string]bool, silenc
 	}
 
 	return silencedPackages, nil
+}
+
+func SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap, normalizer shared.Normalizer) (map[string][]string, error) {
+	silencePackagesIds := make(map[string]bool, 0)
+	for _, silenceEntry := range silenceArray {
+		// to support silence in the format of "library@version" that is used in the cli command, we accept empty manager as wildcard
+		if silenceEntry.Manager != mappings.MavenManager && silenceEntry.Manager != "" {
+			continue
+		}
+
+		if silenceEntry.Library == "" || silenceEntry.Version == "" {
+			slog.Warn("failed parsing silence entry", "entry", silenceEntry)
+			return nil, common.NewPrintableError("failed parsing silence entry %s", silenceEntry)
+		}
+
+		silencePackagesIds[common.DependencyId(mappings.MavenManager, normalizer.NormalizePackageName(silenceEntry.Library), silenceEntry.Version)] = true
+	}
+
+	// silenced package id to list of jar paths
+	silenced := make(map[string][]string, 0)
+	for _, depList := range allDependencies {
+		for _, dep := range depList {
+			s, err := ShouldSilence(*dep, silencePackagesIds)
+			if err != nil {
+				return nil, err
+			}
+
+			if !s {
+				continue
+			}
+
+			_, ok := silencePackagesIds[dep.Id()]
+			silencedPackages, err := SilenceJar(*dep, silencePackagesIds, ok)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, silencedPackage := range silencedPackages {
+				silenced[silencedPackage] = append(silenced[silencedPackage], dep.DiskPath)
+			}
+		}
+	}
+
+	return silenced, nil
+}
+
+// Overwrites the jar file in diskPath to a new jar containing the sealed names
+func changeToSealedName(packageName, packageOriginalVersion, diskPath string) error {
+	groupId, artifactId, err := SplitJavaPackageName(packageName)
+	if err != nil {
+		slog.Error("failed getting package name for dependency", "err", err, "path", packageName)
+		return common.NewPrintableError("failed getting package name for dependency %s", packageName)
+	}
+
+	newJarPath, err := CreateSealedNameJar(diskPath, groupId, artifactId, packageOriginalVersion)
+	if err != nil {
+		slog.Error("failed changing to sealed name", "err", err, "path", diskPath)
+		return common.NewPrintableError("failed changing package %s to sealed name", packageName)
+	}
+
+	if err = common.Move(newJarPath, diskPath); err != nil {
+		slog.Error("failed renaming sealed file", "err", err, "from", newJarPath, "to", diskPath)
+		return err
+	}
+
+	return nil
+}
+
+func SealJarName(fix shared.DependencyDescriptor) error {
+	for _, diskPath := range fix.FixedLocations {
+		slog.Info("changing package to sealed name", "id", fix.VulnerablePackage.Library.Name, "path", diskPath)
+		if err := changeToSealedName(fix.VulnerablePackage.Library.Name, fix.AvailableFix.OriginVersionString, diskPath); err != nil {
+			return common.FallbackPrintableMsg(err, "failed changing %s to sealed name", fix.VulnerablePackage.Library.Name)
+		}
+	}
+
+	return nil
 }

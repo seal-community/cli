@@ -4,6 +4,7 @@ import (
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
+	java_files "cli/internal/ecosystem/java/files"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/project"
@@ -63,6 +64,24 @@ func createInternalSealFolder(projectDir string) (string, error) {
 	return p, nil
 }
 
+func getPackageManager(targetType common.TargetType, config *config.Config, projectDir string, targetFile string) (manager shared.PackageManager, err error) {
+	slog.Debug("checking for manager", "type", targetType, "dir", projectDir, "file", targetFile)
+	switch targetType {
+	case common.OsTarget:
+		manager, err = findOSPackageManager(config, projectDir)
+	case common.JavaFilesTarget:
+		manager, err = java_files.GetPackageManager(config, projectDir, targetFile)
+	case common.ManifestTarget:
+		manager, err = findManifestPackageManager(config, projectDir, targetFile)
+	default:
+		slog.Error("unsupported target type", "type", targetType, "dir", projectDir, "file", targetFile)
+		return nil, common.NewPrintableError("failed to find a supported package manager for %s", projectDir)
+	}
+
+	return manager, err
+
+}
+
 // prints warning to console if this is a new project / some misconfiguration might have happened
 // IMPORTANT: can technically print here, as it is part of the init of the phase that comes before the progress bar is initialized
 func (p *basePhase) init(targetPath string, configPath string, showProgress bool) error {
@@ -70,10 +89,11 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 	fmt.Printf("\n") // using this to print a new line before start of output
 
 	// using locals until we initialize the manager, then we can use the Phase.Project struct
-	p.OsMode = targetPath == common.OsMagic
-	if p.OsMode {
+	if p.TargetType == common.OsTarget ||
+		(p.TargetType == common.JavaFilesTarget && targetPath == "") {
+		// os target or java files target with no target file should use the CWD and override the target path
 		targetPath = common.CliCWD
-		slog.Info("overriding target path for OS mode - will use CWD", "targetPath", targetPath)
+		slog.Info("overriding target path - will use CWD", "targetPath", targetPath, "targetType", p.TargetType)
 	}
 
 	projectDir := getProjectDirAbs(targetPath)
@@ -100,14 +120,7 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 
 	slog.Info("loaded config", "has-token", p.Config.Token != "")
 
-	if p.OsMode {
-		slog.Debug("checking for OS package manager")
-		p.Manager, err = findOSPackageManager(p.Config, projectDir)
-	} else {
-		slog.Debug("checking for application package manager")
-		p.Manager, err = findApplicationPackageManager(p.Config, projectDir, targetFile)
-	}
-
+	p.Manager, err = getPackageManager(p.TargetType, p.Config, projectDir, targetFile)
 	if err != nil {
 		return err
 	}
@@ -118,7 +131,7 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 		return common.NewPrintableError("unsupported package manager version %s", version)
 	}
 
-	if targetFile == "" && !p.OsMode {
+	if targetFile == "" && p.TargetType == common.ManifestTarget {
 		// reaching here means we already found an indicator and have a package manager associated with the project dir
 		// use target file according to manager until scanning directory is deprecated
 		slog.Warn("looking up indicator in project dir since target file not provided", "project-dir", projectDir)
@@ -207,8 +220,10 @@ func getArtifactServerUrl(manager shared.PackageManager, conf *config.Config) st
 // assumes we already have target file
 func (p *basePhase) initLocalProject(projectDir string, targetFile string) (err error) {
 
-	if p.OsMode {
-		if p.Config.Project == "" {
+	// non-manifest targets require explicit project passed
+	if p.TargetType != common.ManifestTarget {
+		if p.Config.Project == "" && p.Config.Token != "" {
+			slog.Error("project ID missing while token is present")
 			return common.NewPrintableError("project ID missing")
 		}
 

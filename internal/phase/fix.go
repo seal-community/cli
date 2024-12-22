@@ -33,8 +33,8 @@ type PostFixRunner interface {
 	GetStepDescription() string
 }
 
-func NewFixPhase(target string, configPath string, showProgress bool) (*fixPhase, error) {
-	sp, err := NewScanPhase(target, configPath, showProgress)
+func NewFixPhase(target string, targetType common.TargetType, configPath string, showProgress bool) (*fixPhase, error) {
+	sp, err := NewScanPhase(target, targetType, configPath, showProgress)
 	if err != nil {
 		return nil, err
 	}

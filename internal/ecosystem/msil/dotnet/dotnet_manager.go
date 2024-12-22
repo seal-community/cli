@@ -1,6 +1,7 @@
 package dotnet
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -45,6 +46,10 @@ func NewDotnetManager(config *config.Config, targetDir string, targetFile string
 
 func (m *DotnetPackageManager) Name() string {
 	return dotnetManagerName
+}
+
+func (m *DotnetPackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func getDotnetMetadata(targetDir string) *DotnetMetadata {

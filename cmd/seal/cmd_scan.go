@@ -60,6 +60,7 @@ func createActionsObject(packages []api.PackageVersion, manager shared.PackageMa
 			Ecosystem: manager.GetEcosystem(),
 			Name:      manager.Name(),
 			Version:   manager.GetVersion(),
+			Class:     manager.Class(),
 		},
 		Targets:   normTargets,
 		Overrides: make(actions.LibraryOverrideMap),
@@ -235,9 +236,16 @@ func scanCommand() *cobra.Command {
 				return common.NewPrintableError("failed initializing output")
 			}
 
-			target := extractTarget(args)
+			filesystemValue := getArgString(cmd, filesystemFlag)
+			osValue := getArgBool(cmd, osFlag)
 
-			targetDir := common.GetTargetDir(target)
+			target, targetType := extractTarget(args, filesystemValue, osValue)
+			if targetType == common.UnknownTarget {
+				slog.Error("invalid target", "target", target)
+				return common.NewPrintableError("invalid target `%s`", target)
+			}
+
+			targetDir := common.GetTargetDir(target, targetType)
 			if targetDir == "" {
 				slog.Error("bad target input", "target", target)
 				return common.NewPrintableError("target not found `%s`", target)
@@ -248,7 +256,7 @@ func scanCommand() *cobra.Command {
 			genActionsFile := getArgBool(cmd, actionFlag) || getArgBool(cmd, actionFlagNew)
 			uploadScanActivity := getArgBool(cmd, uploadResultsKey)
 
-			scanPhase, err := phase.NewScanPhase(target, configPath, verbosity == 0)
+			scanPhase, err := phase.NewScanPhase(target, targetType, configPath, verbosity == 0)
 			if err != nil {
 				slog.Error("failed initializing scan", "err", err)
 				return common.FallbackPrintableMsg(err, "failed initializing scan phase")

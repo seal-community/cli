@@ -1,7 +1,8 @@
-package utils
+package maven
 
 import (
 	"cli/internal/common"
+	"cli/internal/ecosystem/java/utils"
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"io/fs"
@@ -118,7 +119,7 @@ func prepareCacheDir(newCacheDir string, oldCacheDir string) error {
 	return nil
 }
 
-func NewFixer(projectDir string, workdir string, sealCacheDir string) shared.DependencyFixer {
+func newFixer(projectDir string, workdir string, sealCacheDir string) shared.DependencyFixer {
 	return &fixer{
 		projectDir: projectDir,
 		workdir:    workdir,
@@ -128,7 +129,7 @@ func NewFixer(projectDir string, workdir string, sealCacheDir string) shared.Dep
 }
 
 func (f *fixer) Prepare() error {
-	currCacheDir := GetCacheDir(f.projectDir)
+	currCacheDir := utils.GetCacheDir(f.projectDir)
 	if currCacheDir == "" {
 		slog.Warn("failed getting maven cache dir")
 		return common.NewPrintableError("failed getting maven cache dir")
@@ -149,18 +150,18 @@ func (f *fixer) Prepare() error {
 // override the artifact file in the cache dir (will set it as the cache in HandleFixes)
 // add to the rollback map
 func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, packageData []byte, fileName string) (bool, string, error) {
-	_, artifactId, err := SplitJavaPackageName(dep.NormalizedName)
+	_, artifactId, err := utils.SplitJavaPackageName(dep.NormalizedName)
 	if err != nil {
 		slog.Error("failed getting package name for dep", "err", err, "path", dep.Name)
 		return false, "", err
 	}
 
-	origVersionDirPath := GetJavaPackagePath(f.cacheDir, dep.Name, dep.Version)
+	origVersionDirPath := utils.GetJavaPackagePath(f.cacheDir, dep.Name, dep.Version)
 	if origVersionDirPath == "" {
 		return false, "", fmt.Errorf("failed getting package path in the cache")
 	}
 
-	tmpVersionDirPath := GetJavaPackagePath(f.workdir, dep.Name, dep.Version)
+	tmpVersionDirPath := utils.GetJavaPackagePath(f.workdir, dep.Name, dep.Version)
 	if tmpVersionDirPath == "" {
 		return false, "", fmt.Errorf("failed getting temp storage path for package")
 	}
@@ -176,7 +177,7 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 		return false, "", common.NewPrintableError("cannot fix %s:%s - located behind a symbolic link", dep.Name, dep.Version)
 	}
 
-	artifactFileName := GetPackageFileName(artifactId, dep.Version)
+	artifactFileName := utils.GetPackageFileName(artifactId, dep.Version)
 	bkupPath := filepath.Join(tmpVersionDirPath, artifactFileName)
 	artifactPath := filepath.Join(origVersionDirPath, artifactFileName)
 

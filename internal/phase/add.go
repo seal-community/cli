@@ -15,15 +15,8 @@ type addPhase struct {
 	*scanPhase
 }
 
-func NewAddPhase(projectDir string, configPath string, showProgress bool, isOS bool) (*addPhase, error) {
-	if isOS {
-		// to add an OS entry, we run seal add --os <lib> <ver>
-		// So, we get it as a flag and "lie" to the ScanPhase so it knows we're running in os mode
-		slog.Debug("add phase in OS mode")
-		projectDir = common.OsMagic
-	}
-
-	sp, err := NewScanPhase(projectDir, configPath, showProgress)
+func NewAddPhase(projectDir string, targetType common.TargetType, configPath string, showProgress bool) (*addPhase, error) {
+	sp, err := NewScanPhase(projectDir, targetType, configPath, showProgress)
 	if err != nil {
 		return nil, err
 	}

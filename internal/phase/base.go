@@ -67,7 +67,7 @@ type basePhase struct {
 	showBar bool // required because can't access progressbar unexported state
 
 	CanAuthenticate bool
-	OsMode          bool
+	TargetType      common.TargetType
 }
 
 type availableManager struct {
@@ -104,7 +104,7 @@ func chooseManager(availableManagers []availableManager) shared.PackageManager {
 	return nil
 }
 
-func findApplicationPackageManager(configDir *config.Config, projectDir string, target string) (shared.PackageManager, error) {
+func findManifestPackageManager(configDir *config.Config, projectDir string, target string) (shared.PackageManager, error) {
 	nodeManager, nodeErr := node.GetPackageManager(configDir, projectDir, target)
 	pythonManager, pythonErr := python.GetPackageManager(configDir, projectDir, target)
 	javaManager, javaErr := java.GetPackageManager(configDir, projectDir, target)

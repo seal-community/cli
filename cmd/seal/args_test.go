@@ -1,27 +1,112 @@
 package main
 
 import (
+	"cli/internal/common"
 	"testing"
 
 	"github.com/spf13/cobra"
 )
 
 func TestExtractTarget(t *testing.T) {
-	if result := extractTarget([]string{"param0"}); result != "param0" {
-		t.Fatalf("got %s", result)
+	type input struct {
+		args       []string
+		filesystem string
+		isOs       bool
 	}
-}
+	type result struct {
+		target string
+		tt     common.TargetType
+	}
+	cases := []struct {
+		input    input
+		expected result
+	}{
+		{
+			input: input{
+				args:       []string{},
+				filesystem: "",
+				isOs:       false,
+			},
+			expected: result{
+				target: "",
+				tt:     common.ManifestTarget,
+			},
+		},
+		{
+			input: input{
+				args:       []string{"/path/to/requirements.txt"},
+				filesystem: "",
+				isOs:       false,
+			},
+			expected: result{
+				target: "/path/to/requirements.txt",
+				tt:     common.ManifestTarget,
+			},
+		},
+		{
+			// Deprecated, should be removed in the future
+			input: input{
+				args:       []string{"/path/to/directory"},
+				filesystem: "",
+				isOs:       false,
+			},
+			expected: result{
+				target: "/path/to/directory",
+				tt:     common.ManifestTarget,
+			},
+		},
+		{
+			input: input{
+				args:       []string{"/path/to/directory"},
+				filesystem: "java",
+				isOs:       false,
+			},
+			expected: result{
+				target: "/path/to/directory",
+				tt:     common.JavaFilesTarget,
+			},
+		},
+		{
+			input: input{
+				args:       []string{},
+				filesystem: "java",
+				isOs:       false,
+			},
+			expected: result{
+				target: "",
+				tt:     common.JavaFilesTarget,
+			},
+		},
+		{
+			input: input{
+				args:       []string{"os"},
+				filesystem: "",
+				isOs:       false,
+			},
+			expected: result{
+				target: "",
+				tt:     common.OsTarget,
+			},
+		},
+		{
+			input: input{
+				args:       []string{},
+				filesystem: "",
+				isOs:       true,
+			},
+			expected: result{
+				target: "",
+				tt:     common.OsTarget,
+			},
+		},
+	}
 
-func TestExtractTargetMultiple(t *testing.T) {
-	if result := extractTarget([]string{"param0", "param1", "param2"}); result != "param0" {
-		t.Fatalf("got %s", result)
+	for _, c := range cases {
+		if target, tt := extractTarget(c.input.args, c.input.filesystem, c.input.isOs); target != c.expected.target || tt != c.expected.tt {
+			t.Fatalf("got %v %v", target, tt)
+		}
 	}
-}
 
-func TestExtractTargetEmpty(t *testing.T) {
-	if result := extractTarget([]string{}); result != "" {
-		t.Fatalf("got %s", result)
-	}
 }
 
 func TestExtractArgArray(t *testing.T) {

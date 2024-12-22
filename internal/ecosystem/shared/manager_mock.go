@@ -6,6 +6,7 @@
 package shared
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 )
@@ -22,6 +23,10 @@ type FakePackageManager struct {
 
 func (m *FakePackageManager) Name() string {
 	return m.ManagerName
+}
+
+func (m *FakePackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func (m *FakePackageManager) GetEcosystem() string {

@@ -12,8 +12,8 @@ type scanPhase struct {
 	*basePhase
 }
 
-func NewScanPhase(target string, configPath string, showProgress bool) (*scanPhase, error) {
-	c := basePhase{}
+func NewScanPhase(target string, targetType common.TargetType, configPath string, showProgress bool) (*scanPhase, error) {
+	c := basePhase{TargetType: targetType}
 	if err := c.init(target, configPath, showProgress); err != nil {
 		return nil, err
 	}

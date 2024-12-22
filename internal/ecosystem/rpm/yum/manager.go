@@ -1,6 +1,7 @@
 package yum
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -30,6 +31,10 @@ func NewYumManager(config *config.Config, targetDir string) *YumPackageManager {
 
 func (m *YumPackageManager) Name() string {
 	return YumManagerName
+}
+
+func (m *YumPackageManager) Class() actions.ManagerClass {
+	return actions.OsManager
 }
 
 func (m *YumPackageManager) GetVersion() string {

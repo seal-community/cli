@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 )
@@ -49,6 +50,8 @@ type PackageManager interface {
 	Normalizer
 
 	Name() string
+	// Each manager has a type, which corresponds to the TargetType
+	Class() actions.ManagerClass
 	GetVersion() string
 	IsVersionSupported(version string) bool
 	ListDependencies() (common.DependencyMap, error)

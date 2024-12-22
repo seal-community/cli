@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cli/internal/common"
 	"fmt"
 	"log/slog"
 
@@ -40,12 +41,37 @@ func getArgCount(cmd *cobra.Command, key string) int {
 	return val
 }
 
-func extractTarget(args []string) string {
-	if len(args) > 0 {
-		return args[0]
+// Given command line args, extract the target path and target type
+func extractTarget(args []string, filesystem string, isOs bool) (string, common.TargetType) {
+	if isOs && filesystem != "" {
+		slog.Error("invalid target", "filesystem", filesystem, "os", isOs)
+		return "", common.UnknownTarget
 	}
 
-	return ""
+	target := ""
+	if len(args) > 0 {
+		target = args[0]
+	}
+
+	// handle `seal scan os`, which is deprecated and should become `seal scan --os`
+	if target == "os" || isOs {
+		slog.Debug("detected os target")
+		return "", common.OsTarget
+	}
+
+	if filesystem == "" {
+		slog.Debug("detected manifest target")
+		return target, common.ManifestTarget
+	}
+
+	switch filesystem {
+	case string(common.JavaFilesTarget):
+		slog.Debug("detected java files target")
+		return target, common.JavaFilesTarget
+	default:
+		slog.Error("invalid target", "target", filesystem)
+		return "", common.UnknownTarget
+	}
 }
 
 func getArgArray(cmd *cobra.Command, key string) []string {

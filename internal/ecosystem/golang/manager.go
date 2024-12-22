@@ -1,6 +1,7 @@
 package golang
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -35,6 +36,10 @@ func NewGolangManager(config *config.Config, targetFile string, targetDir string
 
 func (m *GolangPackageManager) Name() string {
 	return GolangManagerName
+}
+
+func (m *GolangPackageManager) Class() actions.ManagerClass {
+	return actions.ManifestManager
 }
 
 func (m *GolangPackageManager) GetVersion() string {

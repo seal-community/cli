@@ -1,6 +1,7 @@
 package dpkgless
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
@@ -26,6 +27,10 @@ func NewDpkglessManager(config *config.Config, targetDir string) *DpkglessPackag
 
 func (m *DpkglessPackageManager) Name() string {
 	return DpkglessManagerName
+}
+
+func (m *DpkglessPackageManager) Class() actions.ManagerClass {
+	return actions.OsManager
 }
 
 // no version for a filesystem search
