@@ -252,3 +252,14 @@ func (s CliJfrogServer) QuerySilenceRules() ([]SilenceRule, error) {
 
 	return data, nil
 }
+
+func (s CliJfrogServer) QueryMavenGroupIds(lookup *MavenGroupIDLookupList) (*Page[MavenGroupIDLookupResult], error) {
+
+	params := []StringPair{}
+	var resp Page[MavenGroupIDLookupResult]
+	if _, err := s.sendPayload("/authenticated/v1/maven_groupid_lookup", lookup, params, &resp); err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}

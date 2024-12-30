@@ -132,3 +132,17 @@ func (p *PackageVersion) PublicPackage() PublicPackage {
 func (v *Vulnerability) Equivalent(other Vulnerability) bool {
 	return v.CVE == other.CVE && v.MaliciousID == other.MaliciousID && v.SnykID == other.SnykID && v.GitHubAdvisoryID == other.GitHubAdvisoryID
 }
+
+type MavenGroupIDLookup struct {
+	ArtifactId string `json:"artifact_id"`
+	Version    string `json:"version"`
+}
+
+type MavenGroupIDLookupList struct {
+	Queries []MavenGroupIDLookup `json:"queries"`
+}
+
+type MavenGroupIDLookupResult struct {
+	MavenGroupIDLookup
+	GroupId string `json:"group_id"`
+}

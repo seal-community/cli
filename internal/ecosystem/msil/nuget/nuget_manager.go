@@ -195,7 +195,7 @@ func (m *NugetManager) IsVersionSupported(version string) bool {
 	return supported
 }
 
-func (m *NugetManager) ListDependencies() (common.DependencyMap, error) {
+func (m *NugetManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	f, err := common.OpenFile(m.auxFile)
 	if err != nil {
 		slog.Error("failed opening auxilary file", "path", m.auxFile)

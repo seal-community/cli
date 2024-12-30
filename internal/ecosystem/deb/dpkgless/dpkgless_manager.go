@@ -43,7 +43,7 @@ func (m *DpkglessPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *DpkglessPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *DpkglessPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	filesystemOutput, err := ListPackagesFromFilesystem()
 	if err != nil {
 		slog.Error("failed listing dependencies from file system")

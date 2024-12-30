@@ -63,7 +63,7 @@ func (m *ComposerPackageManager) IsVersionSupported(version string) bool {
 	return supported
 }
 
-func (m *ComposerPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *ComposerPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	DependencyTreeArgs := []string{"show", "--format", "json", "--locked"}
 	if m.Config.Composer.ProdOnlyDeps {
 		slog.Info("will ignore dev dependencies")

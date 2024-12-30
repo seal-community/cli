@@ -83,7 +83,7 @@ func (m *DotnetPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *DotnetPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *DotnetPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	result, ok := listPackages(m.targetDir)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())

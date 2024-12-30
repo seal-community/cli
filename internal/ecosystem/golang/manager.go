@@ -81,7 +81,7 @@ func (m *GolangPackageManager) parseGoMod(targetDir string) error {
 	return nil
 }
 
-func (m *GolangPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *GolangPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	err := m.parseGoMod(m.targetDir)
 	if err != nil {
 		return nil, err

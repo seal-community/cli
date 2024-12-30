@@ -57,7 +57,7 @@ func (m *DpkgPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *DpkgPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *DpkgPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	// -W: show information on all packages, -f: format the output as specified in dpkgQueryFormat
 	listOutput, err := common.RunCmdWithArgs(m.targetDir, dpkgQueryExeName, "-W", "-f", dpkgQueryFormat)
 	if err != nil || listOutput.Code != 0 {

@@ -50,12 +50,9 @@ func supportedJavaFile(path string) bool {
 	}
 }
 
-// go over all files in the target directory and create dependencies for each jar file
-// does this in a best-effort manner, skipping jars that can't be parsed
-// Handles symlinks too.
-func (m *JavaFilesPackageManager) ListDependencies() (common.DependencyMap, error) {
-	dependencies := make(common.DependencyMap, 0)
-	err := filepath.WalkDir(m.targetDir, func(path string, info os.DirEntry, err error) error {
+func findJarPaths(dir string) ([]string, error) {
+	jarPaths := make([]string, 0)
+	err := filepath.WalkDir(dir, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			slog.Warn("failed walking path", "err", err, "path", path)
 			return filepath.SkipDir
@@ -81,25 +78,39 @@ func (m *JavaFilesPackageManager) ListDependencies() (common.DependencyMap, erro
 			return nil
 		}
 
-		// get dependencies from jar, skipping it if there are any errors
-		deps, err := getFileDependencies(path, m)
-		if err != nil {
-			slog.Warn("failed getting dependencies from jar", "err", err)
-			return nil
-		}
-
-		for _, dep := range deps {
-			depId := dep.Id()
-			slog.Debug("adding dependency", "dep", dep)
-			dependencies[depId] = append(dependencies[depId], dep)
-		}
-
+		jarPaths = append(jarPaths, path)
 		return nil
 	})
 
 	if err != nil {
 		slog.Error("failed listing dependencies", "err", err)
 		return nil, err
+	}
+
+	return jarPaths, nil
+}
+
+// go over all files in the target directory and create dependencies for each jar file
+// does this in a best-effort manner, skipping jars that can't be parsed
+// Handles symlinks too.
+func (m *JavaFilesPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
+	dependencies := make(common.DependencyMap, 0)
+	jarPaths, err := findJarPaths(m.targetDir)
+	if err != nil {
+		slog.Error("failed finding jar paths", "err", err)
+		return nil, err
+	}
+
+	deps, err := getDependencies(jarPaths, m, be)
+	if err != nil {
+		slog.Error("failed getting dependencies", "err", err)
+		return nil, err
+	}
+
+	for _, dep := range deps {
+		depId := dep.Id()
+		slog.Debug("adding dependency", "dep", dep)
+		dependencies[depId] = append(dependencies[depId], dep)
 	}
 
 	return dependencies, nil

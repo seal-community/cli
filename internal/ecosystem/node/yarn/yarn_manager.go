@@ -77,8 +77,8 @@ func (m *YarnPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *YarnPackageManager) ListDependencies() (common.DependencyMap, error) {
-	dependencyMap, err := m.npmManager.ListDependencies()
+func (m *YarnPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
+	dependencyMap, err := m.npmManager.ListDependencies(be)
 	if err != nil {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())
 		return nil, shared.ManagerProcessFailed

@@ -90,7 +90,7 @@ func GetJavaIndicatorFile(path string) (string, error) {
 	return "", nil
 }
 
-func (m *MavenPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *MavenPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	result, ok := listPackages(m.targetDir)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())

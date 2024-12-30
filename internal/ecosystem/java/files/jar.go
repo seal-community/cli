@@ -2,6 +2,7 @@ package files
 
 import (
 	"archive/zip"
+	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/ecosystem/java/utils"
 	"cli/internal/ecosystem/mappings"
@@ -12,6 +13,13 @@ import (
 	"regexp"
 	"strings"
 )
+
+type depCandidate struct {
+	groupId    string // may be empty, in which case we query BE
+	artifactId string
+	version    string
+	path       string
+}
 
 // regex based on syft's logic
 // https://github.com/anchore/syft/blob/5e16e50/syft/pkg/cataloger/java/archive_filename.go#L50
@@ -119,9 +127,9 @@ func findPomDataInJar(jarPath string, artifactId string) (*utils.PomProperties, 
 	return pomProperties, pomXML, nil
 }
 
-// Given a jar path, extract a dependency representing that jar.
+// Given a jar path, extract a dependency candidate representing that jar.
 // We assume the file name is <artifactId>-<version>.jar, and parse the groupId from within the pom.xml/pom.properties file inside the jar.
-func getDependencyFromJar(jarPath string, normalizer shared.Normalizer) (*common.Dependency, error) {
+func getDepCandidateFromJar(jarPath string) (*depCandidate, error) {
 	artifactId, version, err := parseJarPath(jarPath)
 	if err != nil {
 		slog.Error("failed to parse jar path", "err", err, "jarPath", jarPath)
@@ -154,41 +162,147 @@ func getDependencyFromJar(jarPath string, normalizer shared.Normalizer) (*common
 		groupId = pomXML.GetGroupId()
 	} else {
 		slog.Warn("failed reading pom file and pom properties", "path", jarPath)
-		return nil, fmt.Errorf("failed reading pom file and pom properties %s", jarPath)
 	}
 
-	depName := fmt.Sprintf("%s:%s", groupId, artifactId)
+	depCandidate := &depCandidate{
+		groupId:    groupId,
+		artifactId: artifactId,
+		version:    version,
+		path:       jarPath,
+	}
 
+	return depCandidate, nil
+}
+
+func buildDependencyFromCandidate(candidate depCandidate, normalizer shared.Normalizer) (*common.Dependency, error) {
+	name := strings.Join([]string{candidate.groupId, candidate.artifactId}, ":")
 	dep := &common.Dependency{
-		Name:           depName,
-		Version:        version,
 		PackageManager: mappings.MavenManager,
-		NormalizedName: normalizer.NormalizePackageName(depName),
-		DiskPath:       jarPath,
+		Name:           name,
+		Version:        candidate.version,
+		NormalizedName: normalizer.NormalizePackageName(name),
+		DiskPath:       candidate.path,
 	}
 
 	return dep, nil
 }
 
-// Given a jar path, extract all dependencies representing that jar and its shaded dependencies.
-// Handles sealed jars too.
-func getFileDependencies(jarPath string, normalizer shared.Normalizer) ([]*common.Dependency, error) {
+// query BE for missing groupIds, in chunks
+func queryGroupIds(candidates []depCandidate, be api.Backend) ([]api.MavenGroupIDLookupResult, error) {
+	allResults := make([]api.MavenGroupIDLookupResult, 0)
+	chunkSize := be.GetPackageChunkSize()
+
+	err := common.ConcurrentChunks(candidates, chunkSize,
+		func(chunk []depCandidate, chunkIdx int) (*api.Page[api.MavenGroupIDLookupResult], error) {
+			var request api.MavenGroupIDLookupList
+
+			for _, candidate := range chunk {
+				request.Queries = append(request.Queries, api.MavenGroupIDLookup{ArtifactId: candidate.artifactId, Version: candidate.version})
+			}
+
+			return be.QueryMavenGroupIds(&request)
+		},
+		func(data *api.Page[api.MavenGroupIDLookupResult], chunkIdx int) error {
+			// safe to perform, run from inside mutex
+			allResults = append(allResults, data.Items...)
+			return nil
+		})
+
+	return allResults, err
+
+}
+
+// Since some jar files don't have a groupId in their pom.xml/pom.properties,
+// we query BE to resolve the missing groupIds.
+// skip candidates that we failed to resolve.
+func resolveGroupId(candidates []depCandidate, be api.Backend) ([]depCandidate, error) {
+	resolvedCandidates := make([]depCandidate, 0)
+	toResolve := make([]depCandidate, 0)
+
+	for _, candidate := range candidates {
+		if candidate.groupId == "" {
+			toResolve = append(toResolve, candidate)
+		}
+	}
+
+	if len(toResolve) == 0 {
+		slog.Debug("all groupIds resolved already")
+		return candidates, nil
+	}
+
+	results, err := queryGroupIds(toResolve, be)
+	if err != nil {
+		slog.Error("failed querying groupIds", "err", err)
+		return nil, err
+	}
+
+	for _, candidate := range candidates {
+		if candidate.groupId == "" {
+			var groupId string
+			for _, result := range results {
+				if result.ArtifactId == candidate.artifactId && result.Version == candidate.version {
+					if groupId != "" {
+						slog.Warn("found multiple groupIds for candidate", "candidate", candidate, "groupId", groupId, "result", result)
+						groupId = ""
+						break
+					}
+
+					groupId = result.GroupId
+				}
+			}
+
+			candidate.groupId = groupId
+		}
+
+		if candidate.groupId != "" {
+			resolvedCandidates = append(resolvedCandidates, candidate)
+		}
+	}
+
+	slog.Debug("resolved candidates", "resolvedCandidates", resolvedCandidates)
+	return resolvedCandidates, nil
+}
+
+func getDependencies(jarPaths []string, normalizer shared.Normalizer, be api.Backend) ([]*common.Dependency, error) {
 	dependencies := make([]*common.Dependency, 0)
-	dep, err := getDependencyFromJar(jarPath, normalizer)
+
+	candidates := make([]depCandidate, 0)
+	for _, path := range jarPaths {
+		candidate, err := getDepCandidateFromJar(path)
+		if err != nil {
+			slog.Warn("failed getting dep candidate", "err", err, "path", path)
+			continue
+		}
+		candidates = append(candidates, *candidate)
+	}
+
+	// query BE for missing groupIds
+	candidates, err := resolveGroupId(candidates, be)
 	if err != nil {
-		slog.Error("failed getting dependency from jar", "err", err)
+		slog.Error("failed resolving groupIds", "err", err)
 		return nil, err
 	}
 
-	dependencies = append(dependencies, dep)
-	// add shaded deps
-	shadedDeps, err := utils.FindShadedDependencies(jarPath, dep, normalizer)
-	if err != nil {
-		slog.Error("failed finding shaded dependencies", "err", err)
-		return nil, err
+	// build dependencies from results
+	for _, candidate := range candidates {
+		dep, err := buildDependencyFromCandidate(candidate, normalizer)
+		if err != nil {
+			slog.Warn("failed building dependency from candidate", "err", err, "candidate", candidate)
+			continue
+		}
+		dependencies = append(dependencies, dep)
 	}
 
-	dependencies = append(dependencies, shadedDeps...)
+	// find shaded dependencies
+	for _, dep := range dependencies {
+		shadedDeps, err := utils.FindShadedDependencies(dep.DiskPath, dep, normalizer)
+		if err != nil {
+			slog.Warn("failed finding shaded dependencies", "err", err)
+			continue
+		}
+
+		dependencies = append(dependencies, shadedDeps...)
+	}
 
 	return dependencies, nil
 }

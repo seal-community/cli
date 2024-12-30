@@ -50,7 +50,7 @@ func (m *PnpmPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *PnpmPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *PnpmPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	result, ok := listPnpmPackages(m.targetDir, m.version, m.Config.Pnpm.ProdOnlyDeps)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())

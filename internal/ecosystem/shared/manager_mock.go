@@ -53,7 +53,7 @@ func (m *FakePackageManager) GetScanTargets() []string {
 	return m.ScanTargets
 }
 
-func (m *FakePackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *FakePackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	return nil, *new(error)
 }
 

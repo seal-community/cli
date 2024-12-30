@@ -60,7 +60,7 @@ func (m *YumPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *YumPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *YumPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	listOutput, err := common.RunCmdWithArgs(m.targetDir, yumExeName, "list", "installed")
 	if err != nil {
 		slog.Error("failed running yum list installed", "err", err)

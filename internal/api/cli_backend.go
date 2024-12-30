@@ -258,3 +258,36 @@ func (s CliServer) InitializeProject(displayName string) (*ProjectDescriptor, er
 
 	return data, nil
 }
+
+func (s CliServer) QueryMavenGroupIds(lookup *MavenGroupIDLookupList) (*Page[MavenGroupIDLookupResult], error) {
+	var headers []StringPair
+	uri := "/unauthenticated/v1/maven_groupid_lookup"
+
+	if s.authToken != "" {
+		// send token if we have it configured
+		headers = []StringPair{BuildBasicAuthHeader(s.authToken)}
+		common.Trace("sending auth header in bulk request")
+		uri = "/authenticated/v1/maven_groupid_lookup"
+	}
+
+	data, statusCode, err := sendSealApiRequest[MavenGroupIDLookupList, Page[MavenGroupIDLookupResult]](
+		s.client,
+		"POST",
+		uri,
+		lookup,
+		headers,
+		nil,
+	)
+
+	if statusCode != 200 {
+		slog.Error("server returned bad status code for query", "status", statusCode, "err", err)
+		return nil, BadServerResponseCode
+	}
+
+	if err != nil {
+		slog.Error("http error", "err", err, "status", statusCode)
+		return nil, err
+	}
+
+	return data, nil
+}

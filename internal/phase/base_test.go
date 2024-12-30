@@ -58,6 +58,10 @@ func (be *fakeBackend) InitializeProject(displayName string) (*api.ProjectDescri
 	panic("not implemented")
 }
 
+func (be *fakeBackend) QueryMavenGroupIds(lookup *api.MavenGroupIDLookupList) (*api.Page[api.MavenGroupIDLookupResult], error) {
+	panic("not implemented")
+}
+
 func TestBulkQuerySingleChunk(t *testing.T) {
 	be := &fakeBackend{m: &sync.Mutex{}}
 	_, err := fetchPackagesInfo(be, []common.Dependency{

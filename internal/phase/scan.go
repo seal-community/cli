@@ -36,7 +36,7 @@ func (sp *scanPhase) Collect() (common.DependencyMap, error) {
 
 	slog.Info("collecting packages", "manager_version", packageManager.GetVersion())
 
-	dependencyMap, err := packageManager.ListDependencies()
+	dependencyMap, err := packageManager.ListDependencies(sp.Backend)
 	if err != nil {
 		slog.Error("failed parsing package manager output", "err", err)
 		// general error, might be caused due to return code

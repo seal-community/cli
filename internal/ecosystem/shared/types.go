@@ -54,7 +54,7 @@ type PackageManager interface {
 	Class() actions.ManagerClass
 	GetVersion() string
 	IsVersionSupported(version string) bool
-	ListDependencies() (common.DependencyMap, error)
+	ListDependencies(be api.Backend) (common.DependencyMap, error)
 	GetProjectName() string // empty string means failure
 	GetFixer(workdir string) DependencyFixer
 	GetEcosystem() string

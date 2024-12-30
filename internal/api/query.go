@@ -20,6 +20,8 @@ type Backend interface {
 	InitializeProject(displayName string) (*ProjectDescriptor, error)
 
 	QuerySilenceRules() ([]SilenceRule, error)
+
+	QueryMavenGroupIds(lookup *MavenGroupIDLookupList) (*Page[MavenGroupIDLookupResult], error)
 }
 
 var ArtifactServerUnsupportedMethod = errors.New("unsupported http method")

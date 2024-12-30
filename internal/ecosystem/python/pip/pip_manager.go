@@ -92,7 +92,7 @@ func (m *PipPackageManager) IsVersionSupported(version string) bool {
 	return true
 }
 
-func (m *PipPackageManager) ListDependencies() (common.DependencyMap, error) {
+func (m *PipPackageManager) ListDependencies(be api.Backend) (common.DependencyMap, error) {
 	result, ok := listPackages(m.targetDir)
 	if !ok {
 		slog.Error("failed running package manager in the current dir", "name", m.Name())
