@@ -19,8 +19,8 @@ func setupLogging(logfile *os.File, verbosity int) {
 	if verbosity > 0 {
 		output = io.MultiWriter(os.Stdout, logfile) // will print to console as well as file
 		level = slog.LevelInfo
+		addSource = true
 		if verbosity > 1 {
-			addSource = true
 			level = slog.LevelDebug
 		}
 

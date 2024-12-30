@@ -57,11 +57,6 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 
 	pomChanged := false
 	for _, zipItem := range origReader.File {
-		zipItemReader, err := zipItem.Open()
-		if err != nil {
-			slog.Error("failed opening zip item", "err", err, "path", zipItem.Name)
-			return "", err
-		}
 
 		header := zipItem.FileHeader
 		targetItem, err := sealedZipWriter.CreateHeader(&header)
@@ -70,8 +65,22 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 			return "", err
 		}
 
+		currFileName := filepath.ToSlash(header.Name)
+
+		if currFileName != pomPropertiesFilePath && currFileName != manifestFilePath && currFileName != pomXMLFilePath {
+			// we skip non pom/manifest files here to make sure we're not trying to open zip items that we don't need to
+			slog.Debug("skipping non pom/manifest file", "path", currFileName)
+			continue
+		}
+
+		zipItemReader, err := zipItem.Open()
+		if err != nil {
+			slog.Error("failed opening zip item", "err", err, "path", zipItem.Name)
+			return "", err
+		}
+
 		itemReader := zipItemReader
-		switch currFileName := filepath.ToSlash(header.Name); currFileName {
+		switch currFileName {
 		case pomPropertiesFilePath:
 			pomProp := PomProperties{GroupId: sealGroupId, ArtifactId: artifactId, Version: originalVersion}
 			itemReader = pomProp.GetAsReader()

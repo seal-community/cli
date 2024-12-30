@@ -31,6 +31,20 @@ func findShadedDependenciesFromJar(jarPath string) (map[shadedDependency]bool, m
 	defer origReader.Close()
 
 	for _, zipItem := range origReader.File {
+		header := zipItem.FileHeader
+
+		currFilePath := filepath.ToSlash(header.Name)
+		currFileName := filepath.Base(header.Name)
+
+		if currFileName != PomXMLFileName && currFileName != PomPropertiesFileName {
+			// we skip non pom files here to make sure we're not trying to open zip items
+			// that we don't need to.
+			// it previously failed on a file with `ErrFormat` originated from:
+			// https://cs.opensource.google/go/go/+/refs/tags/go1.23.4:src/archive/zip/reader.go;l=338
+			slog.Debug("skipping non pom file", "path", currFilePath)
+			continue
+		}
+
 		zipItemReader, err := zipItem.Open()
 		if err != nil {
 			slog.Error("failed opening zip item", "err", err, "path", zipItem.Name)
@@ -38,10 +52,6 @@ func findShadedDependenciesFromJar(jarPath string) (map[shadedDependency]bool, m
 		}
 		defer zipItemReader.Close()
 
-		header := zipItem.FileHeader
-
-		currFilePath := filepath.ToSlash(header.Name)
-		currFileName := filepath.Base(header.Name)
 		if currFileName == PomXMLFileName {
 			slog.Debug("found pom file", "path", currFilePath)
 			pom := ReadPomXMLFromFile(zipItemReader)
@@ -55,7 +65,7 @@ func findShadedDependenciesFromJar(jarPath string) (map[shadedDependency]bool, m
 				version: pom.GetVersion(),
 			}
 			pomXmlDeps[dep] = true
-			slog.Info("found shaded dependencies", "package", dep)
+			slog.Info("found shaded dependencies from pom.xml", "package", dep)
 
 		} else if currFileName == PomPropertiesFileName {
 			slog.Debug("found pom properties file", "path", currFilePath)
@@ -70,7 +80,7 @@ func findShadedDependenciesFromJar(jarPath string) (map[shadedDependency]bool, m
 				version: pomProperties.Version,
 			}
 			pomPropertiesDeps[dep] = true
-			slog.Info("found shaded dependencies", "package", dep)
+			slog.Info("found shaded dependencies from pon.properties", "package", dep)
 
 		}
 	}
