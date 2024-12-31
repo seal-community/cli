@@ -67,12 +67,6 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 
 		currFileName := filepath.ToSlash(header.Name)
 
-		if currFileName != pomPropertiesFilePath && currFileName != manifestFilePath && currFileName != pomXMLFilePath {
-			// we skip non pom/manifest files here to make sure we're not trying to open zip items that we don't need to
-			slog.Debug("skipping non pom/manifest file", "path", currFileName)
-			continue
-		}
-
 		zipItemReader, err := zipItem.Open()
 		if err != nil {
 			slog.Error("failed opening zip item", "err", err, "path", zipItem.Name)
