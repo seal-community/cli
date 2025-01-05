@@ -41,7 +41,7 @@ tzdata 2024a-0+deb12u1 all  install ok installed
 	if tar.Arch != "amd64" {
 		t.Errorf("expected x86_64, got %s", tar.Arch)
 	}
-	if tar.PackageManager != mappings.DebGManager {
+	if tar.PackageManager != mappings.DebManager {
 		t.Errorf("expected deb, got %s", tar.PackageManager)
 	}
 
@@ -59,7 +59,7 @@ tzdata 2024a-0+deb12u1 all  install ok installed
 	if tzdata.Arch != "all" {
 		t.Errorf("expected all, got %s", tzdata.Arch)
 	}
-	if tzdata.PackageManager != mappings.DebGManager {
+	if tzdata.PackageManager != mappings.DebManager {
 		t.Errorf("expected deb, got %s", tzdata.PackageManager)
 	}
 }

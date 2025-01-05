@@ -46,7 +46,7 @@ func ParseDpkgQueryInstalled(dpkgList string) (common.DependencyMap, error) {
 			Name:           name,
 			NormalizedName: name, // no normalization needed for dpkg packages
 			Version:        fields[1],
-			PackageManager: mappings.DebGManager,
+			PackageManager: mappings.DebManager,
 			Arch:           fields[2],
 		}
 

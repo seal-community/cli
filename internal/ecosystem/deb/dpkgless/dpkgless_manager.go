@@ -8,11 +8,13 @@ import (
 	"cli/internal/ecosystem/deb/utils"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
+	"errors"
 	"fmt"
 	"log/slog"
 )
 
 const DpkglessManagerName = "DPKGLESS"
+const dpkglessStatusFileDirPath = "/var/lib/dpkg/status.d"
 
 // This manager mimics dpkg's actions in the filesystem manually
 type DpkglessPackageManager struct {
@@ -89,6 +91,20 @@ func (m *DpkglessPackageManager) DownloadPackage(server api.ArtifactServer, desc
 }
 
 func (m *DpkglessPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
+	if m.Config.UseSealedNames {
+		for _, fix := range fixes {
+			err := utils.RenameFix(
+				fix,
+				fmt.Sprintf("%s/%s", dpkglessStatusFileDirPath, fix.VulnerablePackage.Library.Name),
+				dpkglessStatusFileDirPath,
+			)
+			if err != nil {
+				slog.Error("failed renaming package", "err", err)
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -96,9 +112,31 @@ func (m *DpkglessPackageManager) NormalizePackageName(name string) string {
 	// dpkg does not require normalization
 	return name
 }
+
 func (m *DpkglessPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
-	slog.Warn("Silencing packages is not support for dpkg")
-	return nil, nil
+	silencedPackages := make(map[string][]string)
+	for _, rule := range silenceArray {
+		dependencyId, silencedPaths, err := utils.SilencePackage(
+			rule,
+			allDependencies,
+			fmt.Sprintf("%s/%s", dpkglessStatusFileDirPath, rule.Library),
+			dpkglessStatusFileDirPath,
+		)
+		if err != nil {
+			// USE_SEALED_NAMES and --silence are both flows that rename a package.
+			// If used together, they could collide.
+			var e *utils.PackageNotFoundError
+			if errors.As(err, &e) {
+				slog.Warn("failed to silence package, it might have already been renamed", "err", err, "package", rule.Library)
+				continue
+			}
+			slog.Error("failed to silence package", "err", err)
+			return silencedPackages, err
+		}
+		silencedPackages[dependencyId] = silencedPaths
+	}
+
+	return silencedPackages, nil
 }
 
 func (m *DpkglessPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {

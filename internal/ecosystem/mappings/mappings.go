@@ -14,7 +14,7 @@ const (
 	GolangManager   = "GO"
 	ComposerManager = "Composer"
 	RpmManager      = "RPM"
-	DebGManager     = "DEB"
+	DebManager      = "DEB"
 )
 
 const (
@@ -44,7 +44,7 @@ func BackendManagerToEcosystem(bem string) string {
 		return PhpEcosystem
 	case RpmManager:
 		return RpmEcosystem
-	case DebGManager:
+	case DebManager:
 		return DebEcosystem
 	default:
 		slog.Warn("unsupported manager", "manager", bem)
@@ -69,7 +69,7 @@ func EcosystemToBackendManager(es string) string {
 	case RpmEcosystem:
 		return RpmManager
 	case DebEcosystem:
-		return DebGManager
+		return DebManager
 	default:
 		slog.Warn("unsupported ecosystem", "value", es)
 		return ""

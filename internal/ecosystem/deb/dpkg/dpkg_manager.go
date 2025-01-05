@@ -8,6 +8,7 @@ import (
 	"cli/internal/ecosystem/deb/utils"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -16,6 +17,8 @@ import (
 const dpkgExeName = "dpkg"
 const dpkgQueryExeName = "dpkg-query"
 const dpkgQueryFormat = "${Package} ${Version} ${Architecture} ${Status}\n"
+const debianStatusFilePath = "/var/lib/dpkg/status"
+const debianInfoFilesDirPath = "/var/lib/dpkg/info"
 
 const DpkgManagerName = "DPKG"
 
@@ -133,6 +136,20 @@ func (m *DpkgPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) er
 		return fmt.Errorf("failed running dpkg install")
 	}
 
+	if m.Config.UseSealedNames {
+		for _, fix := range fixes {
+			err := utils.RenameFix(
+				fix,
+				debianStatusFilePath,
+				debianInfoFilesDirPath,
+			)
+			if err != nil {
+				slog.Error("failed renaming package", "err", err)
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -140,9 +157,32 @@ func (m *DpkgPackageManager) NormalizePackageName(name string) string {
 	// dpkg does not require normalization
 	return name
 }
+
 func (m *DpkgPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
-	slog.Warn("Silencing packages is not support for dpkg")
-	return nil, nil
+	silencedPackages := make(map[string][]string)
+	for _, rule := range silenceArray {
+		packageId, silencedPaths, err := utils.SilencePackage(
+			rule,
+			allDependencies,
+			debianStatusFilePath,
+			debianInfoFilesDirPath,
+		)
+		if err != nil {
+			// USE_SEALED_NAMES and --silence are both flows that rename a package.
+			// If used together, they could collide.
+			var e *utils.PackageNotFoundError
+			if errors.As(err, &e) {
+				slog.Warn("failed to silence package, it might have already been renamed", "err", err, "package", rule.Library)
+				continue
+			}
+
+			slog.Error("failed to silence package", "rule", rule, "err", err)
+			return silencedPackages, err
+		}
+		silencedPackages[packageId] = silencedPaths
+	}
+
+	return silencedPackages, nil
 }
 
 func (m *DpkgPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
