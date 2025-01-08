@@ -1,13 +1,11 @@
 package utils
 
 import (
-	"archive/tar"
 	"archive/zip"
 	"bufio"
 	"bytes"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
-	"compress/gzip"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -15,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -95,34 +94,6 @@ func (f *fixer) extractWhlPackage(sitePackagesPath string, payload []byte, dotdo
 	return distInfoPath, nil
 }
 
-// Given a payload of a .tar.gz source package, return it's package name with version
-// The payload is a tar.gz file, which contains a directory with the package name
-// All source packages follow this tree structure in the tar:
-// <package-name>-<version>/
-// <package-name>-<version>/...
-func getSourceName(payload []byte) (string, error) {
-	gzipReader, err := gzip.NewReader(bytes.NewReader(payload))
-	if err != nil {
-		slog.Error("Error creating gzip reader", "err", err)
-		return "", err
-	}
-	defer gzipReader.Close()
-
-	r := tar.NewReader(gzipReader)
-	header, err := r.Next()
-	if err != nil {
-		slog.Error("failed reading tar header", "err", err)
-		return "", err
-	}
-
-	if header.Typeflag != tar.TypeDir {
-		slog.Error("expected directory in tar", "type", header.Typeflag)
-		return "", fmt.Errorf("expected directory in tar")
-	}
-
-	return strings.TrimSuffix(header.Name, "/"), nil
-}
-
 func writePipOutput(output string) (string, error) {
 	// write the pip output to a file and do not remove it, so user can inspect it
 	pipOutput, err := os.CreateTemp("", "seal-pip-output-*.log")
@@ -142,12 +113,8 @@ func writePipOutput(output string) (string, error) {
 	return pipOutput.Name(), nil
 }
 
-func (f *fixer) extractSourcePackage(sitePackagesPath string, dep common.Dependency, payload []byte) (string, error) {
-	srcName, err := getSourceName(payload)
-	if err != nil {
-		slog.Error("failed getting source name", "err", err)
-		return "", err
-	}
+func (f *fixer) extractSourcePackage(sitePackagesPath string, dep common.Dependency, payload []byte, fileName string) (string, error) {
+	srcName := strings.TrimSuffix(fileName, ".tar.gz")
 	slog.Debug("source package name", "name", srcName)
 
 	tmpDir, err := os.MkdirTemp("", "seal-source-package-*")
@@ -157,7 +124,7 @@ func (f *fixer) extractSourcePackage(sitePackagesPath string, dep common.Depende
 	}
 	defer os.RemoveAll(tmpDir)
 
-	tmpPath := filepath.Join(tmpDir, fmt.Sprintf("%s.tar.gz", srcName))
+	tmpPath := filepath.Join(tmpDir, fileName)
 	err = os.WriteFile(tmpPath, payload, os.ModePerm)
 	if err != nil {
 		slog.Error("failed writing source package to temp file", "err", err)
@@ -193,13 +160,15 @@ func (f *fixer) extractSourcePackage(sitePackagesPath string, dep common.Depende
 	return distInfoPath, nil
 }
 
-func (f *fixer) extractPackage(sitePackagesPath string, dep common.Dependency, payload []byte, dotdotPaths []string) (string, error) {
-	// check if the payload is a zip file, which means it's a wheel
-	if bytes.Equal(payload[:4], []byte{'P', 'K', 3, 4}) {
+func (f *fixer) extractPackage(sitePackagesPath string, dep common.Dependency, payload []byte, dotdotPaths []string, fileName string) (string, error) {
+	switch {
+	case strings.HasSuffix(fileName, ".whl"):
 		return f.extractWhlPackage(sitePackagesPath, payload, dotdotPaths)
+	case strings.HasSuffix(fileName, ".tar.gz"):
+		return f.extractSourcePackage(sitePackagesPath, dep, payload, fileName)
 	}
 
-	return f.extractSourcePackage(sitePackagesPath, dep, payload)
+	return "", fmt.Errorf("unsupported package type %s", fileName)
 }
 
 func parseRecordFile(recordFile io.Reader) ([]string, error) {
@@ -278,6 +247,12 @@ func backupDependency(dep common.Dependency, src string, dst string, files []str
 	}
 
 	// Remove directories from site-packages, since os.Rename for files did not remove them
+	// we need to sort by length, since we want to remove the deepest directories first
+	// to avoid removing parent directories that are not empty
+	sort.Slice(dirs, func(i, j int) bool {
+		return len(dirs[i]) > len(dirs[j])
+	})
+
 	for _, dir := range dirs {
 		isEmpty, err := common.IsDirEmpty(dir)
 		if err != nil {
@@ -368,7 +343,7 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 
 	f.rollback[dep.DiskPath] = tmpName
 
-	distInfoPath, err := f.extractPackage(sitePackages, *dep, packageData, dotdotPaths)
+	distInfoPath, err := f.extractPackage(sitePackages, *dep, packageData, dotdotPaths, fileName)
 	if err != nil {
 		slog.Error("failed extracting package", "err", err, "target", sitePackages, "payloadLen", len(packageData))
 		return false, "", common.FallbackPrintableMsg(err, "failed applying fix for package %s", dep.PrintableName())
