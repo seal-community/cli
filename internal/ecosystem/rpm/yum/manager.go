@@ -8,6 +8,7 @@ import (
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/rpm/utils"
 	"cli/internal/ecosystem/shared"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -148,8 +149,23 @@ func (m *YumPackageManager) NormalizePackageName(name string) string {
 }
 
 func (m *YumPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
-	slog.Warn("Silencing packages is not support for yum")
-	return nil, nil
+	silencedPackages := make(map[string][]string)
+	for _, rule := range silenceArray {
+		packageId, silencedPaths, err := utils.SilencePackage(rule, allDependencies)
+		if err != nil {
+			var e *utils.PackageNotFoundError
+			if errors.As(err, &e) {
+				slog.Warn("failed to silence package, it might have already been renamed", "err", err, "package", rule.Library)
+				continue
+			}
+
+			slog.Error("failed to silence package", "rule", rule, "err", err)
+			return silencedPackages, err
+		}
+		silencedPackages[packageId] = silencedPaths
+	}
+
+	return silencedPackages, nil
 }
 
 func (m *YumPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {

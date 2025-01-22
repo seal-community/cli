@@ -29,6 +29,7 @@ require (
 	github.com/beevik/etree v1.4.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/hashicorp/go-version v1.7.0
+	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/whilp/git-urls v1.0.0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	gopkg.in/ini.v1 v1.67.0
