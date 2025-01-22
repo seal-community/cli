@@ -6,13 +6,13 @@ import (
 
 	"log/slog"
 
-	_ "github.com/mattn/go-sqlite3" // The underscore registers the driver without directly using it
+	_ "modernc.org/sqlite" // The underscore registers the driver without directly using it
 )
 
 const RpmDBPath = "/var/lib/rpm/rpmdb.sqlite"
 
 func connectToRpmSQLiteDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", RpmDBPath)
+	db, err := sql.Open("sqlite", RpmDBPath)
 	if err != nil {
 		slog.Error("failed opening rpm db", "err", err)
 		return nil, err

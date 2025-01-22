@@ -69,6 +69,10 @@ func parseJarPath(jarPath string) (string, string, error) {
 		}
 	}
 
+	// some usages add the groupId to the jar path, ignore it here
+	splitByDot := strings.Split(name, ".")
+	name = splitByDot[len(splitByDot)-1]
+
 	return name, version, nil
 }
 

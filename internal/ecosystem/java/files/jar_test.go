@@ -47,6 +47,12 @@ func TestParseJarPath(t *testing.T) {
 			version:    "4.0.9.RELEASE+sp1",
 			err:        false,
 		},
+		{
+			jarPath:    "commons-io.commons-io-2.11.0.jar",
+			artifactId: "commons-io",
+			version:    "2.11.0",
+			err:        false,
+		},
 	}
 
 	for _, c := range cases {
