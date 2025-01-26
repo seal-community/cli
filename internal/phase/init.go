@@ -163,6 +163,9 @@ func (p *basePhase) init(targetPath string, configPath string, showProgress bool
 		return common.NewPrintableError("failed creating temporary folder under %s", p.BaseDir)
 	}
 
+	// add to cleanup list so if the user chose to clean up, we will remove the folder
+	common.AddPathToClean(common.RemoveTypeWd, p.Workdir)
+
 	if err := p.initServers(); err != nil {
 		slog.Error("failed initializing servers", "err", err)
 		return err

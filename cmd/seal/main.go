@@ -23,6 +23,8 @@ const (
 )
 
 const verboseFlagKey = "verbose"
+const cleanFlagKey = "clean"
+const removeCliFlagKey = "remove-cli"
 const actionsFileKey = "actions-file-path"
 const configFileKey = "config-file-path"
 const uploadResultsKey = "upload-scan-results"
@@ -91,11 +93,55 @@ func rootCmd() *cobra.Command {
 	cmd.PersistentFlags().Bool(uploadResultsKey, false, "upload scan results to server")
 	cmd.PersistentFlags().String(filesystemFlag, "", "which files to use")
 	cmd.PersistentFlags().Bool(osFlag, false, "use OS mode, no target file needed")
+	cmd.PersistentFlags().Bool(cleanFlagKey, false, "clean up mode")
+	cmd.PersistentFlags().Bool(removeCliFlagKey, false, "remove the CLI after execution (available only on Linux)")
 	return cmd
 }
 
 func cli() (errCode ErrorCode) {
 	var verbosity int
+	var clean bool
+	var removeCli bool
+
+	defer func() {
+		// Cleanup code, will run even if panic happens
+		if clean {
+			slog.Debug("running clean up")
+			if len(common.PathsToClean) == 0 {
+				slog.Warn("no paths to clean up")
+			}
+
+			for _, paths := range common.PathsToClean {
+				for _, path := range paths {
+					slog.Debug("cleaning up", "path", path)
+					if err := os.RemoveAll(path); err != nil {
+						// Best effort cleanup, we do not want to stop the cleanup process if one fails
+						slog.Error("failed cleaning up", "path", path, "err", err)
+						fmt.Println(common.Colorize("Error:", common.AnsiBrightRed), "failed cleaning up path", path)
+						errCode = FailedCommand
+					}
+				}
+			}
+		}
+	}()
+
+	defer func() {
+		// Remove the executable if requested, will run even if panic happens
+		if removeCli {
+			ex, err := os.Executable()
+			if err != nil {
+				slog.Error("failed getting executable path", "err", err)
+				fmt.Println(common.Colorize("Error:", common.AnsiBrightRed), "failed getting executable path")
+				errCode = FailedCommand
+			}
+			slog.Debug("removing executable", "path", ex)
+			if err := os.Remove(ex); err != nil {
+				slog.Error("failed removing executable", "err", err)
+				fmt.Println(common.Colorize("Error:", common.AnsiBrightRed), "failed removing executable")
+				errCode = FailedCommand
+			}
+		}
+	}()
 
 	defer func() {
 		// used to recover from panics, might not have logging.
@@ -139,6 +185,7 @@ func cli() (errCode ErrorCode) {
 	}
 
 	cmd := rootCmd()
+
 	if cmd, err := cmd.ExecuteContextC(context.WithValue(context.Background(), logfileKey, logfile)); err != nil {
 		// checking if root pre run init was done
 		slog.Warn("command failed", "name", cmd.Name())
@@ -152,6 +199,15 @@ func cli() (errCode ErrorCode) {
 
 	// if succeeded we might want to keep the log file, depending on verbosity value
 	verbosity = getArgCount(cmd, verboseFlagKey)
+
+	// if we have a clean up mode, we should delete the executable and working directory
+	clean = getArgBool(cmd, cleanFlagKey)
+	removeCli = getArgBool(cmd, removeCliFlagKey)
+
+	if removeCli && runtime.GOOS != "linux" {
+		fmt.Println(common.Colorize("Error:", common.AnsiBrightRed), "removing the cli is only support for linux")
+		return FailedCommand
+	}
 
 	return Success
 }
