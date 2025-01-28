@@ -54,3 +54,30 @@ func TestGetSealedPomXML(t *testing.T) {
 		t.Fatalf("wrong result, expected: `%s` got: `%s`", expected, resultData)
 	}
 }
+
+func TestGetTempJarFile(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "test")
+	if err != nil {
+		t.Fatalf("failed creating temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	tempJarFile, err := getTempJarFile(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("failed getting temp jar file: %v", err)
+	}
+
+	tmpFileStat, err := tmpFile.Stat()
+	if err != nil {
+		t.Fatalf("failed getting temp jar file stat: %v", err)
+	}
+
+	tempJarFileStat, err := tempJarFile.Stat()
+	if err != nil {
+		t.Fatalf("failed getting temp jar file stat: %v", err)
+	}
+
+	if tmpFileStat.Mode() != tempJarFileStat.Mode() {
+		t.Fatalf("wrong mode, expected: %v got: %v", tmpFileStat.Mode(), tempJarFileStat.Mode())
+	}
+}

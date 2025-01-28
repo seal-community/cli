@@ -22,43 +22,26 @@ const PomXMLFileName = "pom.xml"
 const PomPropertiesFileName = "pom.properties"
 const manifestFileName = "MANIFEST.MF"
 
-// archive/zip supports a subset of zip file headers, so we need to build a new header based on the original one
-// to avoid errors when creating a new zip file
-// Java will fail to load classes from a jar that is not a valid zip file, e.g. has mixed zip file format versions
-func buildZipHeader(fh zip.FileHeader) zip.FileHeader {
-	var out zip.FileHeader
+// Returns a temp file object, with the same permissions as the original jar file
+func getTempJarFile(jarPath string) (*os.File, error) {
+	sealedNameFile, err := os.CreateTemp("", "tmp_jar")
+	if err != nil {
+		slog.Error("failed creating sealed file", "err", err, "path", jarPath)
+		return nil, err
+	}
 
-	// Intentionally skip the following fields, since archive/zip only supports a subset of zip file headers
-	// If we would have taken them as is, the resulting zip file would have been invalid
-	// archive/zip only support versions 2.0 and 4.5: https://cs.opensource.google/go/go/+/refs/tags/go1.23.5:src/archive/zip/struct.go;l=59
-	// It changes the version flags to be either one of them: https://cs.opensource.google/go/go/+/refs/tags/go1.23.5:src/archive/zip/writer.go;l=303
-	// CreatorVersion uint16
-	// ReaderVersion  uint16
-	// Flags          uint16
-	// Method uint16
+	fileInfo, err := os.Stat(jarPath)
+	if err != nil {
+		slog.Error("failed getting file info", "err", err, "path", jarPath)
+		return nil, err
+	}
 
-	// let the library handle these:
-	// CRC32 uint32
-	// CompressedSize uint32
-	// UncompressedSize uint32
-	// CompressedSize64 uint64
-	// UncompressedSize64 uint64
+	if err = sealedNameFile.Chmod(fileInfo.Mode()); err != nil {
+		slog.Error("failed setting file permissions", "err", err, "path", jarPath)
+		return nil, err
+	}
 
-	// Used to store the mode, used SetMode() instead
-	// ExternalAttrs uint32
-
-	out.Name = fh.Name
-	out.Comment = fh.Comment
-	out.NonUTF8 = fh.NonUTF8
-	out.Modified = fh.Modified
-	out.Extra = fh.Extra
-	out.SetMode(fh.Mode())
-
-	// deprecated, keep it anyway
-	out.ModifiedTime = fh.ModifiedTime
-	out.ModifiedDate = fh.ModifiedDate
-
-	return fh
+	return sealedNameFile, nil
 }
 
 // Creates a new jar with the following changes:
@@ -82,7 +65,7 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 	}
 	defer origReader.Close()
 
-	sealedNameFile, err := os.CreateTemp("", "tmp_jar")
+	sealedNameFile, err := getTempJarFile(jarPath)
 	if err != nil {
 		slog.Error("failed creating sealed file", "err", err, "path", jarPath)
 		return "", err
@@ -97,7 +80,7 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 	pomChanged := false
 	for _, zipItem := range origReader.File {
 
-		header := buildZipHeader(zipItem.FileHeader)
+		header := zipItem.FileHeader
 		targetItem, err := sealedZipWriter.CreateHeader(&header)
 		if err != nil {
 			slog.Error("failed creating zip item header", "err", err, "path", zipItem.Name)
@@ -280,7 +263,7 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 	}
 	defer origReader.Close()
 
-	sealedNameFile, err := os.CreateTemp("", "tmp_jar")
+	sealedNameFile, err := getTempJarFile(jarPath)
 	if err != nil {
 		slog.Error("failed creating sealed file", "err", err, "path", jarPath)
 		return "", nil, err
