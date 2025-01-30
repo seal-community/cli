@@ -212,6 +212,9 @@ func getArtifactServerUrl(manager shared.PackageManager, conf *config.Config) st
 
 	case mappings.DebEcosystem:
 		return api.DebServer
+
+	case mappings.ApkEcosystem:
+		return api.ApkServer
 	}
 
 	slog.Error("could not match artifact server to manager", "ecosystem", ecosystem, "manager", manager.Name())

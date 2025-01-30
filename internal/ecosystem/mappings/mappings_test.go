@@ -15,6 +15,7 @@ func TestEcosystemConversion(t *testing.T) {
 		{ComposerManager, "php"},
 		{RpmManager, "rpm"},
 		{DebManager, "deb"},
+		{ApkManager, "apk"},
 		{"asdasdasda", ""},
 	}
 
@@ -40,6 +41,7 @@ func TestManagerToEcosystemConversion(t *testing.T) {
 		{PhpEcosystem, "Composer"},
 		{RpmEcosystem, "RPM"},
 		{DebEcosystem, "DEB"},
+		{ApkEcosystem, "APK"},
 		{"asdasdasda", ""},
 	}
 

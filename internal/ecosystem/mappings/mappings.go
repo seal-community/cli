@@ -15,6 +15,7 @@ const (
 	ComposerManager = "Composer"
 	RpmManager      = "RPM"
 	DebManager      = "DEB"
+	ApkManager      = "APK"
 )
 
 const (
@@ -26,6 +27,7 @@ const (
 	PhpEcosystem    = "php"
 	RpmEcosystem    = "rpm"
 	DebEcosystem    = "deb"
+	ApkEcosystem    = "apk"
 )
 
 func BackendManagerToEcosystem(bem string) string {
@@ -46,6 +48,8 @@ func BackendManagerToEcosystem(bem string) string {
 		return RpmEcosystem
 	case DebManager:
 		return DebEcosystem
+	case ApkManager:
+		return ApkEcosystem
 	default:
 		slog.Warn("unsupported manager", "manager", bem)
 		return ""
@@ -70,6 +74,8 @@ func EcosystemToBackendManager(es string) string {
 		return RpmManager
 	case DebEcosystem:
 		return DebManager
+	case ApkEcosystem:
+		return ApkManager
 	default:
 		slog.Warn("unsupported ecosystem", "value", es)
 		return ""

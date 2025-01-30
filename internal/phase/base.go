@@ -4,6 +4,7 @@ import (
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/config"
+	"cli/internal/ecosystem/apk"
 	"cli/internal/ecosystem/deb"
 	"cli/internal/ecosystem/golang"
 	"cli/internal/ecosystem/java"
@@ -138,10 +139,12 @@ func findManifestPackageManager(configDir *config.Config, projectDir string, tar
 func findOSPackageManager(configDir *config.Config, projectDir string) (shared.PackageManager, error) {
 	rpmManager, rpmErr := rpm.GetPackageManager(configDir, projectDir)
 	debManager, debErr := deb.GetPackageManager(configDir, projectDir)
+	apkManager, apkErr := apk.GetPackageManager(configDir, projectDir)
 
 	availableManagers := []availableManager{
 		{rpmManager, rpmErr},
 		{debManager, debErr},
+		{apkManager, apkErr},
 	}
 
 	if m := chooseManager(availableManagers); m != nil {
