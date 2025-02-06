@@ -1,13 +1,13 @@
 package utils
 
 import (
-	"archive/zip"
 	"bufio"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"fmt"
+	"github.com/klauspost/compress/zip"
 	"io"
 	"log/slog"
 	"os"
@@ -79,21 +79,14 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 
 	pomChanged := false
 	for _, zipItem := range origReader.File {
-
-		header := zipItem.FileHeader
-		targetItem, err := sealedZipWriter.CreateHeader(&header)
-		if err != nil {
-			slog.Error("failed creating zip item header", "err", err, "path", zipItem.Name)
-			return "", err
-		}
-
-		currFileName := filepath.ToSlash(header.Name)
+		currFileName := filepath.ToSlash(zipItem.Name)
 
 		zipItemReader, err := zipItem.Open()
 		if err != nil {
 			slog.Error("failed opening zip item", "err", err, "path", zipItem.Name)
 			return "", err
 		}
+		defer zipItemReader.Close()
 
 		itemReader := zipItemReader
 		switch currFileName {
@@ -111,9 +104,8 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 			return "", fmt.Errorf("failed to create new item reader for %s", zipItem.Name)
 		}
 
-		_, err = io.Copy(targetItem, itemReader)
+		err = AddFileToZip(sealedZipWriter, currFileName, itemReader)
 		if err != nil {
-			slog.Error("failed copying zip item", "err", err, "path", zipItem.Name)
 			return "", err
 		}
 	}
@@ -127,7 +119,7 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 			return "", fmt.Errorf("failed to create new item reader for %s", PomPropertiesFileName)
 		}
 
-		err := common.AddFileToZip(sealedZipWriter, pomPropertiesFilePath, itemReader)
+		err := AddFileToZip(sealedZipWriter, pomPropertiesFilePath, itemReader)
 		if err != nil {
 			return "", err
 		}
@@ -277,7 +269,7 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 
 	silencedPackagesMap := make(map[string]bool, 0)
 
-	zipFilePathsList := common.GetZipFilePathsSet(origReader.File)
+	zipFilePathsList := GetZipFilePathsSet(origReader.File)
 
 	for _, zipItem := range origReader.File {
 		zipItemReader, err := zipItem.Open()
@@ -320,7 +312,7 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 						return "", nil, fmt.Errorf("failed to create new item reader for %s", PomPropertiesFileName)
 					}
 
-					err := common.AddFileToZip(sealedZipWriter, pomPropertiesFilePath, pomReader)
+					err := AddFileToZip(sealedZipWriter, pomPropertiesFilePath, pomReader)
 					if err != nil {
 						return "", nil, err
 					}
@@ -384,7 +376,7 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 				return "", nil, fmt.Errorf("failed to create new item reader for %s", PomPropertiesFileName)
 			}
 
-			err := common.AddFileToZip(sealedZipWriter, mainPomPropertiesFilePath, itemReader)
+			err := AddFileToZip(sealedZipWriter, mainPomPropertiesFilePath, itemReader)
 			if err != nil {
 				return "", nil, err
 			}
