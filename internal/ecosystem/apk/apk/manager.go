@@ -145,8 +145,39 @@ func (m *APKPackageManager) NormalizePackageName(name string) string {
 }
 
 func (m *APKPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
-	slog.Warn("Silencing packages is not support for apk")
-	return nil, nil
+	silencedPackages := make(map[string][]string)
+	dbContent, err := os.ReadFile(utils.ApkDBPath)
+	if err != nil {
+		slog.Error("failed to silence package", "err", err)
+		return nil, err
+	}
+
+	var wasRenamed bool
+	newDBContent := string(dbContent)
+	for _, rule := range silenceArray {
+		wasRenamed, newDBContent = utils.RenamePackage(newDBContent, rule)
+		if !wasRenamed {
+			// We don't want to fail if the package is not found in the APK DB
+			slog.Warn("could not rename package in APK DB. Skipping", "package", rule.Library)
+			continue
+		}
+
+		ruleDependencyId := common.DependencyId(mappings.ApkManager, rule.Library, rule.Version)
+
+		silencedPaths := []string{}
+		for _, dep := range allDependencies[ruleDependencyId] {
+			silencedPaths = append(silencedPaths, dep.DiskPath)
+		}
+		silencedPackages[ruleDependencyId] = silencedPaths
+	}
+
+	err = common.DumpBytes(utils.ApkDBPath, []byte(newDBContent))
+	if err != nil {
+		slog.Error("failed to silence package", "err", err)
+		return nil, err
+	}
+
+	return silencedPackages, nil
 }
 
 func (m *APKPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
