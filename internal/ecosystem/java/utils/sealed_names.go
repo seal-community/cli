@@ -278,16 +278,9 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 			return "", nil, err
 		}
 
-		header := zipItem.FileHeader
-		targetItem, err := sealedZipWriter.CreateHeader(&header)
-		if err != nil {
-			slog.Error("failed creating zip item header", "err", err, "path", zipItem.Name)
-			return "", nil, err
-		}
-
 		itemReader := zipItemReader
-		currFilePath := filepath.ToSlash(header.Name)
-		currFileName := filepath.Base(header.Name)
+		currFilePath := filepath.ToSlash(zipItem.Name)
+		currFileName := filepath.Base(zipItem.Name)
 		if currFileName == PomXMLFileName {
 			pom := ReadPomXMLFromFile(zipItemReader)
 			if pom == nil {
@@ -351,9 +344,8 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 			return "", nil, fmt.Errorf("failed to create new item reader for %s", zipItem.Name)
 		}
 
-		_, err = io.Copy(targetItem, itemReader)
+		err = AddFileToZip(sealedZipWriter, currFilePath, itemReader)
 		if err != nil {
-			slog.Error("failed copying zip item", "err", err, "path", zipItem.Name)
 			return "", nil, err
 		}
 	}
