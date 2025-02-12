@@ -2,6 +2,7 @@ package apk
 
 import (
 	"cli/internal/common"
+	"cli/internal/ecosystem/apk/utils"
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"log/slog"
@@ -56,4 +57,25 @@ func (m *APKPackageManager) Cleanup() bool {
 	}
 
 	return true
+}
+
+func (m *APKPackageManager) fixWorldFile(fixes []shared.DependencyDescriptor) error {
+	worldBytes, err := os.ReadFile(utils.ApkWorldPath)
+	if err != nil {
+		slog.Error("failed reading apk world file", "err", err)
+		return err
+	}
+
+	world := string(worldBytes)
+	for _, fix := range fixes {
+		world = utils.ApkWorldRemoveHashRestriction(fix.VulnerablePackage.Library.Name, world)
+	}
+
+	err = common.DumpBytes(utils.ApkWorldPath, []byte(world))
+	if err != nil {
+		slog.Error("failed writing apk world file", "err", err)
+		return err
+	}
+
+	return nil
 }

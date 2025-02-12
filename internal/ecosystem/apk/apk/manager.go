@@ -125,6 +125,12 @@ func (m *APKPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) err
 		return common.NewPrintableError("You must be root to fix OS packages")
 	}
 
+	err := m.fixWorldFile(fixes)
+	if err != nil {
+		slog.Error("failed modifying apk world file", "err", err)
+		return err
+	}
+
 	installArgs := append([]string{"add", "--allow-untrusted"}, m.installPaths...)
 	installOutput, err := common.RunCmdWithArgs(m.targetDir, apkExeName, installArgs...)
 	if err != nil {
