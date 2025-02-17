@@ -24,14 +24,29 @@ const goExe = "go"
 const MinimalSupportedVersion = "1.17.0"
 
 type GolangPackageManager struct {
-	Config           *config.Config
-	golangTargetFile string
-	targetDir        string
-	goMod            *modfile.File
+	Config              *config.Config
+	golangTargetFile    string
+	targetDir           string
+	goMod               *modfile.File
+	vendorDir           string
+	vendorAlreadyExists bool
 }
 
 func NewGolangManager(config *config.Config, targetFile string, targetDir string) *GolangPackageManager {
-	return &GolangPackageManager{Config: config, golangTargetFile: targetFile, targetDir: targetDir}
+	vendorDirPath := filepath.Join(targetDir, vendorDir)
+	vendorAlreadyExists, err := isVendorDirExist(targetDir)
+	if err != nil {
+		slog.Error("failed checking vendor dir exists", "err", err)
+		return nil
+	}
+
+	return &GolangPackageManager{
+		Config:              config,
+		golangTargetFile:    targetFile,
+		targetDir:           targetDir,
+		vendorDir:           vendorDirPath,
+		vendorAlreadyExists: vendorAlreadyExists,
+	}
 }
 
 func (m *GolangPackageManager) Name() string {
@@ -100,7 +115,7 @@ func (m *GolangPackageManager) GetProjectName() string {
 }
 
 func (m *GolangPackageManager) GetFixer(workdir string) shared.DependencyFixer {
-	return NewFixer(m.targetDir, workdir)
+	return newFixer(m.targetDir, workdir, m.vendorDir, m.vendorAlreadyExists)
 }
 
 func (m *GolangPackageManager) GetEcosystem() string {
@@ -116,9 +131,19 @@ func (m *GolangPackageManager) DownloadPackage(server api.ArtifactServer, descri
 }
 
 func (m *GolangPackageManager) HandleFixes(fixes []shared.DependencyDescriptor) error {
-	if m.Config.UseSealedNames {
-		slog.Warn("using sealed names in golang is not supported yet")
+	if !m.Config.UseSealedNames {
+		return nil
 	}
+
+	slog.Info("using sealed names")
+	for _, fix := range fixes {
+		err := renamePackage(m.vendorDir, fix.VulnerablePackage.Library.Name, fix.VulnerablePackage.Version)
+		if err != nil {
+			slog.Error("failed renaming package", "package", fix.VulnerablePackage.Library.Name, "version", fix.VulnerablePackage.Version, "err", err)
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -157,8 +182,32 @@ func GetPackageManager(config *config.Config, targetDir string, targetFile strin
 }
 
 func (m *GolangPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
-	slog.Warn("Silencing packages is not support for golang")
-	return nil, nil
+	exists, err := isVendorDirExist(m.vendorDir)
+	if err != nil {
+		slog.Error("failed checking vendor dir exists", "err", err)
+		return nil, err
+	}
+
+	if !exists {
+		err := PrepareVendorDir(m.targetDir) // prepare if was not done already when applied fixes
+		if err != nil {
+			slog.Error("failed preparing vendor dir", "err", err)
+			return nil, err
+		}
+	}
+
+	silenced := []api.SilenceRule{}
+	for _, rule := range silenceArray {
+		err = renamePackage(m.vendorDir, rule.Library, rule.Version)
+		if err != nil {
+			slog.Error("failed renaming package", "package", rule.Library, "version", rule.Version, "err", err)
+			break
+		}
+
+		silenced = append(silenced, rule)
+	}
+
+	return api.GetSilencedMap(silenced, allDependencies, mappings.GolangManager), err
 }
 
 func (m *GolangPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {

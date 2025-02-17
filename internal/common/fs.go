@@ -178,17 +178,12 @@ func ConvertSymLinkToFile(path string) error {
 		return nil
 	}
 
-	opts := copy.Options{
-		PreserveTimes: true,
-		PreserveOwner: true,
-	}
-
 	if err := os.Remove(path); err != nil {
 		slog.Error("failed removing symlink", "err", err, "path", path)
 		return err
 	}
 
-	if err := copy.Copy(resolvedPath, path, opts); err != nil {
+	if err := CopyFile(resolvedPath, path); err != nil {
 		slog.Error("failed converting symlink to file", "err", err, "path", resolvedPath)
 		return err
 	}
@@ -209,4 +204,18 @@ func ListDir(path string) ([]string, error) {
 	}
 
 	return res, nil
+}
+
+func CopyFile(srcPath string, dstPath string) error {
+	opts := copy.Options{
+		PreserveTimes: true,
+		PreserveOwner: true,
+	}
+
+	err := copy.Copy(srcPath, dstPath, opts)
+	if err != nil {
+		slog.Error("failed copying file", "err", err, "src", srcPath, "dst", dstPath)
+	}
+
+	return err
 }

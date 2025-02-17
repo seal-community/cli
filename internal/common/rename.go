@@ -5,8 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"syscall"
-
-	"github.com/otiai10/copy"
 )
 
 // tries to use os.Rename first
@@ -36,13 +34,7 @@ func Move(source, destination string) error {
 	slog.Debug("Cross-device link detected (EXDEV).")
 	// Handle cross-device move logic here (e.g., copy and delete)
 
-	// Copy the file.
-	opts := copy.Options{
-		PreserveTimes: true,
-		PreserveOwner: true,
-	}
-
-	if err := copy.Copy(source, destination, opts); err != nil {
+	if err := CopyFile(source, destination); err != nil {
 		slog.Error("copy failed", "err", err, "src", source, "dst", destination)
 		if rmErr := os.RemoveAll(destination); rmErr != nil {
 			// attempting to clean if copy failed midway, nothing we can do if this fails

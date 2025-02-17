@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -31,6 +30,19 @@ type fixer struct {
 	workdir             string
 	vendorAlreadyExists bool
 	vendorDir           string
+	tmpGoModPath        string
+}
+
+func (f *fixer) saveGoModFile() error {
+	origModPath := filepath.Join(f.projectDir, "go.mod")
+	tmpGoModPath := filepath.Join(f.workdir, "go.mod")
+	err := common.CopyFile(origModPath, tmpGoModPath)
+	if err != nil {
+		return err
+	}
+
+	f.tmpGoModPath = tmpGoModPath
+	return nil
 }
 
 // Run `go mod vendor` to create a vendor directory with all dependencies
@@ -42,31 +54,18 @@ func (f *fixer) Prepare() error {
 		return err
 	}
 
-	f.vendorDir = filepath.Join(f.projectDir, vendorDir)
-	exists, err := common.DirExists(f.vendorDir)
+	err := f.saveGoModFile()
 	if err != nil {
-		slog.Error("failed checking if vendor directory exists", "err", err)
+		slog.Error("failed copying go.mod file", "err", err)
 		return err
 	}
 
-	if exists {
-		slog.Info("vendor directory already exists, will not create", "vendorDir", f.vendorDir)
-		f.vendorAlreadyExists = true
-		return nil
-	}
-
-	slog.Info("running go mod vendor", "vendorDir", f.vendorDir)
-	pr, err := common.RunCmdWithArgs(f.projectDir, "go", "mod", "vendor")
+	err = PrepareVendorDir(f.projectDir)
 	if err != nil {
-		slog.Error("failed running go mod vendor", "err", err)
-		return err
-	}
-	if pr.Code != 0 {
-		slog.Error("running go mod vendor returned non-zero", "result", pr)
-		return fmt.Errorf("running go mod vendor returned non-zero")
+		slog.Error("failed preparing vendor dir", "err", err)
 	}
 
-	return nil
+	return err
 }
 
 // files in zip include the module's version, but should appear without it in the vendor folder
@@ -119,6 +118,15 @@ func (f *fixer) Fix(entry shared.DependencyDescriptor, dep *common.Dependency, p
 // If it already existed before the fix, rollback each dependency to previous state
 // Otherwise, remove it entirely
 func (f *fixer) Rollback() bool {
+	success := true
+
+	goModPath := filepath.Join(f.projectDir, goModFilename)
+	err := common.CopyFile(f.tmpGoModPath, goModPath)
+	if err != nil {
+		slog.Error("failed rolling back go.mod file", "err", err) // Try and rollback the other changes
+		success = false
+	}
+
 	if !f.vendorAlreadyExists {
 		// remove `vendor` folder entirely
 		slog.Info("rollback, removing vendor directory", "vendorDir", f.vendorDir)
@@ -132,15 +140,17 @@ func (f *fixer) Rollback() bool {
 		for orig, tmp := range f.rollback {
 			if err := os.RemoveAll(orig); err != nil {
 				slog.Error("failed removing original version dir", "dir", orig)
+				success = false
 			}
 
 			if err := common.Move(tmp, orig); err != nil {
 				slog.Error("failed renaming tmp to original version dir", "tmp", tmp, "orig", orig)
+				success = false
 			}
 		}
 	}
 
-	return true
+	return success
 }
 
 // Remove workdir
@@ -153,10 +163,12 @@ func (f *fixer) Cleanup() bool {
 	return true
 }
 
-func NewFixer(projectDir string, workdir string) shared.DependencyFixer {
+func newFixer(projectDir string, workdir string, vendorDirPath string, vendorAlreadyExists bool) shared.DependencyFixer {
 	return &fixer{
-		projectDir: projectDir,
-		workdir:    workdir,
-		rollback:   make(map[string]string, 100),
+		projectDir:          projectDir,
+		workdir:             workdir,
+		rollback:            make(map[string]string, 100),
+		vendorDir:           vendorDirPath,
+		vendorAlreadyExists: vendorAlreadyExists,
 	}
 }

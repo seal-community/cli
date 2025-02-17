@@ -151,7 +151,6 @@ func (m *APKPackageManager) NormalizePackageName(name string) string {
 }
 
 func (m *APKPackageManager) SilencePackages(silenceArray []api.SilenceRule, allDependencies common.DependencyMap) (map[string][]string, error) {
-	silencedPackages := make(map[string][]string)
 	dbContent, err := os.ReadFile(utils.ApkDBPath)
 	if err != nil {
 		slog.Error("failed to silence package", "err", err)
@@ -159,6 +158,7 @@ func (m *APKPackageManager) SilencePackages(silenceArray []api.SilenceRule, allD
 	}
 
 	var wasRenamed bool
+	silenced := []api.SilenceRule{}
 	newDBContent := string(dbContent)
 	for _, rule := range silenceArray {
 		wasRenamed, newDBContent = utils.RenamePackage(newDBContent, rule)
@@ -168,13 +168,7 @@ func (m *APKPackageManager) SilencePackages(silenceArray []api.SilenceRule, allD
 			continue
 		}
 
-		ruleDependencyId := common.DependencyId(mappings.ApkManager, rule.Library, rule.Version)
-
-		silencedPaths := []string{}
-		for _, dep := range allDependencies[ruleDependencyId] {
-			silencedPaths = append(silencedPaths, dep.DiskPath)
-		}
-		silencedPackages[ruleDependencyId] = silencedPaths
+		silenced = append(silenced, rule)
 	}
 
 	err = common.DumpBytes(utils.ApkDBPath, []byte(newDBContent))
@@ -183,7 +177,7 @@ func (m *APKPackageManager) SilencePackages(silenceArray []api.SilenceRule, allD
 		return nil, err
 	}
 
-	return silencedPackages, nil
+	return api.GetSilencedMap(silenced, allDependencies, mappings.ApkManager), nil
 }
 
 func (m *APKPackageManager) ConsolidateVulnerabilities(vulnerablePackages *[]api.PackageVersion, allDependencies common.DependencyMap) (*[]api.PackageVersion, error) {
