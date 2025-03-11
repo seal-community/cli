@@ -11,6 +11,7 @@ import (
 )
 
 const PackageJsonFile = "package.json"
+const SealSecurityNamespace = "@seal-security"
 
 func GetProjectName(dir string) string {
 	pgk := loadPackageJson(dir)
@@ -66,23 +67,37 @@ func getStringAttrFromPackageLock(pgk *orderedmap.OrderedMap, attrName string) s
 	return sVal
 }
 
-func calculateSealedName(originalName string) string {
+// gets one of the two possible formats:
+// 1. name -> @seal-security/name
+// 2. @scope/name -> @seal-security/scope-sealsec-name
+// Note that this function doesn't support Windows paths right now
+func CalculateSealedName(originalName string) string {
 	// if name name is empty, return empty string
 	if originalName == "" {
 		return ""
 	}
-	// if package has a name space - escape it with a dash
-	// for example: @angular/core -> angular-core
-	sealedName := originalName
-	if originalName[0] == '@' {
-		sealedName = strings.Replace(originalName[1:], "/", "-", -1) // remove the @ and replace / with -
+
+	// if the name is not namespaced, just add the sealsecurity namespace
+	if originalName[0] != '@' {
+		// add the sealsecurity namespace
+		return SealSecurityNamespace + "/" + originalName
 	}
-	// add the seal name space
-	sealedName = "@seal-security/" + sealedName
-	return sealedName
+
+	// if package has a name space - escape it with a `-sealsec-`
+	// for example: @angular/core -> @seal-security@angular-sealsec-core
+	parts := strings.Split(originalName, "/")
+	if len(parts) != 2 {
+		return ""
+	}
+
+	owner := parts[0]
+	name := parts[1]
+	return SealSecurityNamespace + "/" + owner[1:] + "-sealsec-" + name
 }
 
-// addSealPrefixToPackageLockFile adds a "seal-" prefix to the name field in the package.json file located at the given disk path.
+// addSealPrefixToPackageLockFile adds a "@seal-security" namespace to the name field in the package.json file located at the given disk path.
+// in the case that it's already namespaced, it'll add an escaping `-sealsec-` to the name as follows:
+// 1. @owner/name -> @seal-security/owner-sealsec-name
 // It loads the package.json file, modifies the name field, and saves the changes back to the file.
 //
 // Parameters:
@@ -99,7 +114,7 @@ func AddSealPrefixToPackageJsonFile(diskPath string) error {
 	if originalName == "" {
 		return errors.New("failed getting package name")
 	}
-	sealedPackageName := calculateSealedName(originalName)
+	sealedPackageName := CalculateSealedName(originalName)
 	if sealedPackageName == "" {
 		return errors.New("failed calculating sealed package name")
 	}

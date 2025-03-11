@@ -16,11 +16,12 @@ func TestCalculateSealedName(t *testing.T) {
 	namesToTest := []api.StringPair{
 		{Name: "", Value: ""},
 		{Name: "blah", Value: "@seal-security/blah"},
-		{Name: "@test/blah", Value: "@seal-security/test-blah"},
+		{Name: "@test/blah", Value: "@seal-security/test-sealsec-blah"},
+		{Name: "@test/blah/blah", Value: ""}, // invalid and shouldn't happen
 	}
 	for i, pair := range namesToTest {
 		t.Run(fmt.Sprintf("name_%d", i), func(t *testing.T) {
-			res := calculateSealedName(pair.Name)
+			res := CalculateSealedName(pair.Name)
 			if res != pair.Value {
 				t.Fatalf("failed to calculate sealed name `%s` -> %s != %s", pair, res, pair.Value)
 			}

@@ -3,6 +3,7 @@ package npm
 import (
 	"cli/internal/api"
 	"cli/internal/common"
+	"cli/internal/ecosystem/node/utils"
 	"cli/internal/ecosystem/shared"
 	"fmt"
 	"log/slog"
@@ -27,14 +28,51 @@ const (
 	lockBadVersion       lockfileVersion = -1
 )
 
+// formatUpdatedPackageName is used to get the sealed package name for the lock file
+// there are 4 cases:
+// 1. package name only - `name` -> `@seal-security/name`
+// 2. namespaced package - `@namespace/name` -> `@seal-security/namespace-sealsec-name`
+// 3. package with node_modules path - `/path/to/node_modules/name` -> `/path/to/node_modules/@seal-security/name`
+// 4. namespaced package with node_modules path - `/path/to/node_modules/@namespace/name` -> `/path/to/node_modules/@seal-security/namespace-sealsec-name`
+// Note: that this function doesn't support Windows paths right now
+// Note2: in the case of base package that has node_modules itself (/path/to/node_modeuls/base/node_modules/package),
+// It'll only handle the last part of the path (package)
 func formatUpdatedPackageName(originalName string) string {
-	idx := strings.LastIndex(originalName, "/")
-	if idx == -1 {
-		return fmt.Sprintf("seal-%s", originalName)
+	parts := strings.Split(originalName, "/")
+	c := len(parts)
+
+	// only package name
+	if c == 1 {
+		return utils.CalculateSealedName(originalName)
 	}
 
-	// either nested path in node modules, or namespaces @owner/pkg
-	return fmt.Sprintf("%sseal-%s", originalName[:idx+1], originalName[idx+1:])
+	// namespaced package
+	if c == 2 && originalName[0] == '@' {
+		return utils.CalculateSealedName(originalName)
+	}
+
+	// package with short node_modules path
+	// this is an edge case for handling the case with longer node_modules paths
+	if c == 2 && originalName[0] != '@' {
+		return fmt.Sprintf("%s/%s", parts[0], utils.CalculateSealedName(parts[1]))
+	}
+
+	// namespaced package with node_modules path
+	// case1: /path/to/node_modules/package
+	// case2: /path/to/node_modules/@namespace/package
+	// tail1: node_modules/package, tail2: @namespace/package
+	tail := strings.Join(parts[c-2:], "/")
+	// head1: /path/to head2: /path/to/node_modules
+	head := strings.Join(parts[:c-2], "/")
+	packageName := ""
+	if tail[0] == '@' { // namespaced package
+		packageName = utils.CalculateSealedName(tail)
+	} else { // only package name
+		packageName = utils.CalculateSealedName(parts[c-1])
+		head = head + "/" + parts[c-2]
+	}
+
+	return fmt.Sprintf("%s/%s", head, packageName)
 }
 
 func getLockfileVersion(lock *orderedmap.OrderedMap) lockfileVersion {

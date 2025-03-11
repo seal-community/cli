@@ -160,12 +160,12 @@ func TestLockfileVersionDetectionWrongMax(t *testing.T) {
 func TestUpdatedNameFormat(t *testing.T) {
 	for original, expected := range map[string]string{
 		// v1 format
-		"pkg":        "seal-pkg",
-		"@owner/pkg": "@owner/seal-pkg",
+		"pkg":        "@seal-security/pkg",
+		"@owner/pkg": "@seal-security/owner-sealsec-pkg",
 		// v2 format
-		"node_modules/pkg":                               "node_modules/seal-pkg", // for newer version that use relative path
-		"node_modules/@fastify/multipart":                "node_modules/@fastify/seal-multipart",
-		"node_modules/base/node_modules/define-property": "node_modules/base/node_modules/seal-define-property", // nested
+		"node_modules/pkg":                               "node_modules/@seal-security/pkg", // for newer version that use relative path
+		"node_modules/@fastify/multipart":                "node_modules/@seal-security/fastify-sealsec-multipart",
+		"node_modules/base/node_modules/define-property": "node_modules/base/node_modules/@seal-security/define-property", // nested
 	} {
 		t.Run(fmt.Sprintf("updated_name_%s", original), func(t *testing.T) {
 			if result := formatUpdatedPackageName(original); result != expected {
@@ -230,8 +230,8 @@ func TestLockfileUpdateV1MultipleLocations(t *testing.T) {
 		t.Fatalf("failed updating: %v", err)
 	}
 
-	lodash1 := getNested(lock, "dependencies", "commitizen", "dependencies", "seal-lodash")
-	lodash2 := getNested(lock, "dependencies", "cypress", "dependencies", "seal-lodash")
+	lodash1 := getNested(lock, "dependencies", "commitizen", "dependencies", "@seal-security/lodash")
+	lodash2 := getNested(lock, "dependencies", "cypress", "dependencies", "@seal-security/lodash")
 
 	if lodash1_ver := _get[string](lodash1, "version"); lodash1_ver != pkg.RecommendedLibraryVersionString {
 		t.Fatalf("bad version: %v", lodash1_ver)
@@ -267,8 +267,8 @@ func TestLockfileUpdateV2MultipleLocations(t *testing.T) {
 	}
 
 	// backwards compatible structure
-	lodash1 := getNested(lock, "dependencies", "commitizen", "dependencies", "seal-lodash")
-	lodash2 := getNested(lock, "dependencies", "cypress", "dependencies", "seal-lodash")
+	lodash1 := getNested(lock, "dependencies", "commitizen", "dependencies", "@seal-security/lodash")
+	lodash2 := getNested(lock, "dependencies", "cypress", "dependencies", "@seal-security/lodash")
 	if lodash1_ver := _get[string](lodash1, "version"); lodash1_ver != pkg.RecommendedLibraryVersionString {
 		t.Fatalf("bad version: %v", lodash1_ver)
 	}
@@ -278,8 +278,8 @@ func TestLockfileUpdateV2MultipleLocations(t *testing.T) {
 	}
 
 	// new structure
-	lodash1_new := getNested(lock, "packages", "node_modules/commitizen/node_modules/seal-lodash")
-	lodash2_new := getNested(lock, "packages", "node_modules/cypress/node_modules/seal-lodash")
+	lodash1_new := getNested(lock, "packages", "node_modules/commitizen/node_modules/@seal-security/lodash")
+	lodash2_new := getNested(lock, "packages", "node_modules/cypress/node_modules/@seal-security/lodash")
 
 	if lodash1_new_ver := _get[string](lodash1_new, "version"); lodash1_new_ver != pkg.RecommendedLibraryVersionString {
 		t.Fatalf("bad version: %v", lodash1_new_ver)
@@ -314,8 +314,8 @@ func TestLockfileUpdateV3MultipleLocations(t *testing.T) {
 	}
 
 	// only has new structure
-	lodash1_new := getNested(lock, "packages", "node_modules/commitizen/node_modules/seal-lodash")
-	lodash2_new := getNested(lock, "packages", "node_modules/cypress/node_modules/seal-lodash")
+	lodash1_new := getNested(lock, "packages", "node_modules/commitizen/node_modules/@seal-security/lodash")
+	lodash2_new := getNested(lock, "packages", "node_modules/cypress/node_modules/@seal-security/lodash")
 
 	if lodash1_new_ver := _get[string](lodash1_new, "version"); lodash1_new_ver != pkg.RecommendedLibraryVersionString {
 		t.Fatalf("bad version: %v", lodash1_new_ver)
