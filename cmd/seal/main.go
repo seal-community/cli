@@ -156,7 +156,7 @@ func cli() (errCode ErrorCode) {
 	logfile, err := os.CreateTemp("", "seal-cli-*.log")
 	if err != nil {
 		// will not hide log files from console if we failed to create a file
-		fmt.Println(common.Colorize("Warning: Failed initializing log file", common.AnsiWarnYellow))
+		fmt.Println(common.Colorize("Warning:", common.AnsiWarnYellow), "Failed initializing log file")
 		logfile = os.Stdout
 	} else {
 		hideLogging() // used to disable logging before it is set up (in case of panics etc)

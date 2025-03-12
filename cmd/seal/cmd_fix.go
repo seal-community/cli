@@ -112,11 +112,11 @@ func filterVulnerablePackageForOverrides(vulnPackages []api.PackageVersion, over
 	return overriddenPackages
 }
 
-func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFilePath string, normalizer shared.Normalizer) error {
+func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFilePath string, normalizer shared.Normalizer) (map[string]api.PackageVersion, error) {
 	overrides, err := getExistingConfigOverrides(actionsFilePath, normalizer)
 	if err != nil {
 		slog.Error("failed opening actions file for fix", "err", err)
-		return common.FallbackPrintableMsg(err, "failed loading actions file")
+		return nil, common.FallbackPrintableMsg(err, "failed loading actions file")
 	}
 
 	// replace existing slice
@@ -126,7 +126,7 @@ func updateScanResultAccordingToActionsFile(result *phase.ScanResult, actionsFil
 	result.Vulnerable = filterVulnerablePackageForOverrides(result.Vulnerable, overrides)
 	slog.Info("total available vulnerable after overriding", "count", len(result.Vulnerable))
 
-	return nil
+	return overrides, nil
 }
 
 // dump and print a summary of the results
@@ -187,6 +187,7 @@ func fixCommand() *cobra.Command {
 			fm := getArgString(cmd, modeFlag)
 			silenceArgArray := getArgArray(cmd, silenceFlag)
 			silenceArray, err := getSilenceRules(silenceArgArray)
+			localModeManuallyProvided := cmd.Flags().Changed(modeFlag)
 
 			if err != nil {
 				return common.FallbackPrintableMsg(err, "failed parsing silence rules")
@@ -237,9 +238,11 @@ func fixCommand() *cobra.Command {
 				return common.FallbackPrintableMsg(err, "failed performing initial scan")
 			}
 
+			var overrides map[string]api.PackageVersion
 			if fixModeUsed == phase.FixModeLocal {
 				slog.Info("trying to load actions file", "path", actionsFilePath)
-				if err := updateScanResultAccordingToActionsFile(result, actionsFilePath, fixPhase.Manager); err != nil {
+				overrides, err = updateScanResultAccordingToActionsFile(result, actionsFilePath, fixPhase.Manager)
+				if err != nil {
 					return common.FallbackPrintableMsg(err, "failed using actions file")
 				}
 			}
@@ -254,6 +257,19 @@ func fixCommand() *cobra.Command {
 
 			if len(result.Vulnerable) == 0 {
 				fixPhase.HideProgress() // make sure before printing
+
+				if overrides == nil {
+					fmt.Println("")
+
+					var message string
+					if !localModeManuallyProvided {
+						message = "Using fix mode local by default, but local configuration file not found. No fixes will be applied!"
+					} else {
+						message = "Local configuration file not found. No fixes will be applied!"
+					}
+					fmt.Println(common.Colorize("Warning:", common.AnsiWarnYellow), message)
+				}
+
 				slog.Info("no vulnerable package found", "target", target)
 
 				silenced := make(map[string][]string, 0)
