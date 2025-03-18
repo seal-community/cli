@@ -154,11 +154,17 @@ func (s CliJfrogServer) QueryPackagesAuth(request *BulkCheckRequest, queryType P
 // performs the BE request to get the approved remote config
 func (s CliJfrogServer) QueryRemoteConfig(query []RemoteOverrideQuery) (*Page[PackageVersion], error) {
 	var resp Page[PackageVersion]
-	statusCode, err := s.sendPayload(fmt.Sprintf("/fixes/remote/%s", s.project), query, nil, &resp)
+	// fail_if_disabled param will cause the server to return 405 if the remote configuration
+	// is disabled. This allows us to differentiate between disabled and empty responses
+	statusCode, err := s.sendPayload(fmt.Sprintf("/fixes/remote/%s", s.project), query, []StringPair{fail_if_disabled}, &resp)
 	if statusCode == 404 {
 		// specific case for non-existent project
 		slog.Error("project not found", "err", err, "project", s.project)
 		return nil, NonExistentProjectError
+	}
+
+	if statusCode == 405 {
+		return nil, RemoteOverrideDisabledError
 	}
 
 	if err != nil {

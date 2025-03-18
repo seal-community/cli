@@ -142,13 +142,15 @@ func (s CliServer) QueryRemoteConfig(query []RemoteOverrideQuery) (*Page[Package
 	headers = []StringPair{BuildBasicAuthHeader(s.authToken)}
 	common.Trace("sending auth header in bulk request")
 
+	// fail_if_disabled param will cause the server to return 405 if the remote configuration
+	// is disabled. This allows us to differentiate between disabled and empty responses
 	data, statusCode, err := sendSealApiRequest[[]RemoteOverrideQuery, Page[PackageVersion]](
 		s.client,
 		"POST",
 		fmt.Sprintf("/authenticated/v1/fixes/remote/%s", s.project),
 		&query,
 		headers,
-		nil,
+		[]StringPair{fail_if_disabled},
 	)
 
 	if statusCode != 200 {
@@ -156,6 +158,9 @@ func (s CliServer) QueryRemoteConfig(query []RemoteOverrideQuery) (*Page[Package
 		if statusCode == 404 {
 			// specific case for non-existent project
 			return nil, NonExistentProjectError
+		}
+		if statusCode == 405 {
+			return nil, RemoteOverrideDisabledError
 		}
 
 		return nil, BadServerResponseCode

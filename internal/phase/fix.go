@@ -5,11 +5,11 @@ import (
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"context"
+	"errors"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"runtime/debug"
-
-	"golang.org/x/sync/errgroup"
 )
 
 const ConcurrentDownloadCount = 10
@@ -207,6 +207,9 @@ func (fp *fixPhase) queryRemoteConfigPackages(vulnerablePackages []api.PackageVe
 
 	fixes, err := fetchOverriddenPackagesInfo(fp.Backend, queries, nil)
 	if err != nil {
+		if errors.Is(err, api.RemoteOverrideDisabledError) {
+			return []api.PackageVersion{}, err
+		}
 		slog.Error("failed getting fixed versions per remote config", "err", err, "project", fp.Project.Tag)
 		return nil, common.FallbackPrintableMsg(err, "failed querying remote config")
 	}

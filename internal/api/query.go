@@ -44,6 +44,8 @@ const (
 	// future support for query all
 )
 
+var fail_if_disabled = StringPair{Name: "fail_if_disabled", Value: "true"}
+
 type RemoteOverrideQuery struct {
 	LibraryId            string  `json:"libray_id"` // the API has a typo
 	OriginVersionId      string  `json:"origin_version_id"`
@@ -52,6 +54,7 @@ type RemoteOverrideQuery struct {
 
 type ChunkDownloadedCallback func(chunk []PackageVersion, idx int)
 
+var RemoteOverrideDisabledError = errors.New("remote override config is disabled")
 var NonExistentProjectError = common.NewPrintableError("specified project does not exist")
 var MissingTokenForApiRequest = errors.New("missing authentication token for querying remote config")
 

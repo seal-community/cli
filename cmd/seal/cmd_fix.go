@@ -9,14 +9,14 @@ import (
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/phase"
+	"errors"
 	"fmt"
+	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
-
-	"github.com/spf13/cobra"
 )
 
 const summaryFlag = "summarize"
@@ -285,7 +285,14 @@ func fixCommand() *cobra.Command {
 
 			slog.Info("trying to get available fixes", "mode", fixModeUsed)
 			availableFixes, err := fixPhase.GetAvailableFixes(result, fixModeUsed)
-			if err != nil {
+			warnRemoteDisabled := false
+			if errors.Is(err, api.RemoteOverrideDisabledError) {
+				// progress bar is currently running and can only print later, store in variable to print later
+				// Setting availableFixes to empty so we can continue the regular flow
+				slog.Warn("remote configuration is disabled, no fixes available")
+				warnRemoteDisabled = true
+				availableFixes = []shared.DependencyDescriptor{}
+			} else if err != nil {
 				slog.Error("failed getting available fixes", "err", err, "mode", fixModeUsed)
 				return common.FallbackPrintableMsg(err, "failed querying for fixes")
 			}
@@ -313,6 +320,10 @@ func fixCommand() *cobra.Command {
 			}
 
 			fixPhase.HideProgress() // should be gone here, but before handling summary make sure it gone
+			if warnRemoteDisabled {
+				fmt.Println(common.Colorize("Warning:", common.AnsiWarnYellow), "The remote configuration is currently disabled. All rules are inactive")
+			}
+
 			return outputSummary(summaryPath, fixes, silenced, fixPhase.BaseDir, "")
 		},
 	}

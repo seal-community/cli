@@ -4,6 +4,7 @@ import (
 	"cli/internal/common"
 	"cli/internal/ecosystem/mappings"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -372,6 +373,42 @@ func TestRemoteConfigQuerySanity(t *testing.T) {
 
 	if len(page.Items) != 1 {
 		t.Fatalf("bad number of returned items %v", len(page.Items))
+	}
+}
+
+func TestRemoteConfigQueryDisabledResponse(t *testing.T) {
+	authToken := "thisisjustatribute"
+	proj := "proj-id"
+	recommendedId := "2222"
+
+	query := RemoteOverrideQuery{
+		LibraryId:            "000",
+		OriginVersionId:      "111",
+		RecommendedVersionId: &recommendedId,
+	}
+
+	fakeRoundTripper := FakeRoundTripper{statusCode: 405,
+		jsonContent: ``, Validator: func(r *http.Request) {
+			if r.Method != "POST" {
+				t.Fatalf("bad method %s", r.Method)
+			}
+
+			if r.URL.Path != fmt.Sprintf("/authenticated/v1/fixes/remote/%s", proj) {
+				t.Fatalf("bad url %s", r.URL.Path)
+			}
+		},
+	}
+
+	client := http.Client{Transport: fakeRoundTripper}
+	server := NewCliServer(authToken, proj, client)
+	page, err := server.QueryRemoteConfig([]RemoteOverrideQuery{query})
+
+	if err == nil {
+		t.Fatalf("failed send unitest %v, page: %v", err, page)
+	}
+
+	if !errors.Is(err, RemoteOverrideDisabledError) {
+		t.Fatalf("bad error %v", err)
 	}
 }
 
