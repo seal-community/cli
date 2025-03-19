@@ -31,7 +31,7 @@ func Move(source, destination string) error {
 		return err
 	}
 
-	slog.Debug("Cross-device link detected (EXDEV).")
+	slog.Info("Cross-device link detected (EXDEV).", "src", source, "dst", destination)
 	// Handle cross-device move logic here (e.g., copy and delete)
 
 	if err := CopyFile(source, destination); err != nil {

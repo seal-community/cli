@@ -73,6 +73,8 @@ func rootCmd() *cobra.Command {
 				"max-procs", runtime.GOMAXPROCS(0),
 				"os", runtime.GOOS,
 				"arch", runtime.GOARCH,
+				"uid", os.Getuid(),
+				"gid", os.Getgid(),
 			)
 
 			return nil

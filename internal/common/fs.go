@@ -206,13 +206,49 @@ func ListDir(path string) ([]string, error) {
 	return res, nil
 }
 
+func printFileStats(path string) error {
+	exists, err := PathExists(path)
+	if err != nil {
+		slog.Error("failed checking if file exists", "err", err, "path", path)
+		return err
+	}
+
+	if !exists {
+		slog.Debug("file does not exist", "path", path)
+		return nil
+	}
+
+	stats, err := GetFileStats(path)
+	if err != nil {
+		slog.Error("failed getting file stats", "err", err, "path", path)
+		return err
+	}
+
+	if stats != nil {
+		slog.Debug("file stats", "path", path, "UID", stats.Uid, "GID", stats.Gid)
+	}
+
+	return nil
+}
+
 func CopyFile(srcPath string, dstPath string) error {
 	opts := copy.Options{
 		PreserveTimes: true,
 		PreserveOwner: true,
 	}
 
-	err := copy.Copy(srcPath, dstPath, opts)
+	slog.Debug("Src file Stats")
+	err := printFileStats(srcPath)
+	if err != nil {
+		slog.Error("failed printing src file stats", "err", err, "src", srcPath)
+	}
+	slog.Debug("Dst file Stats")
+	err = printFileStats(dstPath)
+	if err != nil {
+		slog.Error("failed printing dst file stats", "err", err, "dst", dstPath)
+	}
+
+	err = copy.Copy(srcPath, dstPath, opts)
 	if err != nil {
 		slog.Error("failed copying file", "err", err, "src", srcPath, "dst", dstPath)
 	}

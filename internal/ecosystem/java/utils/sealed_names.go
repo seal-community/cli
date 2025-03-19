@@ -49,6 +49,28 @@ func getTempJarFile(jarPath string) (*os.File, error) {
 		return nil, err
 	}
 
+	origJarStats, err := common.GetFileStats(jarPath)
+	if err != nil {
+		slog.Error("failed getting file stat", "path", jarPath)
+		return nil, err
+	}
+
+	tempJarStats, err := common.GetFileStats(sealedNameFile.Name())
+	if err != nil {
+		slog.Error("failed getting file stat", "path", sealedNameFile.Name())
+		return nil, err
+	}
+
+	// For non Windows. nil only on windows
+	if origJarStats != nil && tempJarStats != nil && (origJarStats.Uid != tempJarStats.Uid || origJarStats.Gid != tempJarStats.Gid) {
+		slog.Info("changing ownership of temp jar", "path", sealedNameFile.Name(), "uid", origJarStats.Uid, "gid", origJarStats.Gid, "current Uid", tempJarStats.Uid, "current Gid", tempJarStats.Gid)
+		// set the ownership of the temp jar to be the same as the original jar if different
+		if err = os.Chown(sealedNameFile.Name(), int(origJarStats.Uid), int(origJarStats.Gid)); err != nil {
+			slog.Error("failed setting file ownership", "err", err, "path", sealedNameFile.Name(), "uid", origJarStats.Uid, "gid", origJarStats.Gid, "tempUid", tempJarStats.Uid, "tempGid", tempJarStats.Gid)
+			return nil, err
+		}
+	}
+
 	return sealedNameFile, nil
 }
 
@@ -487,7 +509,7 @@ func changeToSealedName(packageName, packageOriginalVersion, diskPath string) er
 
 func SealJarName(fix shared.DependencyDescriptor) error {
 	for _, diskPath := range fix.FixedLocations {
-		slog.Info("changing package to sealed name", "id", fix.VulnerablePackage.Library.Name, "path", diskPath)
+		slog.Info("changing package to sealed name", "id", fix.VulnerablePackage.Library.Name, "version", fix.VulnerablePackage.Version, "path", diskPath)
 		if err := changeToSealedName(fix.VulnerablePackage.Library.Name, fix.AvailableFix.OriginVersionString, diskPath); err != nil {
 			return common.FallbackPrintableMsg(err, "failed changing %s to sealed name", fix.VulnerablePackage.Library.Name)
 		}
