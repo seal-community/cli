@@ -7,12 +7,13 @@ import (
 	"cli/internal/ecosystem/mappings"
 	"cli/internal/ecosystem/shared"
 	"fmt"
-	"github.com/klauspost/compress/zip"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/klauspost/compress/zip"
 )
 
 const symbolicName = "Bundle-SymbolicName"
@@ -23,8 +24,15 @@ const PomPropertiesFileName = "pom.properties"
 const manifestFileName = "MANIFEST.MF"
 
 // Returns a temp file object, with the same permissions as the original jar file
+// we are creating a temp jar path next to the original jar, hopefully preventing issues with cross device moves, and ownership
+// this should create a file in `jarPath.{random}`
 func getTempJarFile(jarPath string) (*os.File, error) {
-	sealedNameFile, err := os.CreateTemp("", "tmp_jar")
+	destDir := filepath.Dir(jarPath)
+	oldName := filepath.Base(jarPath)
+
+	newNamePtrn := fmt.Sprintf("%s.*", oldName)
+
+	sealedNameFile, err := os.CreateTemp(destDir, newNamePtrn)
 	if err != nil {
 		slog.Error("failed creating sealed file", "err", err, "path", jarPath)
 		return nil, err

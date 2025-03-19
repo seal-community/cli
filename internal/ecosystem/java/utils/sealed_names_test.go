@@ -56,18 +56,18 @@ func TestGetSealedPomXML(t *testing.T) {
 }
 
 func TestGetTempJarFile(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "test")
+	origFile, err := os.CreateTemp("", "test")
 	if err != nil {
 		t.Fatalf("failed creating temp file: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
+	defer os.Remove(origFile.Name())
 
-	tempJarFile, err := getTempJarFile(tmpFile.Name())
+	tempJarFile, err := getTempJarFile(origFile.Name())
 	if err != nil {
 		t.Fatalf("failed getting temp jar file: %v", err)
 	}
 
-	tmpFileStat, err := tmpFile.Stat()
+	tmpFileStat, err := origFile.Stat()
 	if err != nil {
 		t.Fatalf("failed getting temp jar file stat: %v", err)
 	}
@@ -80,4 +80,23 @@ func TestGetTempJarFile(t *testing.T) {
 	if tmpFileStat.Mode() != tempJarFileStat.Mode() {
 		t.Fatalf("wrong mode, expected: %v got: %v", tmpFileStat.Mode(), tempJarFileStat.Mode())
 	}
+
+	origJarPath := origFile.Name()
+
+	tmpJarPath := tempJarFile.Name()
+	perIdx := strings.LastIndex(tmpJarPath, ".")
+	if perIdx == -1 {
+		t.Fatalf("bad path %s", tmpJarPath)
+	}
+
+	supposedorigPath := tmpJarPath[:perIdx]
+	tmpSfx := tmpJarPath[perIdx:]
+	if supposedorigPath != origJarPath {
+		t.Fatalf("wrong temp path, orig jar: %s new: %s", origJarPath, tmpJarPath)
+	}
+
+	if tmpSfx == "" {
+		t.Fatalf("bad temp path %s - sfx %s", tmpJarPath, tmpSfx)
+	}
+
 }
