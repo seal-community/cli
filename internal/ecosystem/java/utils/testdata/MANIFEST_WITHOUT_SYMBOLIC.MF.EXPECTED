@@ -158,7 +158,7 @@ Export-Package: com.fasterxml.jackson.databind;uses:="com.fasterxml.ja
  ind.cfg,com.fasterxml.jackson.databind.introspect,com.fasterxml.jacks
  on.databind.jsontype,com.fasterxml.jackson.databind.type";version="2.
  13.2.2"
-Bundle-Name: jackson-databind
+Bundle-Name: seal-jackson-databind
 Multi-Release: true
 Build-Jdk-Spec: 1.8
 Bundle-Description: General data-binding functionality for Jackson: wo

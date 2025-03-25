@@ -17,6 +17,7 @@ import (
 )
 
 const symbolicName = "Bundle-SymbolicName"
+const bundleName = "Bundle-Name"
 const impVendorId = "Implementation-Vendor-Id"
 const sealGroupId = "seal"
 const PomXMLFileName = "pom.xml"
@@ -180,6 +181,7 @@ func getSilencedPomXML(pomXMLReader io.Reader) io.ReadCloser {
 func getSilencedManifest(manifestReader io.Reader, artifactId string) io.ReadCloser {
 	newManifest := ""
 	newSymbolicName := fmt.Sprintf("%s: %s.%s\n", symbolicName, sealGroupId, artifactId)
+	newBundleName := fmt.Sprintf("%s: seal-%s\n", bundleName, artifactId)
 	newImpVendorId := fmt.Sprintf("%s: %s\n", impVendorId, sealGroupId)
 	changed := false
 	scanner := bufio.NewScanner(manifestReader)
@@ -191,6 +193,8 @@ func getSilencedManifest(manifestReader io.Reader, artifactId string) io.ReadClo
 			changed = true
 		} else if strings.HasPrefix(line, impVendorId) {
 			newManifest += newImpVendorId
+		} else if strings.HasPrefix(line, bundleName) {
+			newManifest += newBundleName
 		} else {
 			newManifest += line + "\n"
 		}
