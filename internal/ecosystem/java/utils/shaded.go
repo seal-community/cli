@@ -80,7 +80,7 @@ func findShadedDependenciesFromJar(jarPath string) (map[shadedDependency]bool, m
 				version: pomProperties.Version,
 			}
 			pomPropertiesDeps[dep] = true
-			slog.Info("found shaded dependencies from pon.properties", "package", dep)
+			slog.Info("found shaded dependencies from pom.properties", "package", dep)
 
 		}
 	}

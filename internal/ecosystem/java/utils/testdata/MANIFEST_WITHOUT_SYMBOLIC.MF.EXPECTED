@@ -1,4 +1,4 @@
-Bundle-SymbolicName: seal.jackson-databind
+Bundle-SymbolicName: seal.seal-jackson-databind
 Manifest-Version: 1.0
 Bundle-License: http://www.apache.org/licenses/LICENSE-2.0.txt
 Bnd-LastModified: 1648519232867

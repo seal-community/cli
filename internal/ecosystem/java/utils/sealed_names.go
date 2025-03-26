@@ -20,6 +20,7 @@ const symbolicName = "Bundle-SymbolicName"
 const bundleName = "Bundle-Name"
 const impVendorId = "Implementation-Vendor-Id"
 const sealGroupId = "seal"
+const sealArtifactIdPrefix = "seal-"
 const PomXMLFileName = "pom.xml"
 const PomPropertiesFileName = "pom.properties"
 const manifestFileName = "MANIFEST.MF"
@@ -180,8 +181,8 @@ func getSilencedPomXML(pomXMLReader io.Reader) io.ReadCloser {
 // Returns a ReadCloser object created from the new manifest string
 func getSilencedManifest(manifestReader io.Reader, artifactId string) io.ReadCloser {
 	newManifest := ""
-	newSymbolicName := fmt.Sprintf("%s: %s.%s\n", symbolicName, sealGroupId, artifactId)
-	newBundleName := fmt.Sprintf("%s: seal-%s\n", bundleName, artifactId)
+	newSymbolicName := fmt.Sprintf("%s: %s.%s%s\n", symbolicName, sealGroupId, sealArtifactIdPrefix, artifactId)
+	newBundleName := fmt.Sprintf("%s: %s%s\n", bundleName, sealArtifactIdPrefix, artifactId)
 	newImpVendorId := fmt.Sprintf("%s: %s\n", impVendorId, sealGroupId)
 	changed := false
 	scanner := bufio.NewScanner(manifestReader)
