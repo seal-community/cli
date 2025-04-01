@@ -1,8 +1,8 @@
 Manifest-Version: 1.0
 Bundle-License: http://www.apache.org/licenses/LICENSE-2.0.txt
-Bundle-SymbolicName: seal.seal-jackson-databind
+Bundle-SymbolicName: seal.com.fasterxml.jackson.core.seal-jackson-databind
 Bnd-LastModified: 1648519232867
-Implementation-Vendor-Id: seal
+Implementation-Vendor-Id: seal.com.fasterxml.jackson.core
 Specification-Title: jackson-databind
 Bundle-DocURL: http://github.com/FasterXML/jackson
 Import-Package: com.fasterxml.jackson.annotation;version="[2.13,3)",co

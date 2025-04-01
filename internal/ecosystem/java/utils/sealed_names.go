@@ -123,11 +123,11 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 		itemReader := zipItemReader
 		switch currFileName {
 		case pomPropertiesFilePath:
-			pomProp := PomProperties{GroupId: sealGroupId, ArtifactId: artifactId, Version: originalVersion}
+			pomProp := PomProperties{GroupId: getSealedGroupId(groupId), ArtifactId: artifactId, Version: originalVersion}
 			itemReader = pomProp.GetAsReader()
 			pomChanged = true
 		case manifestFilePath:
-			itemReader = getSilencedManifest(zipItemReader, artifactId)
+			itemReader = getSilencedManifest(zipItemReader, artifactId, groupId)
 		case pomXMLFilePath:
 			itemReader = getSilencedPomXML(zipItemReader)
 		}
@@ -144,7 +144,7 @@ func CreateSealedNameJar(jarPath, groupId, artifactId, originalVersion string) (
 
 	// If the pom.properties file was not found, create a new one
 	if !pomChanged {
-		pomProp := PomProperties{GroupId: sealGroupId, ArtifactId: artifactId, Version: originalVersion}
+		pomProp := PomProperties{GroupId: getSealedGroupId(groupId), ArtifactId: artifactId, Version: originalVersion}
 		itemReader := pomProp.GetAsReader()
 		if itemReader == nil {
 			slog.Error("failed to create new item reader for pom.properties")
@@ -179,11 +179,12 @@ func getSilencedPomXML(pomXMLReader io.Reader) io.ReadCloser {
 
 // Change the symbolic name value in the manifest to be `seal.<artifactId>`
 // Returns a ReadCloser object created from the new manifest string
-func getSilencedManifest(manifestReader io.Reader, artifactId string) io.ReadCloser {
+func getSilencedManifest(manifestReader io.Reader, artifactId string, groupId string) io.ReadCloser {
 	newManifest := ""
-	newSymbolicName := fmt.Sprintf("%s: %s.%s%s\n", symbolicName, sealGroupId, sealArtifactIdPrefix, artifactId)
+	sealedGroupId := getSealedGroupId(groupId)
+	newSymbolicName := fmt.Sprintf("%s: %s.%s%s\n", symbolicName, sealedGroupId, sealArtifactIdPrefix, artifactId)
 	newBundleName := fmt.Sprintf("%s: %s%s\n", bundleName, sealArtifactIdPrefix, artifactId)
-	newImpVendorId := fmt.Sprintf("%s: %s\n", impVendorId, sealGroupId)
+	newImpVendorId := fmt.Sprintf("%s: %s\n", impVendorId, sealedGroupId)
 	changed := false
 	scanner := bufio.NewScanner(manifestReader)
 
@@ -359,19 +360,19 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 			if v, ok := packagesToSilence[pomProperties.GetPackageId()]; ok && v {
 				slog.Debug("changing groupId in pom.properties")
 				silencedPackagesMap[pomProperties.GetPackageId()] = true
-				pomProperties.GroupId = sealGroupId
+				pomProperties.GroupId = getSealedGroupId(pomProperties.GroupId)
 			}
 
 			itemReader = pomProperties.GetAsReader()
 		} else if currFilePath == manifestFilePath && silenceMainManifest {
 			// an huristic to find the artifactId since parsing it from the manifest is not trivial
-			_, artifactId, err := SplitJavaPackageName(dep.NormalizedName)
+			groupId, artifactId, err := SplitJavaPackageName(dep.NormalizedName)
 			if err != nil {
 				slog.Error("failed parsing artifactId from package name", "err", err, "package", dep.Name)
 				return "", nil, err
 			}
 
-			itemReader = getSilencedManifest(zipItemReader, artifactId)
+			itemReader = getSilencedManifest(zipItemReader, artifactId, groupId)
 			silencedPackagesMap[dep.Id()] = true
 		}
 
@@ -396,7 +397,7 @@ func getSilencedJar(dep common.Dependency, packagesToSilence map[string]bool, si
 
 		mainPomPropertiesFilePath := filepath.ToSlash(filepath.Join("META-INF/maven", groupId, artifactId, PomPropertiesFileName))
 		if _, ok := zipFilePathsList[mainPomPropertiesFilePath]; !ok {
-			pomProp := PomProperties{GroupId: sealGroupId, ArtifactId: artifactId, Version: dep.Version}
+			pomProp := PomProperties{GroupId: getSealedGroupId(groupId), ArtifactId: artifactId, Version: dep.Version}
 			itemReader := pomProp.GetAsReader()
 			if itemReader == nil {
 				slog.Error("failed to create new item reader for pom.properties")
@@ -521,4 +522,8 @@ func SealJarName(fix shared.DependencyDescriptor) error {
 	}
 
 	return nil
+}
+
+func getSealedGroupId(groupId string) string {
+	return fmt.Sprintf("%s.%s", sealGroupId, groupId)
 }

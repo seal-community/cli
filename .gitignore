@@ -41,3 +41,10 @@ mockserver/seal
 test/test.log
 
 cmd/playground/
+
+seal
+.seal-m2
+src/test/java/com/example/app/AppTest.java
+src/main/java/com/example/app/App.java
+pom.xml
+.mvn/maven.config

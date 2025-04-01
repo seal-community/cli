@@ -203,7 +203,7 @@ func (p *PomXML) Silence() error {
 	groupId := project.SelectElement(groupIdTag)
 	if groupId != nil {
 		slog.Debug("groupId found")
-		groupId.SetText(sealGroupId)
+		groupId.SetText(getSealedGroupId(groupId.Text()))
 	}
 
 	// not all pom.xml files have a parent tag
@@ -214,7 +214,7 @@ func (p *PomXML) Silence() error {
 		parentGroupId := parent.SelectElement(groupIdTag)
 		if parentGroupId != nil {
 			slog.Debug("parent groupId found")
-			parentGroupId.SetText(sealGroupId)
+			parentGroupId.SetText(getSealedGroupId(parentGroupId.Text()))
 		}
 	}
 

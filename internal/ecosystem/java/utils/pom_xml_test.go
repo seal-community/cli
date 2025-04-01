@@ -115,7 +115,7 @@ func TestSealPomXML(t *testing.T) {
 			if err := pomXML.Silence(); err != nil {
 				t.Fatalf("failed to seal pom xml")
 			}
-			if pomXML.GetPackageId() != "Maven|seal:jackson-databind@2.13.1" {
+			if pomXML.GetPackageId() != "Maven|seal.com.fasterxml.jackson:jackson-databind@2.13.1" {
 				t.Fatalf("unexpected package id")
 			}
 		})

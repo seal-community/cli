@@ -25,14 +25,15 @@ func TestGetSealedManifest(t *testing.T) {
 	tests := []struct {
 		filename   string
 		artifactId string
+		groupId    string
 	}{
-		{"MANIFEST_WITH_SYMBOLIC.MF", "jackson-databind"},
-		{"MANIFEST_WITHOUT_SYMBOLIC.MF", "jackson-databind"},
+		{"MANIFEST_WITH_SYMBOLIC.MF", "jackson-databind", "com.fasterxml.jackson.core"},
+		{"MANIFEST_WITHOUT_SYMBOLIC.MF", "jackson-databind", "com.fasterxml.jackson.core"},
 	}
 	for _, test := range tests {
 		t.Run(test.artifactId, func(t *testing.T) {
 			inFile := getTestFile(test.filename)
-			result := getSilencedManifest(inFile, test.artifactId)
+			result := getSilencedManifest(inFile, test.artifactId, test.groupId)
 			resultData, _ := io.ReadAll(result)
 			expected, _ := io.ReadAll(getTestFile(test.filename + ".EXPECTED"))
 			expectedString := strings.ReplaceAll(string(expected), "\r", "")
@@ -99,4 +100,13 @@ func TestGetTempJarFile(t *testing.T) {
 		t.Fatalf("bad temp path %s - sfx %s", tmpJarPath, tmpSfx)
 	}
 
+}
+
+func TestGetSealedGroupId(t *testing.T) {
+	groupIdToSeal := "com.fasterxml.jackson.core"
+	expectedSealedGroupId := sealGroupId + "." + groupIdToSeal
+	resultSealedGroupId := getSealedGroupId(groupIdToSeal)
+	if resultSealedGroupId != expectedSealedGroupId {
+		t.Fatalf("wrong result, expected: `%s` got: `%s`", resultSealedGroupId, expectedSealedGroupId)
+	}
 }
