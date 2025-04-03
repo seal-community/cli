@@ -296,3 +296,66 @@ func (s CliServer) QueryMavenGroupIds(lookup *MavenGroupIDLookupList) (*Page[Mav
 
 	return data, nil
 }
+
+func (s CliServer) GetPublicKey() (string, error) {
+	var headers []StringPair
+	uri := "/unauthenticated/v1/signature/public_key"
+
+	data, statusCode, err := sendSealApiRequest[any, map[string]string](
+		s.client,
+		"GET",
+		uri,
+		nil,
+		headers,
+		nil,
+	)
+
+	if statusCode != 200 {
+		slog.Error("server returned bad status code for query", "status", statusCode, "err", err)
+		return "", BadServerResponseCode
+	}
+
+	if err != nil {
+		slog.Error("http error", "err", err, "status", statusCode)
+		return "", err
+	}
+
+	if _, ok := (*data)["public_key"]; !ok {
+		slog.Error("public key not found in response")
+		return "", common.NewPrintableError("public key not found in response")
+	}
+
+	return (*data)["public_key"], nil
+}
+
+func (s CliServer) GetSignatures(query *ArtifactUniqueIdentifierList) ([]ArtifactMetadataResponse, error) {
+	uri := "/authenticated/v1/bulk_query_artifact_metadata"
+
+	if s.authToken == "" {
+		slog.Error("missing auth token for querying artifact signatures")
+		return nil, MissingTokenForApiRequest
+	}
+
+	headers := []StringPair{BuildBasicAuthHeader(s.authToken)}
+
+	data, statusCode, err := sendSealApiRequest[ArtifactUniqueIdentifierList, []ArtifactMetadataResponse](
+		s.client,
+		"POST",
+		uri,
+		query,
+		headers,
+		nil,
+	)
+
+	if statusCode != 200 {
+		slog.Error("server returned bad status code for query", "status", statusCode, "err", err)
+		return nil, BadServerResponseCode
+	}
+
+	if err != nil {
+		slog.Error("http error", "err", err, "status", statusCode)
+		return nil, err
+	}
+
+	return *data, nil
+}

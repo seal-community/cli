@@ -301,7 +301,7 @@ func (fp *fixPhase) GetAvailableFixes(scanResult *ScanResult, mode FixMode) ([]s
 	return buildDescriptorsForFixes(*scanResult, fixedPackages, overrideMethod)
 }
 
-func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor) (_ []shared.DependencyDescriptor, err error) {
+func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor, skipSignChecks bool) (_ []shared.DependencyDescriptor, err error) {
 	// assumes running from the directory of the project
 	// 		relies on dependencies being installed beforehand (e.g. `npm install`)
 	// returns a list of the fixed descriptors
@@ -349,6 +349,21 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor) (_ []share
 	fp.Bar.Describe("Downloading packages")
 	fp.addToMax(jobCount) // add steps here to bump the progress bar once
 
+	// copy the results to an array
+	results := make([]shared.PackageDownload, 0, len(availableFixes))
+	for result := range downloadResultsChannel {
+		results = append(results, result)
+	}
+
+	// verify seal signatures on the artifacts
+	if !skipSignChecks {
+		err := verifyPackagesSingatures(fp.Backend, results)
+		if err != nil {
+			slog.Error("failed validating signatures", "err", err)
+			return nil, common.FallbackPrintableMsg(err, "failed validating package signatures")
+		}
+	}
+
 	common.Trace("prepare phase started")
 	if err := fixer.Prepare(); err != nil {
 		slog.Error("failed preparing fixer", "err", err)
@@ -358,7 +373,7 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor) (_ []share
 
 	// Fix packages one at a time
 	fixed := make([]shared.DependencyDescriptor, 0, len(availableFixes))
-	for downloadedPackage := range downloadResultsChannel {
+	for _, downloadedPackage := range results {
 		err, fixedLocations := fp.fixPackage(downloadedPackage, fixer)
 		if err != nil {
 			slog.Error("failed fixing package", "err", err)

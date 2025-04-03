@@ -48,6 +48,7 @@ func fixModeFromString(s string) phase.FixMode {
 
 const modeFlag = "mode"
 const silenceFlag = "silence"
+const skipSignCheckFlag = "skip-sign-checks"
 
 func dumpSummary(summary *output.Summary, summaryPath string) error {
 	if summaryPath != "" {
@@ -188,6 +189,7 @@ func fixCommand() *cobra.Command {
 			silenceArgArray := getArgArray(cmd, silenceFlag)
 			silenceArray, err := getSilenceRules(silenceArgArray)
 			localModeManuallyProvided := cmd.Flags().Changed(modeFlag)
+			skipSignCheck := getArgBool(cmd, skipSignCheckFlag)
 
 			if err != nil {
 				return common.FallbackPrintableMsg(err, "failed parsing silence rules")
@@ -301,7 +303,7 @@ func fixCommand() *cobra.Command {
 			slog.Debug("fixes available", "mode", fixModeUsed, "available", len(availableFixes))
 			if len(availableFixes) > 0 {
 				slog.Info("attempting to apply fixes", "mode", fixModeUsed, "available", len(availableFixes))
-				fixes, err = fixPhase.Fix(availableFixes) // fixes can be null
+				fixes, err = fixPhase.Fix(availableFixes, skipSignCheck) // fixes can be null
 				if err != nil {
 					return common.FallbackPrintableMsg(err, "failed performing fix")
 				}
@@ -330,6 +332,7 @@ func fixCommand() *cobra.Command {
 
 	cmd.Flags().String(summaryFlag, "", "output fix summary to path")
 	cmd.Flags().String(modeFlag, "local", fmt.Sprintf("Fix mode, options: [%s|%s|%s]", phase.FixModeLocal, phase.FixModeRemote, phase.FixModeAll))
+	cmd.Flags().Bool(skipSignCheckFlag, false, "skip signatures check")
 	cmd.Flags().StringArray(silenceFlag, []string{}, "silence false-positive packages in the format of 'packageName@version'")
 	return cmd
 }

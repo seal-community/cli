@@ -22,6 +22,10 @@ type Backend interface {
 	QuerySilenceRules() ([]SilenceRule, error)
 
 	QueryMavenGroupIds(lookup *MavenGroupIDLookupList) (*Page[MavenGroupIDLookupResult], error)
+
+	GetPublicKey() (string, error)
+
+	GetSignatures(query *ArtifactUniqueIdentifierList) ([]ArtifactMetadataResponse, error)
 }
 
 var ArtifactServerUnsupportedMethod = errors.New("unsupported http method")

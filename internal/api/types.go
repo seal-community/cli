@@ -146,3 +146,18 @@ type MavenGroupIDLookupResult struct {
 	MavenGroupIDLookup
 	GroupId string `json:"group_id"`
 }
+
+type ArtifactUniqueIdentifier struct {
+	LibraryVersionId string  `json:"library_version_id"`
+	FileName         string  `json:"file_name"`
+	Architecture     *string `json:"architecture"`
+}
+
+type ArtifactUniqueIdentifierList struct {
+	Entries []ArtifactUniqueIdentifier `json:"entries"`
+}
+
+type ArtifactMetadataResponse struct {
+	ArtifactUniqueIdentifier
+	SealSignature string `json:"seal_signature"`
+}

@@ -62,6 +62,14 @@ func (be *fakeBackend) QueryMavenGroupIds(lookup *api.MavenGroupIDLookupList) (*
 	panic("not implemented")
 }
 
+func (be *fakeBackend) GetPublicKey() (string, error) {
+	panic("not implemented")
+}
+
+func (be *fakeBackend) GetSignatures(query *api.ArtifactUniqueIdentifierList) ([]api.ArtifactMetadataResponse, error) {
+	panic("not implemented")
+}
+
 func TestBulkQuerySingleChunk(t *testing.T) {
 	be := &fakeBackend{m: &sync.Mutex{}}
 	_, err := fetchPackagesInfo(be, []common.Dependency{

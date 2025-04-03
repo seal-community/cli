@@ -269,3 +269,25 @@ func (s CliJfrogServer) QueryMavenGroupIds(lookup *MavenGroupIDLookupList) (*Pag
 
 	return &resp, nil
 }
+
+func (s CliJfrogServer) GetPublicKey() (string, error) {
+
+	params := []StringPair{}
+	var resp string
+	if _, err := s.sendPayload("/signature/public_key", nil, params, &resp); err != nil {
+		return "", err
+	}
+
+	return resp, nil
+}
+
+func (s CliJfrogServer) GetSignatures(query *ArtifactUniqueIdentifierList) ([]ArtifactMetadataResponse, error) {
+	params := []StringPair{}
+
+	var resp []ArtifactMetadataResponse
+	if _, err := s.sendPayload("/bulk_query_artifact_metadata", query, params, &resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
