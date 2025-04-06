@@ -1,15 +1,17 @@
 package phase
 
 import (
+	"cli/internal/actions"
 	"cli/internal/api"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"runtime/debug"
+
+	"golang.org/x/sync/errgroup"
 )
 
 const ConcurrentDownloadCount = 10
@@ -80,7 +82,6 @@ func packageDownloadWorker(ctx context.Context, artifactServer api.ArtifactServe
 		}
 	}
 }
-
 func cleanWorkdir(fixer shared.DependencyFixer, err *error) {
 	if *err == nil {
 		slog.Debug("cleaning up original folders")
@@ -231,42 +232,62 @@ func (fp *fixPhase) QuerySilenceRules() ([]api.SilenceRule, error) {
 }
 
 // combine fix + vulnerable + dependency information for same package
-func buildDescriptorsForFixes(scanResult ScanResult, fixedPackages []api.PackageVersion, overrideMethod shared.OverriddenMethod) ([]shared.DependencyDescriptor, error) {
+func buildDescriptorsForFixes(scanResult ScanResult, fixedPackages []api.PackageVersion, overrideMethod shared.OverriddenMethod, managerClass actions.ManagerClass) ([]shared.DependencyDescriptor, error) {
 	// use a map from origin id to the new dependency descriptor struct, so we can update it with the server response
-	descs := make(map[string]*shared.DependencyDescriptor)
+	descs := make(map[string][]*shared.DependencyDescriptor)
 	for i := range scanResult.Vulnerable { // index since going to use pointer to the struct
 		vulnerable := scanResult.Vulnerable[i]
-		locations := scanResult.AllDependencies[vulnerable.Id()]
-
-		descriptor := shared.DependencyDescriptor{
-			VulnerablePackage: &vulnerable,
-			Locations:         make(map[string]common.Dependency),
-			FixedLocations:    make([]string, 0, len(locations)),
-			AvailableFix:      nil,
+		// When fixing OS managers, a dependency may require a fix in multiple archs,
+		// so we duplicate the entries by architecture.
+		// This is irrelevant for non-OS managers."
+		if managerClass == actions.OsManager {
+			populateDescriptorsWithDifferentArch(scanResult, vulnerable, descs)
+		} else {
+			populateDescriptorsWithDifferentLocation(scanResult, vulnerable, descs)
 		}
-
-		for _, loc := range locations {
-			descriptor.Locations[loc.DiskPath] = *loc
-		}
-
-		descs[vulnerable.OriginId()] = &descriptor
 	}
-
 	availableFixes := make([]shared.DependencyDescriptor, 0, len(fixedPackages))
 	for i := range fixedPackages { // index since going to use pointer to the struct
 		pkg := fixedPackages[i]
-		desc, exists := descs[pkg.OriginId()]
+		descArray, exists := descs[pkg.OriginId()]
 		if !exists {
 			slog.Warn("fixed package origin id was not found in vulnerable ids map", "origin", pkg.OriginId())
 			continue
 		}
-
-		desc.AvailableFix = &pkg
-		desc.OverrideMethod = overrideMethod
-		availableFixes = append(availableFixes, *desc)
+		for _, desc := range descArray {
+			desc.AvailableFix = &pkg
+			desc.OverrideMethod = overrideMethod
+			availableFixes = append(availableFixes, *desc)
+		}
 	}
-
 	return availableFixes, nil
+}
+
+func populateDescriptorsWithDifferentLocation(scanResult ScanResult, vulnerable api.PackageVersion, descs map[string][]*shared.DependencyDescriptor) {
+	locations := scanResult.AllDependencies[vulnerable.Id()]
+	descriptor := shared.DependencyDescriptor{
+		VulnerablePackage: &vulnerable,
+		Locations:         make(map[string]common.Dependency),
+		FixedLocations:    make([]string, 0, len(locations)),
+		AvailableFix:      nil,
+	}
+	for _, loc := range locations {
+		descriptor.Locations[loc.DiskPath] = *loc
+	}
+	descs[vulnerable.OriginId()] = append(descs[vulnerable.OriginId()], &descriptor)
+}
+
+func populateDescriptorsWithDifferentArch(scanResult ScanResult, vulnerable api.PackageVersion, descs map[string][]*shared.DependencyDescriptor) {
+	for _, deps := range scanResult.AllDependencies[vulnerable.Id()] {
+		descriptor := shared.DependencyDescriptor{
+			VulnerablePackage: &vulnerable,
+			Locations:         make(map[string]common.Dependency),
+			FixedLocations:    make([]string, 0, 1),
+			AvailableFix:      nil,
+		}
+		descriptor.Locations[deps.DiskPath] = *deps
+		descs[vulnerable.OriginId()] = append(descs[vulnerable.OriginId()], &descriptor)
+	}
 }
 
 // fetches the available fixes according the the fix mode
@@ -297,8 +318,7 @@ func (fp *fixPhase) GetAvailableFixes(scanResult *ScanResult, mode FixMode) ([]s
 		slog.Error("failed querying fixes", "err", err)
 		return nil, common.FallbackPrintableMsg(err, "failed querying fixes")
 	}
-
-	return buildDescriptorsForFixes(*scanResult, fixedPackages, overrideMethod)
+	return buildDescriptorsForFixes(*scanResult, fixedPackages, overrideMethod, fp.Manager.Class())
 }
 
 func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor, skipSignChecks bool) (_ []shared.DependencyDescriptor, err error) {

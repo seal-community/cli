@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 )
 
 var includeArchPackageManagers = []string{mappings.ApkManager}
@@ -52,6 +53,8 @@ func createSignaturesQuery(packages []shared.PackageDownload) (api.ArtifactUniqu
 		})
 	}
 
+	// adding sort for deterministic order in request
+	slices.SortFunc(uids, func(a, b api.ArtifactUniqueIdentifier) int { return strings.Compare(a.FileName, b.FileName) })
 	return api.ArtifactUniqueIdentifierList{Entries: uids}, nil
 }
 
