@@ -22,6 +22,10 @@ type CliJfrogServer struct {
 	authHeader StringPair
 }
 
+type PublicKeyResponse struct {
+	PublicKey string `json:"public_key"`
+}
+
 const payloadParamName = "extra"
 const jfrogQueryParamLimit = 7000 // tested to work via JFrog, length of entire query string
 
@@ -273,12 +277,13 @@ func (s CliJfrogServer) QueryMavenGroupIds(lookup *MavenGroupIDLookupList) (*Pag
 func (s CliJfrogServer) GetPublicKey() (string, error) {
 
 	params := []StringPair{}
-	var resp string
+	var resp PublicKeyResponse
+
 	if _, err := s.sendPayload("/signature/public_key", nil, params, &resp); err != nil {
 		return "", err
 	}
 
-	return resp, nil
+	return resp.PublicKey, nil
 }
 
 func (s CliJfrogServer) GetSignatures(query *ArtifactUniqueIdentifierList) ([]ArtifactMetadataResponse, error) {
