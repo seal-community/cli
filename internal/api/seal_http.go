@@ -10,6 +10,7 @@ import (
 
 const SealVersionHeader = "X-Seal-Version"
 const SealSessionIdHeader = "X-Seal-CLI-Session-ID"
+const SealStartTimeHeader = "X-Seal-CLI-Start-Time"
 
 var BadServerResponseCode = common.NewPrintableError("remote server issue")
 
@@ -46,6 +47,7 @@ func sendSealRequest[RequestType any](client http.Client, method string, url str
 		{Name: "Content-Type", Value: "application/json"},
 		{Name: SealVersionHeader, Value: common.CliVersion},
 		{Name: SealSessionIdHeader, Value: common.SessionId},
+		{Name: SealStartTimeHeader, Value: common.CliStartTime.Format(common.StartTimeLayout)},
 		{Name: "User-Agent", Value: FormatUserAgent()},
 	}
 

@@ -302,6 +302,37 @@ func TestCustomHeaderCliVersion(t *testing.T) {
 	_, _, _ = sendSealRequestJson[any, any](client, method, url, nil, nil, nil)
 }
 
+func TestCustomHeaderCliStartTime(t *testing.T) {
+	// IMPORTANT: this will fail if run from vs code, see .vscode/settings.json
+	fakeRoundTripper := FakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
+
+		timeValues := req.Header.Values(SealStartTimeHeader)
+		if len(timeValues) == 0 {
+			t.Fatalf("no cli start time header")
+		}
+
+		if len(timeValues) > 1 {
+			t.Fatalf("multple cli start time headers %v", timeValues)
+		}
+
+		startTime := timeValues[0]
+		if startTime == "" {
+			t.Fatalf("empty startTime header value")
+		}
+
+		if startTime != common.CliStartTime.Format(common.StartTimeLayout) {
+			t.Fatalf("wrong startTime header value - got `%s` expected `%s`", startTime, common.CliStartTime)
+		}
+	}}
+
+	client := http.Client{Transport: fakeRoundTripper}
+
+	method := "POST"
+	url := "https://seal/a/url/endpoint"
+
+	_, _, _ = sendSealRequestJson[any, any](client, method, url, nil, nil, nil)
+}
+
 func TestSessionIdHeaderAdded(t *testing.T) {
 	// IMPORTANT: this will fail if run from vs code, see .vscode/settings.json
 	fakeRoundTripper := FakeRoundTripper{statusCode: 200, Validator: func(req *http.Request) {
