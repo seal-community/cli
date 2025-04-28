@@ -6,17 +6,19 @@ import (
 	"cli/internal/api"
 	"cli/internal/clients/blackduck"
 	"cli/internal/clients/dependabot"
+	"cli/internal/clients/ox"
 	"cli/internal/common"
 	"cli/internal/ecosystem/shared"
 	"cli/internal/phase"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 const summaryFlag = "summarize"
@@ -311,6 +313,7 @@ func fixCommand() *cobra.Command {
 				slog.Info("checking callbacks")
 				fixPhase.HandleCallbacks(fixes, nil, &blackduck.BlackDuckCallback{Config: fixPhase.Config})
 				fixPhase.HandleCallbacks(fixes, result.Vulnerable, &dependabot.DependabotCallback{Config: fixPhase.Config})
+				fixPhase.HandleCallbacks(fixes, nil, &ox.OxCallback{Config: fixPhase.Config})
 			}
 
 			silenced := make(map[string][]string, 0)

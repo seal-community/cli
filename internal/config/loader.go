@@ -72,6 +72,13 @@ type DependabotConfig struct {
 	Repo  string          `yaml:"repo"      env:"REPO"`
 }
 
+type OxConfig struct {
+	Url                          string          `yaml:"url"       env:"URL"`
+	Token                        SensitiveString `yaml:"token"     env:"TOKEN"`
+	Application                  string          `yaml:"application" env:"APPLICATION"`
+	ExcludeWhenHighCriticalFixed bool            `yaml:"exclude-when-high-critical-fixed" env:"EXCLUDE_WHEN_HIGH_CRITICAL_FIXED"`
+}
+
 type ProjectInfo struct {
 	Targets []string `yaml:"targets"` // list of scan targets
 }
@@ -89,14 +96,14 @@ type JFrogConfig struct {
 }
 
 type Config struct {
-	Token    SensitiveString `yaml:"token"          env:"TOKEN"`
-	Project  string          `yaml:"project"        env:"PROJECT"`
-	Npm      NpmConfig       `yaml:"npm"            envPrefix:"NPM_"`
-	Pnpm     PnpmConfig      `yaml:"pnpm"           envPrefix:"PNPM_"`
-	Maven    MavenConfig     `yaml:"maven"          envPrefix:"MAVEN_"`
-	Python   PythonConfig    `yaml:"python"         envPrefix:"PYTHON_"`
-	Composer ComposerConfig  `yaml:"composer"       envPrefix:"PHPCOMPOSER_"`
-
+	Token      SensitiveString  `yaml:"token"          env:"TOKEN"`
+	Project    string           `yaml:"project"        env:"PROJECT"`
+	Npm        NpmConfig        `yaml:"npm"            envPrefix:"NPM_"`
+	Pnpm       PnpmConfig       `yaml:"pnpm"           envPrefix:"PNPM_"`
+	Maven      MavenConfig      `yaml:"maven"          envPrefix:"MAVEN_"`
+	Python     PythonConfig     `yaml:"python"         envPrefix:"PYTHON_"`
+	Composer   ComposerConfig   `yaml:"composer"       envPrefix:"PHPCOMPOSER_"`
+	Ox         OxConfig         `yaml:"ox"             envPrefix:"OX_"`
 	BlackDuck  BlackDuckConfig  `yaml:"blackduck" envPrefix:"BLACKDUCK_"`
 	Dependabot DependabotConfig `yaml:"dependabot" envPrefix:"DEPENDABOT_"`
 
