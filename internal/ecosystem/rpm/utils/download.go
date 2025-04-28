@@ -19,17 +19,26 @@ func getOsVersion(libraryVersion string) string {
 	return matches[1]
 }
 
-func buildUri(name string, version string, arch string) string {
+// Build the URI for the RPM package
+// The URI format is:
+// centos/<os>/<arch>/Packages/<prefixMode>/<name>-<version>.<arch>.rpm
+// e.g. centos/7/x86_64/Packages/noprefix/openssl-1.0.2k-19.el7.x86_64.rpm
+// and for prefixed packages - centos/7/x86_64/Packages/openssl-1.0.2k-19.el7.x86_64.rpm
+func buildUri(name string, version string, arch string, useSealedName bool) string {
 	os := getOsVersion(version)
+	prefixMode := ""
+	if !useSealedName {
+		prefixMode = "noprefix/"
+	}
 	_, noEpochVersion := common.GetNoEpochVersion(version)
 
-	return fmt.Sprintf("centos/%s/%s/Packages/%s-%s.%s.rpm", os, arch, name, noEpochVersion, arch)
+	return fmt.Sprintf("centos/%s/%s/Packages/%s%s-%s.%s.rpm", os, arch, prefixMode, name, noEpochVersion, arch)
 }
 
-func DownloadRpmPackage(s api.ArtifactServer, name string, version string, arch string) ([]byte, string, error) {
+func DownloadRpmPackage(s api.ArtifactServer, name string, version string, arch string, useSealedName bool) ([]byte, string, error) {
 	defer common.ExecutionTimer().Log()
 
-	uri := buildUri(name, version, arch)
+	uri := buildUri(name, version, arch, useSealedName)
 	filename := common.FileNameFromUri(uri)
 	libraryData, err := shared.DownloadFile(s, uri)
 

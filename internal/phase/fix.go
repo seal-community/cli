@@ -377,7 +377,7 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor, skipSignCh
 
 	// verify seal signatures on the artifacts
 	if !skipSignChecks {
-		err := verifyPackagesSingatures(fp.Backend, results)
+		err := verifyPackagesSingatures(fp.Backend, results, fp.Config.UseSealedNames)
 		if err != nil {
 			slog.Error("failed validating signatures", "err", err)
 			return nil, common.FallbackPrintableMsg(err, "failed validating package signatures")

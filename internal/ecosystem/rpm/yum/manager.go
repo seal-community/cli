@@ -112,7 +112,7 @@ func (m *YumPackageManager) DownloadPackage(server api.ArtifactServer, descripto
 		return nil, "", fmt.Errorf("failed to find arch for package")
 	}
 
-	return utils.DownloadRpmPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, arch)
+	return utils.DownloadRpmPackage(server, descriptor.AvailableFix.Library.Name, descriptor.AvailableFix.Version, arch, m.Config.UseSealedNames)
 }
 
 // Installs all the sealed libraries in one yum transaction

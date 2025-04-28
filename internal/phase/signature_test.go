@@ -16,6 +16,78 @@ func TestExtractMessage(t *testing.T) {
 	}
 }
 
+func TestGetArchForQuerySanity(t *testing.T) {
+	arch := "x86_64"
+	pkg := api.PackageVersion{
+		Version:                         "4.17.11",
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.ApkManager},
+		RecommendedLibraryVersionId:     "111",
+		RecommendedLibraryVersionString: "4.17.11-sp1",
+	}
+
+	dep := shared.DependencyDescriptor{
+		VulnerablePackage: &pkg,
+		Locations:         map[string]common.Dependency{"": {Arch: arch}},
+	}
+
+	res, err := getArchForQuery(dep)
+	if err != nil {
+		t.Fatalf("expected to get arch for query")
+	}
+
+	if *res != arch {
+		t.Fatalf("expected %s, got %s", arch, *res)
+	}
+}
+
+func TestGetArchForQueryNil(t *testing.T) {
+	arch := "x86_64"
+	pkg := api.PackageVersion{
+		Version:                         "4.17.11",
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.NpmManager},
+		RecommendedLibraryVersionId:     "111",
+		RecommendedLibraryVersionString: "4.17.11-sp1",
+	}
+
+	dep := shared.DependencyDescriptor{
+		VulnerablePackage: &pkg,
+		Locations:         map[string]common.Dependency{"": {Arch: arch}},
+	}
+
+	res, err := getArchForQuery(dep)
+	if err != nil {
+		t.Fatalf("expected to get arch for query")
+	}
+
+	if res != nil {
+		t.Fatalf("expected %s, got %s", arch, *res)
+	}
+}
+
+func TestGetArchForQueryError(t *testing.T) {
+	arch := "x86_32"
+	pkg := api.PackageVersion{
+		Version:                         "4.17.11",
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.ApkManager},
+		RecommendedLibraryVersionId:     "111",
+		RecommendedLibraryVersionString: "4.17.11-sp1",
+	}
+
+	dep := shared.DependencyDescriptor{
+		VulnerablePackage: &pkg,
+		Locations:         map[string]common.Dependency{"": {Arch: arch}},
+	}
+
+	res, err := getArchForQuery(dep)
+	if err == nil {
+		t.Fatalf("expected to get error")
+	}
+
+	if res != nil {
+		t.Fatalf("expected nil, got %s", *res)
+	}
+}
+
 func TestCreateSignaturesQuery(t *testing.T) {
 	pkg := api.PackageVersion{
 		Version:                         "4.17.11",
@@ -41,7 +113,7 @@ func TestCreateSignaturesQuery(t *testing.T) {
 		ArtifactFileName: "artifact",
 	}
 
-	res, err := createSignaturesQuery([]shared.PackageDownload{pd})
+	res, err := createSignaturesQuery([]shared.PackageDownload{pd}, false)
 	if err != nil {
 		t.Fatalf("expected to create signatures query")
 	}
@@ -65,6 +137,9 @@ func TestCreateSignaturesQuery(t *testing.T) {
 		t.Fatalf("expected nil, got %v", entry.Architecture)
 	}
 
+	if entry.IsRenamed != nil {
+		t.Fatalf("expected nil, got %v", entry.IsRenamed)
+	}
 }
 
 func TestCreateSignaturesQueryWithArch(t *testing.T) {
@@ -98,7 +173,7 @@ func TestCreateSignaturesQueryWithArch(t *testing.T) {
 		ArtifactFileName: "artifact",
 	}
 
-	res, err := createSignaturesQuery([]shared.PackageDownload{pd})
+	res, err := createSignaturesQuery([]shared.PackageDownload{pd}, false)
 	if err != nil {
 		t.Fatalf("expected to create signatures query")
 	}
@@ -120,6 +195,55 @@ func TestCreateSignaturesQueryWithArch(t *testing.T) {
 
 	if *(entry.Architecture) != "x86_64" {
 		t.Fatalf("expected x86_64, got %v", *(entry.Architecture))
+	}
+
+	if entry.IsRenamed != nil {
+		t.Fatalf("expected nil, got %v", entry.IsRenamed)
+	}
+}
+
+func TestCreateSignaturesQueryWithRenamed(t *testing.T) {
+	pkg := api.PackageVersion{
+		Version:                         "4.17.11",
+		Library:                         api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.RpmManager},
+		RecommendedLibraryVersionId:     "111",
+		RecommendedLibraryVersionString: "4.17.11-sp1",
+	}
+
+	fixPkg := api.PackageVersion{
+		Version:   "4.17.11-sp1",
+		VersionId: "111",
+		Library:   api.Package{NormalizedName: "lodash", Name: "lodash", PackageManager: mappings.RpmManager},
+	}
+
+	dep := shared.DependencyDescriptor{
+		VulnerablePackage: &pkg,
+		AvailableFix:      &fixPkg,
+		FixedLocations:    []string{""},
+	}
+
+	pd := shared.PackageDownload{
+		Entry:            dep,
+		Data:             []byte("aaaa"),
+		ArtifactFileName: "artifact",
+	}
+
+	useSealedNamesValues := []bool{true, false}
+	for _, useSealedNames := range useSealedNamesValues {
+		res, err := createSignaturesQuery([]shared.PackageDownload{pd}, useSealedNames)
+		if err != nil {
+			t.Fatalf("expected to create signatures query")
+		}
+
+		entries := res.Entries
+		if len(entries) != 1 {
+			t.Fatalf("expected 1 request, got %d", len(entries))
+		}
+
+		entry := entries[0]
+		if *entry.IsRenamed != useSealedNames {
+			t.Fatalf("expected %v, got %v", useSealedNames, *(entry.IsRenamed))
+		}
 	}
 
 }

@@ -1,6 +1,9 @@
 package utils
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 func TestGetOSVersion(t *testing.T) {
 	tests := []struct {
@@ -52,43 +55,49 @@ func TestGetOSVersion(t *testing.T) {
 func TestBuildUri(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    []string
+		input    []string // name, version, arch, useSealedName
 		expected string
 	}{
 		{
 			name:     "Test 1",
-			input:    []string{"acl", "2.2.53-3.el8", "x86_64"},
+			input:    []string{"acl", "2.2.53-3.el8", "x86_64", "true"},
 			expected: "centos/8/x86_64/Packages/acl-2.2.53-3.el8.x86_64.rpm",
 		},
 		{
 			name:     "Test 2",
-			input:    []string{"acl", "2.2.53-3.el7", "x86_64"},
+			input:    []string{"acl", "2.2.53-3.el7", "x86_64", "true"},
 			expected: "centos/7/x86_64/Packages/acl-2.2.53-3.el7.x86_64.rpm",
 		},
 		{
 			name:     "Test 3",
-			input:    []string{"acl", "2.2.53-3.el6", "x86_64"},
+			input:    []string{"acl", "2.2.53-3.el6", "x86_64", "true"},
 			expected: "centos/6/x86_64/Packages/acl-2.2.53-3.el6.x86_64.rpm",
 		},
 		{
 			name:     "Test 4",
-			input:    []string{"acl", "2.2.53-3.el5", "x86_64"},
+			input:    []string{"acl", "2.2.53-3.el5", "x86_64", "true"},
 			expected: "centos/5/x86_64/Packages/acl-2.2.53-3.el5.x86_64.rpm",
 		},
 		{
 			name:     "Test 5",
-			input:    []string{"acl", "2.2.53-3.el4", "noarch"},
+			input:    []string{"acl", "2.2.53-3.el4", "noarch", "true"},
 			expected: "centos/4/noarch/Packages/acl-2.2.53-3.el4.noarch.rpm",
 		},
 		{
 			name:     "Test 6",
-			input:    []string{"acl", "1:2.2.53-3.el4", "noarch"},
+			input:    []string{"acl", "1:2.2.53-3.el4", "noarch", "true"},
 			expected: "centos/4/noarch/Packages/acl-2.2.53-3.el4.noarch.rpm",
+		},
+		{
+			name:     "Test 7",
+			input:    []string{"acl", "1:2.2.53-3.el4", "noarch", "false"},
+			expected: "centos/4/noarch/Packages/noprefix/acl-2.2.53-3.el4.noarch.rpm",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := buildUri(tt.input[0], tt.input[1], tt.input[2])
+			useSealedName, _ := strconv.ParseBool(tt.input[3])
+			result := buildUri(tt.input[0], tt.input[1], tt.input[2], useSealedName)
 			if result != tt.expected {
 				t.Errorf("expected %s, got %s", tt.expected, result)
 			}

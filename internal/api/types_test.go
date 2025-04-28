@@ -2,6 +2,8 @@ package api
 
 import (
 	"cli/internal/ecosystem/mappings"
+	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -187,5 +189,35 @@ func TestVersionId(t *testing.T) {
 
 	if vid := pv.Id(); vid != "NuGet|library@version" {
 		t.Fatalf("got %s", vid)
+	}
+}
+
+func TestArtifactUniqueIdentifier(t *testing.T) {
+	var isRenamedPtr *bool
+	uniqueIdentifier := ArtifactUniqueIdentifier{
+		LibraryVersionId: "1111",
+		FileName:         "filename",
+		Architecture:     nil,
+		IsRenamed:        isRenamedPtr,
+	}
+
+	marshal_bytes, err := json.Marshal(uniqueIdentifier)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+	marshal_string := string(marshal_bytes)
+	if strings.Contains(marshal_string, "is_renamed") {
+		t.Fatalf("expected is_renamed to be omitted")
+	}
+
+	isRenamed := true
+	uniqueIdentifier.IsRenamed = &isRenamed
+	marshal_bytes, err = json.Marshal(uniqueIdentifier)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+	marshal_string = string(marshal_bytes)
+	if !strings.Contains(marshal_string, "is_renamed") {
+		t.Fatalf("expected is_renamed to be present")
 	}
 }

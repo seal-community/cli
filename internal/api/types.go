@@ -151,6 +151,8 @@ type ArtifactUniqueIdentifier struct {
 	LibraryVersionId string  `json:"library_version_id"`
 	FileName         string  `json:"file_name"`
 	Architecture     *string `json:"architecture"`
+	// Send only for package managers that store renamed packages in the backend (e.g. rpm)
+	IsRenamed *bool `json:"is_renamed,omitempty"`
 }
 
 type ArtifactUniqueIdentifierList struct {

@@ -14,6 +14,7 @@ import (
 )
 
 var includeArchPackageManagers = []string{mappings.ApkManager}
+var includeIsRenamedPackageManagers = []string{mappings.RpmManager}
 
 var hostArchToBackendArch = map[string]string{
 	"amd64":  "x86_64",
@@ -24,32 +25,45 @@ var hostArchToBackendArch = map[string]string{
 	"noarch": "any",
 }
 
+func getArchForQuery(dependency shared.DependencyDescriptor) (*string, error) {
+	if !slices.Contains(includeArchPackageManagers, dependency.VulnerablePackage.Library.PackageManager) {
+		return nil, nil
+	}
+
+	// OS dependencies have `""` as their location
+	backendArch, ok := hostArchToBackendArch[dependency.Locations[""].Arch]
+	if !ok {
+		slog.Error("failed to map host arch to backend arch", "hostArch", dependency.Locations[""].Arch)
+		return nil, fmt.Errorf("unsupported architecture %s", dependency.Locations[""].Arch)
+	}
+
+	return &backendArch, nil
+}
+
 // creates the query to get the signatures for the packages from the backend
 // includes architecture information for package managers that require it
 // otherwise uses nil which means all architectures
 // should be unique because of the filename, or use architecture if not
-func createSignaturesQuery(packages []shared.PackageDownload) (api.ArtifactUniqueIdentifierList, error) {
+func createSignaturesQuery(packages []shared.PackageDownload, useSealedNames bool) (api.ArtifactUniqueIdentifierList, error) {
 	uids := make([]api.ArtifactUniqueIdentifier, 0, len(packages))
 	for _, downloadedPackage := range packages {
-		var arch string = ""
-		if slices.Contains(includeArchPackageManagers, downloadedPackage.Entry.VulnerablePackage.Library.PackageManager) {
-			if backendArch, ok := hostArchToBackendArch[downloadedPackage.Entry.Locations[""].Arch]; ok {
-				arch = backendArch
-			} else {
-				slog.Error("failed to map host arch to backend arch", "hostArch", downloadedPackage.Entry.Locations[""].Arch)
-				return api.ArtifactUniqueIdentifierList{}, fmt.Errorf("unsupported architecture %s", downloadedPackage.Entry.Locations[""].Arch)
-			}
+		archPtr, err := getArchForQuery(downloadedPackage.Entry)
+		if err != nil {
+			slog.Error("failed getting arch for query", "err", err)
+			return api.ArtifactUniqueIdentifierList{}, err
 		}
 
-		var archPtr *string = nil
-		if arch != "" {
-			archPtr = &arch
+		var isRenamedPtr *bool // nil means dont send `is_renamed` meaning get all artifacts
+		// use only for package managers that store renamed packages in the backend
+		if slices.Contains(includeIsRenamedPackageManagers, downloadedPackage.Entry.VulnerablePackage.Library.PackageManager) {
+			isRenamedPtr = &useSealedNames
 		}
 
 		uids = append(uids, api.ArtifactUniqueIdentifier{
 			LibraryVersionId: downloadedPackage.Entry.AvailableFix.VersionId,
 			FileName:         downloadedPackage.ArtifactFileName,
 			Architecture:     archPtr,
+			IsRenamed:        isRenamedPtr,
 		})
 	}
 
@@ -114,7 +128,7 @@ func matchPackageToSignature(packages []shared.PackageDownload, signatures []api
 }
 
 // validates the signatures of the downloaded packages using the seal signatures from the backend
-func verifyPackagesSingatures(backend api.Backend, packages []shared.PackageDownload) error {
+func verifyPackagesSingatures(backend api.Backend, packages []shared.PackageDownload, useSealedNames bool) error {
 	// get the public key from the backend
 	publicKeyBase64, err := backend.GetPublicKey()
 	if err != nil {
@@ -129,7 +143,7 @@ func verifyPackagesSingatures(backend api.Backend, packages []shared.PackageDown
 	}
 
 	// collect the artifacts and get the signatures
-	query, err := createSignaturesQuery(packages)
+	query, err := createSignaturesQuery(packages, useSealedNames)
 	if err != nil {
 		slog.Error("failed creating signatures query", "err", err)
 		return err
