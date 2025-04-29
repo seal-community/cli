@@ -93,6 +93,8 @@ func rootCmd() *cobra.Command {
 	cmd.PersistentFlags().String(configFileKey, "", "path to config file")
 	cmd.PersistentFlags().String(actionsFileKey, "", "path to actions file")
 	cmd.PersistentFlags().Bool(uploadResultsKey, false, "upload scan results to server")
+	_ = cmd.PersistentFlags().MarkHidden(uploadResultsKey) // will still work, but will not be shown anywhere
+
 	cmd.PersistentFlags().String(filesystemFlag, "", "which files to use")
 	cmd.PersistentFlags().Bool(osFlag, false, "use OS mode, no target file needed")
 	cmd.PersistentFlags().Bool(cleanFlagKey, false, "clean up mode")
