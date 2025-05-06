@@ -408,20 +408,22 @@ func (fp *fixPhase) Fix(availableFixes []shared.DependencyDescriptor, skipSignCh
 		}
 	}
 
+	// Handle errors from download workers
+	if err := g.Wait(); err != nil {
+		slog.Error("failed waiting for downloader group", "err", err)
+		return nil, common.FallbackPrintableMsg(err, "failed downloading packages")
+	}
+
+	slog.Debug("finished downloading packages", "count", len(fixed))
+
+	// handle fixes only after all packages are downloaded
+	// this is to avoid partial fixes in case of failure
 	if len(fixed) > 0 {
 		slog.Debug("letting manager handle post fixes")
 		if err := fp.Manager.HandleFixes(fixed); err != nil {
 			slog.Error("manager failed to handle fixes", "err", err)
 			return nil, err
 		}
-	}
-
-	slog.Debug("finished downloading packages", "count", len(fixed))
-
-	// Handle errors from download workers
-	if err := g.Wait(); err != nil {
-		slog.Error("failed waiting for downloader group", "err", err)
-		return nil, common.FallbackPrintableMsg(err, "failed downloading packages")
 	}
 
 	return fixed, nil
