@@ -437,3 +437,40 @@ func TestBuildSealedVulnerabilitiesMappingMultipleVersionsOneAlert(t *testing.T)
 		t.Errorf("buildSealedVulnerabilitiesMapping() = %v, want %v", got, want)
 	}
 }
+
+func TestHandleAppliedFixesEmptyFixes(t *testing.T) {
+	vulnerableSmolToml := api.PackageVersion{
+		Version: "1.3.0",
+		Library: api.Package{NormalizedName: "smol-toml", Name: "smol-toml", PackageManager: mappings.NpmManager},
+		OpenVulnerabilities: []api.Vulnerability{
+			{GitHubAdvisoryID: "GHSA-pqhp-25j4-6hq9"},
+		},
+	}
+	vulnerable := []api.PackageVersion{
+		vulnerableSmolToml,
+	}
+
+	fakeRoundTripper := fakeRoundTripper{}
+
+	client := http.Client{Transport: &fakeRoundTripper}
+	c := DependabotClient{
+		Client: client,
+		Url:    "https://api.github.com",
+		Token:  "token",
+		Owner:  "owner-id",
+		Repo:   "repo-id",
+	}
+
+	err := handleAppliedFixes(&c, []shared.DependencyDescriptor{}, vulnerable)
+	if err != nil {
+		t.Errorf("HandleAppliedFixes() = %v, want nil", err)
+	}
+
+	fakeRoundTripper.CheckUrlCounter(
+		t,
+		map[string]int{
+			"https://api.github.com/repos/owner-id/repo-id/dependabot/alerts":    2,
+			"https://api.github.com/repos/owner-id/repo-id/dependabot/alerts/30": 1, // 30 is the dissmised alert
+		},
+	)
+}

@@ -26,7 +26,7 @@ type dependabotVulnerableComponent struct {
 type dependabotVulnerableComponents []dependabotVulnerableComponent
 
 type dependabotUpdateComponentVulnerabilityRemediation struct {
-	State            string `json:"state"`            // One of [open, dismissed]
-	DismissedReason  string `json:"dismissed_reason"` // One of [fix_started, inaccurate, no_bandwidth, not_used, tolerable_risk]
-	DismissedComment string `json:"dismissed_comment"`
+	State            string `json:"state"`                      // One of [open, dismissed]
+	DismissedReason  string `json:"dismissed_reason,omitempty"` // One of [fix_started, inaccurate, no_bandwidth, not_used, tolerable_risk]
+	DismissedComment string `json:"dismissed_comment,omitempty"`
 }

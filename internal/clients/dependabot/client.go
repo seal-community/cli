@@ -110,7 +110,7 @@ func (c *DependabotClient) getProjectAlerts(_per_page, page int) (*dependabotVul
 	params := []api.StringPair{
 		{Name: "per_page", Value: fmt.Sprintf("%d", _per_page)},
 		{Name: "page", Value: fmt.Sprintf("%d", page)},
-		{Name: "state", Value: openStatus},
+		{Name: "state", Value: "open,dismissed"},
 	}
 
 	headers, err := c.getHeaders()
@@ -142,23 +142,19 @@ func (c *DependabotClient) getProjectAlerts(_per_page, page int) (*dependabotVul
 
 func (c *DependabotClient) getAllVulnsInProject(vulnsChannel chan dependabotVulnerableComponent) error {
 	page := 1
-
 	for {
 		alerts, err := c.getProjectAlerts(per_page, page)
 		if err != nil {
 			slog.Debug("failed to get project alerts", "err", err)
 			return common.NewPrintableError("failed to update Dependabot. Could not fetch list of alerts for project")
 		}
-
 		if len(*alerts) == 0 {
 			slog.Debug("No more alerts. Exit the loop")
 			return nil
 		}
-
 		for _, vulnerableComponent := range *alerts {
 			vulnsChannel <- vulnerableComponent
 		}
-
 		page++
 	}
 }

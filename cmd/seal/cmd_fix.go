@@ -312,9 +312,11 @@ func fixCommand() *cobra.Command {
 
 				slog.Info("checking callbacks")
 				fixPhase.HandleCallbacks(fixes, nil, &blackduck.BlackDuckCallback{Config: fixPhase.Config})
-				fixPhase.HandleCallbacks(fixes, result.Vulnerable, &dependabot.DependabotCallback{Config: fixPhase.Config})
 				fixPhase.HandleCallbacks(fixes, nil, &ox.OxCallback{Config: fixPhase.Config})
 			}
+
+			// Always handle Dependabot callback to ensure alerts are unpatched when needed
+			fixPhase.HandleCallbacks(fixes, result.Vulnerable, &dependabot.DependabotCallback{Config: fixPhase.Config})
 
 			silenced := make(map[string][]string, 0)
 			if len(silenceArray) > 0 {
