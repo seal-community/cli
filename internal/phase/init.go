@@ -51,6 +51,7 @@ func createInternalSealFolder(projectDir string) (string, error) {
 	p := filepath.Join(projectDir, SealInternalFolderName)
 	err := os.RemoveAll(p)
 	if err != nil {
+		slog.Error("failed removing seal dir", "err", err)
 		return "", err
 	}
 
@@ -58,6 +59,7 @@ func createInternalSealFolder(projectDir string) (string, error) {
 
 	err = os.MkdirAll(p, os.ModePerm) // will allow it if exists
 	if err != nil {
+		slog.Error("failed making seal dir", "err", err)
 		return "", err
 	}
 

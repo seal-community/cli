@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"github.com/caarlos0/env/v10"
@@ -48,6 +49,11 @@ type PnpmConfig struct {
 type MavenConfig struct {
 	ProdOnlyDeps bool   `yaml:"prod-only"  env:"PROD_ONLY"`
 	CachePath    string `yaml:"cache-path" env:"CACHE_PATH"` // since maven uses global cache, we need to set a new cache folder so we can override packages as we please
+}
+
+type GradleConfig struct {
+	ProdOnlyDeps bool   `yaml:"prod-only"  env:"PROD_ONLY"`
+	HomePath     string `yaml:"home-path" env:"HOME_PATH"` // new target user home path to use a private copy of the gradle cache
 }
 
 type PythonConfig struct {
@@ -101,6 +107,7 @@ type Config struct {
 	Npm        NpmConfig        `yaml:"npm"            envPrefix:"NPM_"`
 	Pnpm       PnpmConfig       `yaml:"pnpm"           envPrefix:"PNPM_"`
 	Maven      MavenConfig      `yaml:"maven"          envPrefix:"MAVEN_"`
+	Gradle     GradleConfig     `yaml:"gradle"          envPrefix:"GRADLE_"`
 	Python     PythonConfig     `yaml:"python"         envPrefix:"PYTHON_"`
 	Composer   ComposerConfig   `yaml:"composer"       envPrefix:"PHPCOMPOSER_"`
 	Ox         OxConfig         `yaml:"ox"             envPrefix:"OX_"`
@@ -152,6 +159,13 @@ func validate(conf Config) *common.PrintableError {
 		if u.Scheme != "" {
 			slog.Error("jfrog host contains scheme", "scheme", u.Scheme, "host", host)
 			return InvalidJFrogHostScheme
+		}
+	}
+
+	if conf.Gradle.HomePath != "" {
+		if !filepath.IsAbs(conf.Gradle.HomePath) {
+			slog.Error("gradle home path must be absolute")
+			return common.NewPrintableError("gradle home must be an absolute path")
 		}
 	}
 

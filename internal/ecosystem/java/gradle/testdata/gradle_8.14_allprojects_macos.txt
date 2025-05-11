@@ -1,0 +1,6 @@
+
+------------------------------------------------------------
+Root project 'example-app'
+------------------------------------------------------------
+
+allprojects: [root project 'example-app', project ':app', project ':seal-dummy-project']

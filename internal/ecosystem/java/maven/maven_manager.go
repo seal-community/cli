@@ -73,7 +73,7 @@ func IsMavenIndicatorFile(path string) bool {
 }
 
 // works on dir
-func GetJavaIndicatorFile(path string) (string, error) {
+func GetMavenIndicatorFile(path string) (string, error) {
 	packageFile := filepath.Join(path, mavenIndicator)
 	exists, err := common.PathExists(packageFile)
 	if err != nil {

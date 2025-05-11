@@ -93,7 +93,7 @@ func TestGetJavaIndicatorFileAbsPath(t *testing.T) {
 	}
 	defer fi.Close()
 
-	p, err := GetJavaIndicatorFile(tmp)
+	p, err := GetMavenIndicatorFile(tmp)
 	if err != nil {
 		t.Fatalf("failed getting indicator %v", err)
 	}

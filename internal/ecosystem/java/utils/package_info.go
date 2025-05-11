@@ -11,8 +11,27 @@ import (
 type JavaPackageInfo struct {
 	OrgName      string
 	ArtifactName string
-	Version      string
-	Scope        string
+	Version      string // optional
+	Scope        string // optional
+}
+
+// almost the reverse of CreateJavaPackageInfo, but no artifact type ('jar')
+func (i *JavaPackageInfo) Id() string {
+
+	if i.OrgName == "" || i.ArtifactName == "" {
+		slog.Error("bad package info", "package-info", i)
+		return ""
+	}
+
+	if i.Scope != "" && i.Version != "" {
+		return fmt.Sprintf("%s:%s:%s:%s", i.OrgName, i.ArtifactName, i.Version, i.Scope)
+	}
+
+	if i.Version != "" {
+		return fmt.Sprintf("%s:%s:%s", i.OrgName, i.ArtifactName, i.Version)
+	}
+
+	return fmt.Sprintf("%s:%s", i.OrgName, i.ArtifactName)
 }
 
 // identifier format: orgName:artifactName:packageType:version:scope, for example:
@@ -96,4 +115,8 @@ func OrgNameToPath(orgName string) string {
 // for orgName: org.apache.commons will return: org/apache/commons
 func OrgNameToUrlPath(orgName string) string {
 	return strings.Replace(orgName, ".", "/", -1)
+}
+
+func FormatJavaPackageName(org, artifact string) string {
+	return fmt.Sprintf("%s:%s", org, artifact)
 }

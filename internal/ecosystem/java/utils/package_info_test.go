@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 )
@@ -88,6 +89,66 @@ func TestCreateJavaPackageInfo(t *testing.T) {
 				if result.Scope != test.expectedScope {
 					t.Fatalf("wrong result, expected: `%s` got: `%s`", test.expectedScope, result.Scope)
 				}
+			}
+		})
+	}
+}
+
+func TestJavaPackageInfoId(t *testing.T) {
+	tests := []struct {
+		identifier   string
+		OrgName      string
+		ArtifactName string
+		Version      string
+		Scope        string
+	}{
+		{"com.example:package:1.2.3:compile", "com.example", "package", "1.2.3", "compile"},
+		{"com.example:package:1.2.3", "com.example", "package", "1.2.3", ""},
+		{"com.example:package", "com.example", "package", "", ""},
+		{"com.example:package", "com.example", "package", "", "compile"},
+	}
+	for _, test := range tests {
+		t.Run(test.identifier, func(t *testing.T) {
+			pi := JavaPackageInfo{
+				OrgName:      test.OrgName,
+				ArtifactName: test.ArtifactName,
+				Version:      test.Version,
+				Scope:        test.Scope,
+			}
+
+			packageId := pi.Id()
+			if packageId != test.identifier {
+				t.Fatalf("got `%s`, expected `%s`", packageId, test.identifier)
+			}
+		})
+	}
+}
+
+func TestJavaPackageInfoIdBad(t *testing.T) {
+	tests := []struct {
+		OrgName      string
+		ArtifactName string
+		Version      string
+		Scope        string
+	}{
+		{"", "", "", ""},
+		{"org", "", "version", "scope"},
+		{"", "artifact", "version", "scope"},
+		{"", "", "version", "scope"},
+		{"", "", "", "scope"},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("case_%d", i), func(t *testing.T) {
+			pi := JavaPackageInfo{
+				OrgName:      test.OrgName,
+				ArtifactName: test.ArtifactName,
+				Version:      test.Version,
+				Scope:        test.Scope,
+			}
+
+			packageId := pi.Id()
+			if packageId != "" {
+				t.Fatalf("got `%s` instead of empty string", packageId)
 			}
 		})
 	}

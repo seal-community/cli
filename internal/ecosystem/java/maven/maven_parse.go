@@ -16,6 +16,7 @@ import (
 	"gonum.org/v1/gonum/graph/formats/dot/ast"
 )
 
+// seems like "" is returned for the modules of the project as roots
 var prodBuildScopes = []string{"compile", "runtime", ""}
 
 type dependencyParser struct {
@@ -35,7 +36,7 @@ func (parser *dependencyParser) addDepInstance(deps common.DependencyMap, packag
 		return
 	}
 
-	packageName := fmt.Sprintf("%s:%s", packageInfo.OrgName, packageInfo.ArtifactName)
+	packageName := utils.FormatJavaPackageName(packageInfo.OrgName, packageInfo.ArtifactName)
 	packagePath := utils.GetJavaPackagePath(cacheDir, packageName, packageInfo.Version)
 	metadataPath := filepath.Join(packagePath, shared.SealMetadataFileName)
 	artifactFileName := utils.GetPackageFileName(packageInfo.ArtifactName, packageInfo.Version)

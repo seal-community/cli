@@ -1,0 +1,17 @@
+Initialized native services in: /Users/senshou/Downloads/untitled folder/gr/.seal/native
+Initialized jansi services in: /Users/senshou/Downloads/untitled folder/gr/.seal/native
+
+------------------------------------------------------------
+Gradle 8.14
+------------------------------------------------------------
+
+Build time:    2025-04-25 09:29:08 UTC
+Revision:      34c560e3be961658a6fbcd7170ec2443a228b109
+
+Kotlin:        2.0.21
+Groovy:        3.0.24
+Ant:           Apache Ant(TM) version 1.10.15 compiled on August 25 2024
+Launcher JVM:  19.0.2 (Oracle Corporation 19.0.2+7-44)
+Daemon JVM:    /Library/Java/JavaVirtualMachines/jdk-19.jdk/Contents/Home (no JDK specified, using current Java home)
+OS:            Mac OS X 15.2 aarch64
+
